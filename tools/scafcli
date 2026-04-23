@@ -1,0 +1,7 @@
+#!/bin/bash
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+TOOL_DIR="$SCRIPT_DIR/scafcli-src"
+export TOOL_EXEC_MODE=dev-source
+export CLI_ROOT_DIR="${CLI_ROOT_DIR:-$(dirname "$SCRIPT_DIR")}"
+exec "$TOOL_DIR/.venv/bin/python" "$TOOL_DIR/cli.py" "$@"

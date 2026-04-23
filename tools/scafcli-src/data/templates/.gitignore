@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+
+# Test artifacts
+.pytest_cache/
+htmlcov/
+
+# Example stack runtime (PID files, logs)
+.run/
+
+# Environment files
+.env
+.env.*
+!.env.sample
+
+# AI Planning System (instance files are untracked)
+.ai/planning/prp/instances/
+.ai/planning/prp/proposals/
+.ai/planning/prp/archive/
+.ai/planning/prp/abandoned/
+.ai/scratch/
+
+# Node
+node_modules/
+dist/
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+/data/
+
+# VS Code
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db

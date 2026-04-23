@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["modules"],
+  "properties": {
+    "modules": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["files", "dirs", "snippets"],
+        "properties": {
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["src", "dest"],
+              "properties": {
+                "src": {"type": "string", "minLength": 1},
+                "dest": {"type": "string", "minLength": 1}
+              },
+              "additionalProperties": false
+            }
+          },
+          "templates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["src", "dest"],
+              "properties": {
+                "src": {"type": "string", "minLength": 1},
+                "dest": {"type": "string", "minLength": 1}
+              },
+              "additionalProperties": false
+            }
+          },
+          "template_dirs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["src", "dest"],
+              "properties": {
+                "src": {"type": "string", "minLength": 1},
+                "dest": {"type": "string", "minLength": 1}
+              },
+              "additionalProperties": false
+            }
+          },
+          "dirs": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1}
+          },
+          "snippets": {
+            "type": "object",
+            "additionalProperties": {"type": "string", "minLength": 1}
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
