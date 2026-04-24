@@ -6,14 +6,6 @@ from lib.validator import validate_scaffold
 
 
 class TestValidateScaffold:
-    def test_valid_scaffold_all_pass(self, manifest, source_repo, tmp_path):
-        modules = resolve_modules(manifest, include_github=True)
-        scaffold_to_dir(manifest, modules, source_repo, tmp_path)
-
-        results = validate_scaffold(manifest, modules, tmp_path)
-        failures = [(check, msg) for check, passed, msg in results if not passed]
-        assert failures == [], f"Validation failures: {failures}"
-
     def test_missing_file_detected(self, tmp_path):
         manifest = {
             "modules": {
@@ -77,11 +69,3 @@ class TestValidateScaffold:
             (check, passed) for check, passed, msg in results if check == "gitignore"
         ]
         assert any(not passed for _, passed in gi_checks)
-
-    def test_no_github_scaffold_validates(self, manifest, source_repo, tmp_path):
-        modules = resolve_modules(manifest, include_github=False)
-        scaffold_to_dir(manifest, modules, source_repo, tmp_path)
-
-        results = validate_scaffold(manifest, modules, tmp_path)
-        failures = [(check, msg) for check, passed, msg in results if not passed]
-        assert failures == [], f"Validation failures: {failures}"

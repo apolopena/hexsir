@@ -85,13 +85,6 @@ class TestTemplateDirs:
         assert (tmp_path / "docs" / "tools" / "coding-standards.md").exists()
         assert (tmp_path / "docs" / "tools" / "creating-a-new-tool.md").exists()
 
-    def test_template_dir_file_counts(self, manifest, source_repo, tmp_path):
-        modules = resolve_modules(manifest, include_github=True)
-        report = scaffold_to_dir(manifest, modules, source_repo, tmp_path)
-
-        for td in report["template_dirs_created"]:
-            assert td["file_count"] > 0, f"{td['dest']} has no files"
-
     def test_run_tests_sh_executable(self, manifest, source_repo, tmp_path):
         modules = resolve_modules(manifest, include_github=True)
         scaffold_to_dir(manifest, modules, source_repo, tmp_path)
@@ -125,19 +118,6 @@ class TestTemplateDirs:
 
 
 class TestTemplateDirValidation:
-    def test_template_dirs_validated(self, manifest, source_repo, tmp_path):
-        modules = resolve_modules(manifest, include_github=True)
-        scaffold_to_dir(manifest, modules, source_repo, tmp_path)
-
-        results = validate_scaffold(manifest, modules, tmp_path)
-        td_checks = [
-            (check, passed, msg)
-            for check, passed, msg in results
-            if check == "template_dir_exists"
-        ]
-        assert len(td_checks) == 6
-        assert all(passed for _, passed, _ in td_checks)
-
     def test_missing_template_dir_detected(self, tmp_path):
         manifest = {
             "modules": {

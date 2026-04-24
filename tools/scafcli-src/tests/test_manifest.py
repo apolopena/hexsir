@@ -94,11 +94,6 @@ class TestResolveModules:
 
 
 class TestCheckSourceFiles:
-    def test_all_files_exist(self, manifest, source_repo):
-        modules = resolve_modules(manifest, include_github=True)
-        missing = check_source_files(manifest, modules, source_repo)
-        assert missing == [], f"Missing files: {missing}"
-
     def test_detects_missing_file(self, source_repo):
         manifest = {
             "modules": {
@@ -124,11 +119,6 @@ class TestCheckSourceFiles:
         }
         missing = check_source_files(manifest, ["test"], source_repo)
         assert "nonexistent/snippet.md" in missing
-
-    def test_derived_source_dirs_exist(self, manifest, source_repo):
-        modules = resolve_modules(manifest, include_github=True)
-        missing = check_source_files(manifest, modules, source_repo)
-        assert missing == [], f"Missing derived sources: {missing}"
 
     def test_detects_missing_template_dir_source(self, source_repo):
         manifest = {

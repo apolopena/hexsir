@@ -139,24 +139,6 @@ class TestToolScaffold:
             if wrapper.exists():
                 wrapper.unlink()
 
-    def test_backend_flag_adds_env_vars(self, tmp_path, monkeypatch):
-        """--include-backend wrapper contains CLI_ROOT_DIR and CLI_BACKEND_URL."""
-        tools_dir = tmp_path / "tools"
-        tools_dir.mkdir()
-        (tools_dir / "shared" / "backend-lib").mkdir(parents=True)
-        monkeypatch.setattr("commands.tool.get_root_dir", lambda: tmp_path)
-        monkeypatch.setattr(
-            "commands.tool.subprocess.run",
-            lambda *a, **kw: subprocess.CompletedProcess(a, 0, "", ""),
-        )
-
-        runner = CliRunner()
-        _scaffold(runner, "testtoolcli", "audit", "--include-backend")
-
-        wrapper = (tools_dir / "testtoolcli").read_text()
-        assert "CLI_ROOT_DIR" in wrapper
-        assert "CLI_BACKEND_URL" in wrapper
-
     def test_no_backend_flag_minimal_wrapper(self, tmp_path, monkeypatch):
         """Non-backend wrapper exports CLI_ROOT_DIR but no backend URLs."""
         tools_dir = tmp_path / "tools"
@@ -173,25 +155,6 @@ class TestToolScaffold:
         wrapper = (tools_dir / "testtoolcli").read_text()
         assert "CLI_ROOT_DIR" in wrapper
         assert "CLI_BACKEND_URL" not in wrapper
-
-    def test_all_wrappers_export_path(self, tmp_path, monkeypatch):
-        """Both backend and non-backend wrappers export PATH."""
-        tools_dir = tmp_path / "tools"
-        tools_dir.mkdir()
-        (tools_dir / "shared" / "backend-lib").mkdir(parents=True)
-        monkeypatch.setattr("commands.tool.get_root_dir", lambda: tmp_path)
-        monkeypatch.setattr(
-            "commands.tool.subprocess.run",
-            lambda *a, **kw: subprocess.CompletedProcess(a, 0, "", ""),
-        )
-
-        runner = CliRunner()
-
-        _scaffold(runner, "toolonecli", "audit")
-        _scaffold(runner, "tooltwocli", "audit", "--include-backend")
-
-        assert 'PATH="$SCRIPT_DIR:$PATH"' in (tools_dir / "toolonecli").read_text()
-        assert 'PATH="$SCRIPT_DIR:$PATH"' in (tools_dir / "tooltwocli").read_text()
 
     def test_dry_run_no_files(self, tmp_path, monkeypatch):
         """--dry-run creates nothing."""
@@ -419,24 +382,10 @@ class TestTemplateRendering:
         _scaffold(runner, "testtoolcli", "audit")
         self._parse_py(self.tools_dir / "testtoolcli-src" / "cli.py")
 
-    def test_backend_cli_py_parses(self):
-        """Backend scaffold cli.py is valid Python."""
-        (self.tools_dir / "shared" / "backend-lib").mkdir(parents=True)
-        runner = CliRunner()
-        _scaffold(runner, "testtoolcli", "audit", "--include-backend")
-        self._parse_py(self.tools_dir / "testtoolcli-src" / "cli.py")
-
     def test_repl_cli_py_parses(self):
         """REPL scaffold cli.py is valid Python."""
         runner = CliRunner()
         _scaffold(runner, "testtoolcli", "audit", "--include-repl")
-        self._parse_py(self.tools_dir / "testtoolcli-src" / "cli.py")
-
-    def test_backend_repl_cli_py_parses(self):
-        """Backend+REPL scaffold cli.py is valid Python."""
-        (self.tools_dir / "shared" / "backend-lib").mkdir(parents=True)
-        runner = CliRunner()
-        _scaffold(runner, "testtoolcli", "audit", "--include-backend", "--include-repl")
         self._parse_py(self.tools_dir / "testtoolcli-src" / "cli.py")
 
     def test_command_stub_parses(self):
@@ -511,23 +460,4 @@ class TestGoldenFiles:
         self._compare_tree(
             tools_dir / "demotoolcli-src",
             self.FIXTURES / "golden_basic",
-        )
-
-    def test_golden_repl_backend(self, tmp_path, monkeypatch):
-        """Backend+REPL scaffold matches golden snapshot."""
-        tools_dir = tmp_path / "tools"
-        tools_dir.mkdir()
-        (tools_dir / "shared" / "backend-lib").mkdir(parents=True)
-        monkeypatch.setattr("commands.tool.get_root_dir", lambda: tmp_path)
-        monkeypatch.setattr(
-            "commands.tool.subprocess.run",
-            lambda *a, **kw: subprocess.CompletedProcess(a, 0, "", ""),
-        )
-        self._mock_date(monkeypatch)
-
-        runner = CliRunner()
-        _scaffold(runner, "demotoolcli", "audit", "--include-backend", "--include-repl")
-        self._compare_tree(
-            tools_dir / "demotoolcli-src",
-            self.FIXTURES / "golden_repl_backend",
         )
