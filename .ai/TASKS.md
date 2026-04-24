@@ -8,3 +8,5 @@
 - Configure `.claude/commands/prime-full-tooling.md` and `prime-quick-tooling.md` for this repo
   - Tool Suite: hexsircli, scafcli
   - Indexed-only: scripts/run-tests.sh
+- Update `.gitignore` with Python build artifact patterns
+- Remove project-specific scafcli tests
