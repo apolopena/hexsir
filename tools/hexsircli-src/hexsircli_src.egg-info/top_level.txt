@@ -1,4 +1,0 @@
-cli
-commands
-data
-lib

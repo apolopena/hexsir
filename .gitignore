@@ -2,12 +2,18 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.egg-info/
+.coverage
 .venv/
 venv/
 
 # Test artifacts
 .pytest_cache/
 htmlcov/
+
+# Tool build artifacts
+tools/*-src/build/
+tools/shared/*/build/
 
 # Example stack runtime (PID files, logs)
 .run/
@@ -40,3 +46,6 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Misc
+interim/
