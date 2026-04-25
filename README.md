@@ -1,3 +1,3 @@
-# Hexsir
+# Ravensmith
 
-Hexsir is a toolkit for safely exploring and modifying binary files by locating keys, probing structure, and preserving checksums.
+Single-player tools and original reverse engineering for Ravenswatch's proprietary oEngine — save editor, asset decipher, trainer foundations.
