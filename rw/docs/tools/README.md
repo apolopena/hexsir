@@ -8,5 +8,7 @@ Tools used for Ravenswatch RE work.
 |------|---------|
 | [rerw](rerw.md) | Ravenswatch-specific RE operations |
 | [hexsir](hexsir.md) | Generic binary probing |
+| [mem-snapshot](mem-snapshot.md) | Windows-only live memory diff for finding runtime field addresses |
 
-Both tools live in `tools/` at the repo root.
+`rerw` and `hexsir` live in `tools/` at the repo root. `mem-snapshot` is a
+standalone Windows script at `rw/scripts/windows/mem_snapshot.py`.

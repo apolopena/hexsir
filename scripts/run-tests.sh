@@ -219,7 +219,7 @@ validate_cli_tools() {
             echo -e "${RED}Empty CLI tool name in CLI_TOOLS${RESET}"
             exit 1
         fi
-        if [[ ! "$name" =~ ^[a-z]+cli$ ]]; then
+        if [[ ! "$name" =~ ^[a-z]+$ ]]; then
             echo -e "${RED}Invalid CLI tool name in CLI_TOOLS: $name${RESET}"
             exit 1
         fi

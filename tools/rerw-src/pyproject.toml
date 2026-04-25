@@ -9,6 +9,7 @@ requires-python = ">=3.12"
 dependencies = [
     "display-lib>=3.0.0,<4",
     "click>=8,<9",
+    "repl-lib>=1.1,<2",
 ]
 
 [project.scripts]
@@ -23,6 +24,7 @@ dev = [
 
 [tool.uv.sources]
 display-lib = { path = "../shared/display-lib", editable = true }
+repl-lib = { path = "../shared/repl-lib", editable = true }
 test-lib = { path = "../shared/test-lib", editable = true }
 
 [tool.setuptools]

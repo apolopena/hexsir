@@ -54,3 +54,6 @@ interim/
 rw/harvested/
 rw/dumps/
 rw/saves/edits/lab/
+
+# REPL history
+.*_history
