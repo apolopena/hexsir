@@ -49,3 +49,8 @@ Thumbs.db
 
 # Misc
 interim/
+
+# Ravenswatch RE — untracked workspaces
+rw/harvested/
+rw/dumps/
+rw/saves/edits/lab/

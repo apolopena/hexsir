@@ -1,0 +1,32 @@
+Chapter 3 - Known Values and Offsets
+=====================================
+
+FROM USER:
+  Health: 288/288
+  XP: 16297/18000
+  Level: 8
+  Dream Shards: 21
+  Vitality: 85
+  Damage: 159
+  Armor: 16
+  Crit Chance: 35
+  Crit Damage: 63
+
+SEARCH RESULTS:
+  XP (16297): 0xf68a ✓ (unique)
+  Health (288): NOT FOUND as int32 in data region (only in sequential array)
+  Crit Damage (63): NOT FOUND as int32
+  Dream Shards (21): 7 matches (went DOWN from 101 - spent during run?)
+  Vitality (85): 3 matches at 0x81c5, 0xd0b0, 0xd851
+  Damage (159): 2 matches at 0xc857, 0xd2f6
+  Armor (16): 64 matches
+  Crit Chance (35): 20 matches
+
+CROSS-REFERENCE WITH CH2:
+  The "149" value at Ch2 0x2db6 has same GUID and shows 149 in Ch3 too
+  This is NOT health - it's some constant value
+
+XP GUID ANALYSIS:
+  Ch2 XP at 0xf1ee
+  Ch3 XP at 0xf68a
+  GUID structure differs between files - can't use simple GUID lookup for XP

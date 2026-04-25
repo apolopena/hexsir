@@ -470,13 +470,13 @@ def tool_cmd(
     """Scaffold a new CLI tool with an initial command.
 
     \b
-    TOOL_NAME      Binary name (lowercase letters ending in 'cli')
+    TOOL_NAME      Binary name (lowercase letters only)
     COMMAND_NAME   Initial command to scaffold
     """
     # Validate tool name
     if not NAME_RE.match(tool_name):
         error(f"Invalid tool name: {tool_name}")
-        info("Tool names must be lowercase letters only, ending in 'cli'")
+        info("Tool names must be lowercase letters only")
         raise SystemExit(1)
 
     # Validate command name

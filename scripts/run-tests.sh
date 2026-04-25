@@ -29,7 +29,8 @@ RESET='\033[0m'
 
 # CLI tools participating in shared CLI test runs
 CLI_TOOLS=(
-    "hexsircli"
+    "hexsir"
+    "rerw"
     "scafcli"
 )
 

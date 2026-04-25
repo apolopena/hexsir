@@ -10,6 +10,7 @@ CLI tools for development, testing, and scaffolding. Each tool has its own venv,
 
 | Tool | Purpose |
 |------|---------|
+| [hexsir](hexsir.md) | Probe binary files for common 4-byte checksums |
 | [scafcli](scafcli.md) | Scaffold agentic layers into new repos, create tools |
 
 ## Shared Libraries

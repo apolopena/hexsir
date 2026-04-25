@@ -3,7 +3,7 @@
 import re
 
 # Validation patterns
-NAME_RE = re.compile(r"^[a-z]+cli$")
+NAME_RE = re.compile(r"^[a-z]+$")
 COMMAND_NAME_RE = re.compile(r"^[a-z]+(-[a-z]+)*$")
 
 # Command file template

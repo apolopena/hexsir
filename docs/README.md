@@ -60,6 +60,7 @@ just tool-new mytoolcli mycommand
 | [Overview](tools/README.md) | Tool listing, shared libraries, Justfile recipes |
 | [Coding Standards](tools/coding-standards.md) | Naming, output, shared libraries, tool creation |
 | [Creating a New Tool](tools/creating-a-new-tool.md) | Step-by-step scaffold guide |
+| [hexsir](tools/hexsir.md) | Binary checksum probe reference |
 | [scafcli](tools/scafcli.md) | Scaffold CLI reference |
 
 ## Justfile Recipes

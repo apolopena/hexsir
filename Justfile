@@ -66,18 +66,108 @@ tool-coverage name:
     set -euo pipefail
     dir=$(just _get-tool-src-dir "{{name}}")
     cd "tools/$dir"
-    uv run --with pytest-cov pytest tests/ --cov=. --cov-report=term-missing
+    output=$(uv run --with pytest-cov pytest tests/ --cov=. --cov-report=term-missing 2>&1) || true
+    echo "$output"
+    if echo "$output" | grep -q "skipped"; then
+        echo ""
+        echo -e "\033[2mNote: some tests were skipped. Coverage shown is lower than actual.\033[0m"
+    fi
 
-# Show test coverage for all tools
+# Show test coverage for all tools and shared libraries
 tool-coverage-all:
     #!/usr/bin/env bash
     set -euo pipefail
+    tmpfile=$(mktemp)
+    had_skips=false
+    had_bumps=false
+    trap "rm -f '$tmpfile'" EXIT
     for dir in $(scripts/run-tests.sh --cli --list all); do
         if [ ! -d "$dir/.venv" ]; then continue; fi
-        echo "=== $(basename "$dir") ==="
-        (cd "$dir" && uv run --with pytest-cov pytest tests/ --cov=. --cov-report=term-missing) || true
+        name=$(basename "$dir")
+        echo "=== $name ==="
+        output=$( (cd "$dir" && uv run --with pytest-cov pytest tests/ --color=yes --cov=. --cov-report=term-missing) 2>&1) || true
+        echo "$output"
+        # Check for bump_rating_threshold flag in pyproject.toml
+        bump="false"
+        if grep -q "^bump_rating_threshold = true" "$dir/pyproject.toml" 2>/dev/null; then
+            bump="true"
+            had_bumps=true
+        fi
+        echo "$output" | grep "^TOTAL" | awk -v n="$name" -v b="$bump" '{printf "%s %s %s\n", n, $NF, b}' >> "$tmpfile"
+        if echo "$output" | grep -q "skipped"; then
+            had_skips=true
+        fi
         echo ""
     done
+    BRIGHT_GREEN=$'\033[38;5;46m'
+    GREEN=$'\033[38;5;28m'
+    YELLOW=$'\033[38;5;142m'
+    RED=$'\033[38;5;160m'
+    MAGENTA=$'\033[0;35m'
+    BOLD=$'\033[1m'
+    NC=$'\033[0m'
+    colorize() {
+        # $1 = number, $2 = bump flag (true|false)
+        local num=$1
+        local bumped=$2
+        if [ "$bumped" = "true" ]; then
+            # Bumped bands: -10 across the board to account for integration code
+            if [ "$num" -ge 80 ]; then
+                color=$BRIGHT_GREEN label="exemplary"
+            elif [ "$num" -ge 65 ]; then
+                color=$GREEN label="commendable"
+            elif [ "$num" -ge 50 ]; then
+                color=$YELLOW label="acceptable"
+            else
+                color=$RED label="problematic"
+            fi
+        else
+            if [ "$num" -ge 90 ]; then
+                color=$BRIGHT_GREEN label="exemplary"
+            elif [ "$num" -ge 75 ]; then
+                color=$GREEN label="commendable"
+            elif [ "$num" -ge 60 ]; then
+                color=$YELLOW label="acceptable"
+            else
+                color=$RED label="problematic"
+            fi
+        fi
+    }
+    echo ""
+    printf "%s" "${MAGENTA}${BOLD}"
+    printf "%*s" $(( (48 + 23) / 2 )) "=== Coverage Summary ==="
+    printf "%s\n" "${NC}"
+    echo ""
+    printf "%-24s %7s   %s\n" "Package" "Coverage" "Rating"
+    printf -- "%-24s %7s   %s\n" "------------------------" "--------" "---------------"
+    sum=0
+    count=0
+    while read -r name pct bump; do
+        num=${pct%\%}
+        sum=$((sum + num))
+        count=$((count + 1))
+        colorize "$num" "$bump"
+        if [ "$bump" = "true" ]; then
+            printf "%-24s %6s   ${color}(%s)${NC}*\n" "$name" "$pct" "$label"
+        else
+            printf "%-24s %6s   ${color}(%s)${NC}\n" "$name" "$pct" "$label"
+        fi
+    done < "$tmpfile"
+    if [ "$count" -gt 0 ]; then
+        avg=$((sum / count))
+        colorize "$avg" "false"
+        printf -- "%-24s %7s   %s\n" "------------------------" "--------" "---------------"
+        printf "${BOLD}%-24s${NC} ${color}%6s${NC}   ${color}(%s)${NC}\n" "TOTAL (average)" "${avg}%" "$label"
+    fi
+    if [ "$had_bumps" = true ]; then
+        echo ""
+        echo -e "* \033[2mAdjusted for integration code that can't be reasonably tested.\033[0m"
+    fi
+    if [ "$had_skips" = true ]; then
+        echo ""
+        echo -e "\033[2mNote: some tests were skipped. Coverage shown is lower than actual.\033[0m"
+    fi
+    echo ""
 
 # --- Tool Lint ---
 

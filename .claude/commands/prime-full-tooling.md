@@ -82,9 +82,12 @@ Two sections below. Both use nested bullet lists (no MD tables) so entries are e
 
 These conform to `docs/tools/coding-standards.md`. They drive change detection, source exploration, and the three Tool-Suite-owned context files plus the Tool Suite portion of `tooling-context.md`.
 
-- **hexsircli**
-  - paths: `tools/hexsircli-src/cli.py`, `tools/hexsircli-src/commands/`, `tools/hexsircli-src/lib/`, `tools/hexsircli`
-  - doc: none
+- **hexsir**
+  - paths: `tools/hexsir-src/cli.py`, `tools/hexsir-src/commands/`, `tools/hexsir-src/lib/`, `tools/hexsir`
+  - doc: `rw/docs/tools/hexsir.md`
+- **rerw**
+  - paths: `tools/rerw-src/cli.py`, `tools/rerw-src/commands/`, `tools/rerw-src/lib/`, `tools/rerw`
+  - doc: `rw/docs/tools/rerw.md`
 - **scafcli**
   - paths: `tools/scafcli-src/cli.py`, `tools/scafcli-src/commands/`, `tools/scafcli-src/lib/`, `tools/scafcli`
   - doc: `docs/tools/scafcli.md`
@@ -129,16 +132,19 @@ elif [ ! -f .ai/scratch/tooling-context/tooling-arch.md ] \
   echo "MISSING_CONTEXT_FILES"
 elif [ "$(cat "$MARKER")" = "$(git rev-parse HEAD)" ] \
   && [ -z "$(git status --porcelain -- \
-       tools/hexsircli-src/cli.py tools/hexsircli-src/commands tools/hexsircli-src/lib tools/hexsircli \
+       tools/hexsir-src/cli.py tools/hexsir-src/commands tools/hexsir-src/lib tools/hexsir \
+       tools/rerw-src/cli.py tools/rerw-src/commands tools/rerw-src/lib tools/rerw \
        tools/scafcli-src/cli.py tools/scafcli-src/commands tools/scafcli-src/lib tools/scafcli)" ]; then
   echo "CLEAN"
 else
   echo "CHANGED"
   git diff --name-only "$(cat "$MARKER")..HEAD" -- \
-       tools/hexsircli-src/cli.py tools/hexsircli-src/commands tools/hexsircli-src/lib tools/hexsircli \
+       tools/hexsir-src/cli.py tools/hexsir-src/commands tools/hexsir-src/lib tools/hexsir \
+       tools/rerw-src/cli.py tools/rerw-src/commands tools/rerw-src/lib tools/rerw \
        tools/scafcli-src/cli.py tools/scafcli-src/commands tools/scafcli-src/lib tools/scafcli
   git status --porcelain -- \
-       tools/hexsircli-src/cli.py tools/hexsircli-src/commands tools/hexsircli-src/lib tools/hexsircli \
+       tools/hexsir-src/cli.py tools/hexsir-src/commands tools/hexsir-src/lib tools/hexsir \
+       tools/rerw-src/cli.py tools/rerw-src/commands tools/rerw-src/lib tools/rerw \
        tools/scafcli-src/cli.py tools/scafcli-src/commands tools/scafcli-src/lib tools/scafcli
 fi
 ```

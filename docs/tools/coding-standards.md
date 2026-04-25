@@ -33,7 +33,7 @@ These apply to all Python code in tools and shared libraries.
 ### Naming
 
 **Tools:**
-- Lowercase letters only, ending in `cli`. No digits, hyphens, or underscores.
+- Lowercase letters only. No digits, hyphens, or underscores. The `cli` suffix is optional.
 
 **Commands** (have logic, live in `commands/<name>.py`):
 - CLI name: kebab-case (`check-status`)

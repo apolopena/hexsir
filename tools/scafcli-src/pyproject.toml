@@ -47,3 +47,6 @@ norecursedirs = ["tests/fixtures"]
 
 [tool.coverage.run]
 omit = ["tests/*"]
+
+[tool.custom.has_integrations]
+bump_rating_threshold = true
