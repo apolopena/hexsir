@@ -1,0 +1,11 @@
+# Raw heap progression scan (4-byte aligned, int32/float32) for stats not bound to listener vtable
+
+## Damage (0,0,11,17,26) ##
+int32 (0):
+
+float32 (0):
+
+## Stars of Fate (3,3,4,2,7) ##
+int32 (2):
+  0x0000027c2c964830
+  0x0000027cdcfe87f8

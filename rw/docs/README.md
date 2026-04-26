@@ -8,6 +8,7 @@ Reverse engineering work for Ravenswatch (single-player roguelike, OEngine / OSo
 |-----|---------|
 | [Playbook](playbook.md) | Directory structure, what to track, promotion paths, workflow |
 | [Tools](tools/README.md) | Tools used for RW work |
+| [OEngine listener-data mining](oe-listener-mining.md) | Techniques for finding/pinning runtime stat values via OEngine's `DynamicCpntValueListenerData<T>` listener pattern |
 
 ## Quick Reference
 

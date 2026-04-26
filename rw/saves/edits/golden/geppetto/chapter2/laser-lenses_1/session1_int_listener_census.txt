@@ -1,0 +1,73 @@
+# <int> listener (oe::DynamicCpntValueListenerData<int>) census across L1..L5 snaps
+# vtable runtime addr: 0x7ff60c8e4ad0
+# instances per snap: L1=14,121, L2=14,715, L3=15,554, L4=16,140, L5=16,785
+# addresses present in all 5 snaps: 14,121
+
+## Strictly +1 per level (5 addrs) ##
+address                     L1     L2     L3     L4     L5
+0x0000027cdcfe8660       1      2      3      4      5
+0x0000027cdcfebfe0       1      2      3      4      5
+0x0000027cdcfee6f0       1      2      3      4      5
+0x0000027cdd006c50       1      2      3      4      5
+0x0000027cdd38d1d0       1      2      3      4      5
+
+## Strictly increasing, any rate (5 addrs, top 100 by L5 desc) ##
+address                     L1     L2     L3     L4     L5
+0x0000027cdcfef370     400   1100   1800   2500   5000
+0x0000027cbc933500       0      3     10     14     20
+0x0000027cbc938320       0      3     10     14     20
+0x0000027c86992f80       0      1      5      7      8
+0x0000027c869938e0       0      1      5      7      8
+
+## Constant (same value all 5 snaps) — top 100 by occurrence ##
+value distribution (top 50):
+  value          0: 7522 addrs
+  value          1: 1027 addrs
+  value          5: 653 addrs
+  value          2: 454 addrs
+  value          3: 398 addrs
+  value          4: 290 addrs
+  value          6: 175 addrs
+  value         75: 132 addrs
+  value         50: 60 addrs
+  value         30: 60 addrs
+  value        134: 58 addrs
+  value          7: 49 addrs
+  value          8: 35 addrs
+  value       -106: 30 addrs
+  value        350: 28 addrs
+  value         -1: 24 addrs
+  value        100: 21 addrs
+  value          9: 20 addrs
+  value        150: 16 addrs
+  value        250: 16 addrs
+  value        200: 12 addrs
+  value         16: 12 addrs
+  value         18: 8 addrs
+  value         24: 7 addrs
+  value         10: 7 addrs
+  value         25: 6 addrs
+  value         13: 6 addrs
+  value         22: 6 addrs
+  value         20: 5 addrs
+  value         12: 5 addrs
+  value         21: 5 addrs
+  value         11: 4 addrs
+  value         17: 4 addrs
+  value         15: 4 addrs
+  value         29: 3 addrs
+  value        180: 2 addrs
+  value        120: 2 addrs
+  value        240: 2 addrs
+  value        149: 2 addrs
+  value         28: 2 addrs
+  value         51: 2 addrs
+  value         14: 2 addrs
+  value         60: 2 addrs
+  value         32: 1 addrs
+  value         23: 1 addrs
+  value         26: 1 addrs
+  value       1000: 1 addrs
+  value        600: 1 addrs
+  value       -100: 1 addrs
+  value       -200: 1 addrs

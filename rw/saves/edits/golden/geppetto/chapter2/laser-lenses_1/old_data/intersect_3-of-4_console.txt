@@ -1,0 +1,4 @@
+diff_level14.txt: 54,465 addrs
+diff_level17.txt: 54,448 addrs
+diff_level8.txt: 54,080 addrs
+intersection: 52,609 addrs across 3 diffs
