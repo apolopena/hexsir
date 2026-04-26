@@ -201,6 +201,8 @@ Full per-stat candidate lists in:
 - `session1_float_stat_pin.txt` — `<float>` listener candidates per stat
 - `session1_raw_progression_pin.txt` — raw heap (non-listener) candidates for
   damage and stars-of-fate
+- `session1_hud_log.md` — raw HUD numbers per snap (source data, separated
+  from analysis)
 - `session1_level_analysis.md` — this file
 - `info.md` — original test description (cross-process, superseded for this
   goal but preserved for context)
