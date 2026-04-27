@@ -18,7 +18,9 @@ from commands import (
     cipher,
     decipher,
     harvest,
+    read_savefile,
     swap_savefile,
+    write_savefile,
 )
 
 DIST_NAME = "rerw-src"
@@ -44,8 +46,14 @@ def _show_version(ctx, param, value):
 
 
 @click.group(help=_help, context_settings={"help_option_names": ["-h", "--help"]})
-@click.option("--version", is_flag=True, callback=_show_version,
-              expose_value=False, is_eager=True, help="Show version")
+@click.option(
+    "--version",
+    is_flag=True,
+    callback=_show_version,
+    expose_value=False,
+    is_eager=True,
+    help="Show version",
+)
 def cli():
     pass
 
@@ -57,6 +65,24 @@ def swap_():
 
 # Subcommands of `swap`
 swap_.add_command(swap_savefile.swap_savefile_cmd, name="savefile")
+
+
+@click.group(name="read")
+def read_():
+    """Read field values from game artifacts (savefile, etc.)."""
+
+
+# Subcommands of `read`
+read_.add_command(read_savefile.read_savefile_cmd, name="savefile")
+
+
+@click.group(name="write")
+def write_():
+    """Write field values into game artifacts (savefile, etc.)."""
+
+
+# Subcommands of `write`
+write_.add_command(write_savefile.write_savefile_cmd, name="savefile")
 
 
 # --- REPL ---
@@ -105,8 +131,10 @@ async def _dispatch(cmd_name: str, line: str, state: dict) -> None:
     if state.get("context") == "swap-savefile":
         tokens = _split(line)
         if not tokens or not tokens[0].startswith("-"):
-            error("In swap-savefile mode, type flags only "
-                  "(e.g. `--source PATH --dest PATH`).")
+            error(
+                "In swap-savefile mode, type flags only "
+                "(e.g. `--source PATH --dest PATH`)."
+            )
             info("Use `--help` to list flags, `exit` to leave the sub-mode.")
             return
         _invoke(swap_savefile.swap_savefile_cmd, "swap-savefile", tokens)
@@ -131,6 +159,7 @@ async def _dispatch(cmd_name: str, line: str, state: dict) -> None:
 # pattern can be folded back into repl-lib as a public method.
 
 
+# TODO: REPL builtins for read-savefile / write-savefile
 def _swap_savefile_builtin(line: str, state: dict, repl: Repl) -> bool:
     parts = _split(line)
     if len(parts) == 1:
@@ -189,7 +218,9 @@ def _banner(state: dict) -> None:
     """
     header("rerw — interactive mode")
 
-    custom = [(n, b) for n, b in _repl._builtins.items() if n not in ("exit", "help", "reset")]
+    custom = [
+        (n, b) for n, b in _repl._builtins.items() if n not in ("exit", "help", "reset")
+    ]
     defaults = [(n, _repl._builtins[n]) for n in ("reset", "help", "exit")]
 
     print("\nBuilt-ins:")
@@ -214,6 +245,8 @@ def interactive_cmd():
 
 # [auto] scaffold:commands — insertion point
 cli.add_command(swap_, name="swap")
+cli.add_command(read_, name="read")
+cli.add_command(write_, name="write")
 cli.add_command(cipher.cipher_cmd, name="cipher")
 cli.add_command(decipher.decipher_cmd, name="decipher")
 cli.add_command(harvest.harvest_group, name="harvest")

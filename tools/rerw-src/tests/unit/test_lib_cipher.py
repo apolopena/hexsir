@@ -31,4 +31,7 @@ def test_decipher_entity_extension():
 
 def test_preserves_non_alpha():
     """Non-alphabetic characters pass through unchanged."""
-    assert decipher("Aqur_Kqjjqiir!Aqur_Kqjjqiir.qzidis") == "Hero_Geppetto!Hero_Geppetto.entity"
+    assert (
+        decipher("Aqur_Kqjjqiir!Aqur_Kqjjqiir.qzidis")
+        == "Hero_Geppetto!Hero_Geppetto.entity"
+    )
