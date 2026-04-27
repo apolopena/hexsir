@@ -22,7 +22,7 @@ def test_attached_state():
             "ok": True,
             "attached": True,
             "pid": 22768,
-            "process_base": 0x00007ff60b9f0000,
+            "process_base": 0x00007FF60B9F0000,
         },
     ):
         result = runner.invoke(status_cmd, [])

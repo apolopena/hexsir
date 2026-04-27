@@ -17,8 +17,10 @@ def test_wsl_uppercase_letter():
 
 
 def test_native_windows_path_unchanged():
-    assert to_display_path("C:\\ravensmith\\scripts\\rs_shim.py") \
+    assert (
+        to_display_path("C:\\ravensmith\\scripts\\rs_shim.py")
         == "C:\\ravensmith\\scripts\\rs_shim.py"
+    )
 
 
 def test_posix_path_unchanged():

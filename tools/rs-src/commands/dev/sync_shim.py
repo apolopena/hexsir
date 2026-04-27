@@ -39,9 +39,6 @@ def sync_shim_cmd() -> None:
         raise click.Abort()
 
     success(f"Synced rs_shim.py → {dest}")
-    warn(
-        "the running shim is still on the old code. "
-        "restart it to pick up changes:"
-    )
+    warn("the running shim is still on the old code. restart it to pick up changes:")
     info("  in your shim PowerShell, Ctrl+C and re-run:")
     info(f"      py {to_display_path(str(dest))}")

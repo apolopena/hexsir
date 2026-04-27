@@ -1,6 +1,5 @@
 """Tests for lib.config."""
 
-import os
 from unittest.mock import mock_open, patch
 
 import pytest
@@ -10,6 +9,7 @@ from lib.errors import HostUnresolvable
 
 
 # ---- shim_host ----
+
 
 def test_explicit_overrides_env(monkeypatch):
     monkeypatch.setenv("RS_SHIM_HOST", "10.0.0.1")
@@ -37,6 +37,7 @@ def test_autodetect_failure_raises(monkeypatch):
 
 # ---- shim_port ----
 
+
 def test_port_explicit_overrides_env(monkeypatch):
     monkeypatch.setenv("RS_SHIM_PORT", "9000")
     assert config.shim_port(8765) == 8765
@@ -59,6 +60,7 @@ def test_port_empty_env_falls_through_to_default(monkeypatch):
 
 # ---- shim_loc ----
 
+
 def test_shim_loc_default(monkeypatch):
     monkeypatch.delenv("RS_SHIM_LOC", raising=False)
     assert config.shim_loc() == config.DEFAULT_SHIM_LOC
@@ -76,6 +78,7 @@ def test_shim_loc_empty_env_falls_through_to_default(monkeypatch):
 
 # ---- _detect_gateway ----
 
+
 def test_detect_gateway_from_ip_route():
     with patch(
         "lib.config.subprocess.check_output",
@@ -85,16 +88,22 @@ def test_detect_gateway_from_ip_route():
 
 
 def test_detect_gateway_falls_back_to_resolv_conf():
-    with patch(
-        "lib.config.subprocess.check_output",
-        side_effect=FileNotFoundError("no `ip` command"),
-    ), patch("builtins.open", mock_open(read_data="nameserver 10.0.0.1\n")):
+    with (
+        patch(
+            "lib.config.subprocess.check_output",
+            side_effect=FileNotFoundError("no `ip` command"),
+        ),
+        patch("builtins.open", mock_open(read_data="nameserver 10.0.0.1\n")),
+    ):
         assert config._detect_gateway() == "10.0.0.1"
 
 
 def test_detect_gateway_returns_none_when_all_fail():
-    with patch(
-        "lib.config.subprocess.check_output",
-        side_effect=FileNotFoundError("no `ip` command"),
-    ), patch("builtins.open", side_effect=FileNotFoundError("no resolv.conf")):
+    with (
+        patch(
+            "lib.config.subprocess.check_output",
+            side_effect=FileNotFoundError("no `ip` command"),
+        ),
+        patch("builtins.open", side_effect=FileNotFoundError("no resolv.conf")),
+    ):
         assert config._detect_gateway() is None

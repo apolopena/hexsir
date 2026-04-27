@@ -25,9 +25,7 @@ from lib.errors import ShimError
 def status_cmd(shim_host: str | None, shim_port: int | None) -> dict | None:
     """Show shim and attachment state."""
     try:
-        result = shim_client.call(
-            "ping", host=shim_host, port=shim_port
-        )
+        result = shim_client.call("ping", host=shim_host, port=shim_port)
     except ShimError as e:
         error(str(e))
         return None

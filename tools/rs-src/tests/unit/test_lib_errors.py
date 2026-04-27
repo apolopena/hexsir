@@ -13,14 +13,17 @@ from lib.errors import (
 )
 
 
-@pytest.mark.parametrize("cls", [
-    ShimUnreachable,
-    ShimTimeout,
-    ShimDisconnected,
-    ShimProtocolError,
-    ShimRPCError,
-    HostUnresolvable,
-])
+@pytest.mark.parametrize(
+    "cls",
+    [
+        ShimUnreachable,
+        ShimTimeout,
+        ShimDisconnected,
+        ShimProtocolError,
+        ShimRPCError,
+        HostUnresolvable,
+    ],
+)
 def test_inherits_from_shim_error(cls):
     assert issubclass(cls, ShimError)
 

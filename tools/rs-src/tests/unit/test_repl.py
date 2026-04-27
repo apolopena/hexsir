@@ -3,17 +3,20 @@
 import asyncio
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from cli import _STATE_KEY_ATTACHED, _dispatch, _exit_with_detach
 
 
 def _run(coro):
-    return asyncio.get_event_loop().run_until_complete(coro) \
-        if not asyncio.iscoroutine(coro) else asyncio.run(coro)
+    return (
+        asyncio.get_event_loop().run_until_complete(coro)
+        if not asyncio.iscoroutine(coro)
+        else asyncio.run(coro)
+    )
 
 
 # ---- _dispatch ----
+
 
 def test_unknown_command_prints_error():
     state = {_STATE_KEY_ATTACHED: None}
@@ -24,8 +27,12 @@ def test_unknown_command_prints_error():
 
 def test_attach_success_updates_state():
     state = {_STATE_KEY_ATTACHED: None}
-    fake_result = {"ok": True, "process": "Ravenswatch.exe", "pid": 22768,
-                   "process_base": 0x7ff60b9f0000}
+    fake_result = {
+        "ok": True,
+        "process": "Ravenswatch.exe",
+        "pid": 22768,
+        "process_base": 0x7FF60B9F0000,
+    }
     with patch("cli._invoke_click", return_value=fake_result):
         asyncio.run(_dispatch("attach", "attach", state))
     assert state[_STATE_KEY_ATTACHED] == "Ravenswatch.exe"
@@ -49,8 +56,10 @@ def test_status_idle_clears_stale_local_state():
     """If shim says not attached but cache thinks attached, sync the cache."""
     state = {_STATE_KEY_ATTACHED: "Ravenswatch.exe"}
     fake_status = {"ok": True, "attached": False, "pid": None, "process_base": None}
-    with patch("cli._invoke_click", return_value=fake_status), \
-         patch("cli.info") as mock_info:
+    with (
+        patch("cli._invoke_click", return_value=fake_status),
+        patch("cli.info") as mock_info,
+    ):
         asyncio.run(_dispatch("status", "status", state))
     assert state[_STATE_KEY_ATTACHED] is None
     mock_info.assert_called_once()
@@ -58,14 +67,19 @@ def test_status_idle_clears_stale_local_state():
 
 def test_status_attached_keeps_state():
     state = {_STATE_KEY_ATTACHED: "Ravenswatch.exe"}
-    fake_status = {"ok": True, "attached": True, "pid": 22768,
-                   "process_base": 0x7ff60b9f0000}
+    fake_status = {
+        "ok": True,
+        "attached": True,
+        "pid": 22768,
+        "process_base": 0x7FF60B9F0000,
+    }
     with patch("cli._invoke_click", return_value=fake_status):
         asyncio.run(_dispatch("status", "status", state))
     assert state[_STATE_KEY_ATTACHED] == "Ravenswatch.exe"
 
 
 # ---- _exit_with_detach ----
+
 
 def test_exit_when_idle_does_not_call_detach():
     state = {_STATE_KEY_ATTACHED: None}
@@ -87,6 +101,7 @@ def test_exit_when_attached_calls_detach():
 def test_exit_when_attached_tolerates_detach_failure():
     """Should not propagate ShimError exceptions from detach on exit."""
     from lib.errors import ShimUnreachable
+
     state = {_STATE_KEY_ATTACHED: "Ravenswatch.exe"}
     with patch(
         "cli.shim_client.call",

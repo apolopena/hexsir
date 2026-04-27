@@ -25,9 +25,7 @@ from lib.errors import ShimError
 def detach_cmd(shim_host: str | None, shim_port: int | None) -> dict | None:
     """Release the shim's attachment to the game process."""
     try:
-        result = shim_client.call(
-            "detach", host=shim_host, port=shim_port
-        )
+        result = shim_client.call("detach", host=shim_host, port=shim_port)
     except ShimError as e:
         error(str(e))
         return None

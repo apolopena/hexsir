@@ -32,9 +32,7 @@ def shim_host(explicit: str | None = None) -> str:
     detected = _detect_gateway()
     if detected:
         return detected
-    raise HostUnresolvable(
-        "could not auto-detect Windows host IP — set RS_SHIM_HOST"
-    )
+    raise HostUnresolvable("could not auto-detect Windows host IP — set RS_SHIM_HOST")
 
 
 def shim_port(explicit: int | None = None) -> int:

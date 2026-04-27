@@ -15,11 +15,15 @@ Requires:
     Windows. Run as administrator (OpenProcess needs debug privileges).
 
 Usage:
-    py rs_shim.py [--host 0.0.0.0] [--port 8765]
+    py rs_shim.py [--host 0.0.0.0] [--port 8765] [--quiet]
 
 The shim boots in an idle state — it listens immediately and does NOT attach
 to a process until `rs` explicitly calls the `attach` method. This lets the
 shim be started before the game and lets `rs` re-attach if the game restarts.
+
+Per-RPC stdout logging is on by default (one line per request: method, param
+summary, result summary or error). Pass ``--quiet`` to suppress it; the
+connect / disconnect lines still print so traffic is still visible.
 
 Protocol: line-delimited JSON over TCP. One request per line, one response
 per line. Bytes are hex-encoded.
@@ -195,8 +199,50 @@ METHODS = {
 }
 
 
-def serve_client(conn, state):
-    """Handle line-delimited JSON requests until the client disconnects."""
+def _format_params_summary(params):
+    """Compact, single-line param summary for stdout logging.
+
+    Long hex strings are truncated to keep the log readable; addresses are
+    rendered in hex.
+    """
+    if not params:
+        return ""
+    parts = []
+    for k, v in params.items():
+        if k == "addr" and isinstance(v, int):
+            parts.append(f"addr=0x{v:x}")
+        elif k in ("data_hex", "needle_hex") and isinstance(v, str) and len(v) > 16:
+            parts.append(f"{k}={v[:16]}...({len(v) // 2}B)")
+        else:
+            parts.append(f"{k}={v}")
+    return ", ".join(parts)
+
+
+def _format_result_summary(result):
+    """One-line summary of an RPC result for stdout logging."""
+    if isinstance(result, list):
+        return f"list[{len(result)}]"
+    if isinstance(result, str):
+        return f"{len(result)} chars"
+    if isinstance(result, dict):
+        # Compact repr: keep keys and primitive values, abbreviate long strings.
+        items = []
+        for k, v in result.items():
+            if isinstance(v, int) and k in ("process_base", "base", "addr"):
+                items.append(f"{k}=0x{v:x}")
+            elif isinstance(v, str) and len(v) > 32:
+                items.append(f"{k}={v[:32]}...")
+            else:
+                items.append(f"{k}={v}")
+        return "{" + ", ".join(items) + "}"
+    return str(result)
+
+
+def serve_client(conn, state, verbose):
+    """Handle line-delimited JSON requests until the client disconnects.
+
+    If ``verbose`` is true, each request is logged to stdout as one line.
+    """
     f = conn.makefile("rwb")
     try:
         for raw in f:
@@ -211,10 +257,27 @@ def serve_client(conn, state):
                 if fn is None:
                     raise ValueError(f"unknown method: {method}")
                 params = req.get("params") or {}
-                resp = {"id": req.get("id"), "result": fn(state, params)}
+                result = fn(state, params)
+                resp = {"id": req.get("id"), "result": result}
+                if verbose:
+                    summary = _format_params_summary(params)
+                    arg_repr = f"({summary})" if summary else "()"
+                    print(
+                        f"    -> {method}{arg_repr} -> {_format_result_summary(result)}",
+                        flush=True,
+                    )
             except Exception as e:
                 rid = req.get("id") if isinstance(req, dict) else None
-                resp = {"id": rid, "error": f"{type(e).__name__}: {e}"}
+                err = f"{type(e).__name__}: {e}"
+                resp = {"id": rid, "error": err}
+                if verbose:
+                    method_name = (
+                        req.get("method") if isinstance(req, dict) else "?"
+                    )
+                    params = req.get("params") if isinstance(req, dict) else {}
+                    summary = _format_params_summary(params or {})
+                    arg_repr = f"({summary})" if summary else "()"
+                    print(f"    -> {method_name}{arg_repr} ✗ {err}", flush=True)
             f.write((json.dumps(resp) + "\n").encode())
             f.flush()
     finally:
@@ -228,23 +291,27 @@ def main():
                    help="Bind address. Default 0.0.0.0 lets WSL connect via "
                         "the Windows host IP.")
     p.add_argument("--port", type=int, default=8765)
+    p.add_argument("--quiet", action="store_true",
+                   help="Suppress per-RPC stdout logging (default: on).")
     args = p.parse_args()
 
     state = State()
+    verbose = not args.quiet
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind((args.host, args.port))
     sock.listen(4)
     print(f"rs-shim: idle (no process attached); "
-          f"listening on {args.host}:{args.port}", flush=True)
+          f"listening on {args.host}:{args.port}"
+          + ("" if verbose else " (quiet)"), flush=True)
 
     try:
         while True:
             conn, peer = sock.accept()
             print(f"  client {peer[0]}:{peer[1]}", flush=True)
             try:
-                serve_client(conn, state)
+                serve_client(conn, state, verbose)
             except Exception as e:
                 print(f"  client {peer[0]}:{peer[1]} error: {e}", flush=True)
             print(f"  client {peer[0]}:{peer[1]} disconnected", flush=True)

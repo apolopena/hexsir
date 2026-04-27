@@ -262,6 +262,39 @@ progression dict for tuples matching the exact target sequence. Typically
 returns 1–10 matches; the "primary" instance is the one inside the player's
 main stat-listener cluster (the heap range where Level mirrors live).
 
+## Methodology correction (verified 2026-04-26)
+
+**Live verification revised the assumption that any listener instance is
+the live source-of-truth.** Testing confirmed that the listener instances
+pinned via this workflow are not live game state — they don't update when
+gameplay events change the HUD value, and external writes to them don't
+propagate to the live game. What they ARE beyond "not live" is undetermined
+(save-buffers, allocation-time defaults, dead-code subsystem fields, etc.
+are all consistent with the observations); see
+`rw/triage/pin-identity-uncertain.md` for the open hypothesis list and
+`rw/key-findings/oe-dynamic-listener-data.md` (Status section) for the
+full test record.
+
+This invalidates the "source-of-truth" framing throughout this doc. The
+specific consequences for the techniques below are noted inline.
+
+The methodology blind spot is **stable-across-snaps filtering**: the
+workflow selects for listeners whose values match the L1..L5 progression
+at every snap moment, which is consistent with values committed at a
+sparse-event tempo and held in between. A live-updating listener holding
+mid-combat values at any non-checkpoint sampling moment would never match
+the progression. The filter systematically excludes the live source-of-truth.
+
+Additional finding from the same session: value-progression scanning for
+*live* mirrors (i.e., addresses that DO track HUD changes) finds many
+mirror copies of the canonical value, not the canonical itself. Writes to
+the mirrors are either silently overwritten by the engine (active
+high-frequency mirrors) or persisted-but-ignored by the read path (passive
+event-mirrors). The canonical source for any stat we tested has not been
+located via memory-only techniques. See
+`rw/triage/live-state-mirror-cascade.md` for the cascade observations and
+the failed canonical-source hunts.
+
 ## Techniques planned (next steps)
 
 ### Cluster-range filtering for multi-match stats
@@ -269,8 +302,11 @@ main stat-listener cluster (the heap range where Level mirrors live).
 Many stats have common values (e.g., crit damage = 50% has 70 matches; "all
 zero" has 37K). Narrow by accepting only candidates inside the player's main
 stat-listener cluster (e.g., `~0x27cdcfd0000–0x27cdcffffff` in session 1).
-Mirror copies outside this range are still valid for *reading* but not for
-identifying the source-of-truth.
+
+**Note (2026-04-26):** the resulting "primary" candidate is a *save-side
+mirror*, not the source-of-truth. The cluster filter is still useful for
+disambiguating among listener instances tied to one stat, but live state
+lives elsewhere.
 
 ### Other listener vtables for missing stats
 
@@ -305,15 +341,31 @@ For stats with a known HUD progression that aren't wrapped in any listener:
 Memory cost: bounded by the size of the initial candidate list (~10K-200K
 entries × 8 bytes/entry). Speed: ~30-60s per snap walk for verification.
 
-### Source-of-truth identification
+### Source-of-truth identification (INVALIDATED for these listeners)
 
-For a stat with multiple listener mirrors, write a non-canonical value into
-one and observe (a) whether the in-game UI updates, (b) which other mirrors
-update or stay. The mirror that updates the others is the source.
+> **Status (2026-04-26):** this technique was tested against the pinned Level
+> listener (`0x27cdcfe8668` +8) using `rs write`. Writing 6 and then 10 had
+> no in-game effect — the HUD continued to show Level 5 throughout. The
+> technique presupposes that some listener instance is the source-of-truth
+> whose writes propagate to UI / other mirrors. That presupposition is
+> false for these pinned listeners — they're decoupled from the live
+> read path. (Their further identity is undetermined; see
+> `rw/triage/pin-identity-uncertain.md`.)
+>
+> The valid version of this technique would be: write to a candidate, then
+> watch the *out-of-band live HUD value* (or a verified-live listener if
+> one is found via value-progression scanning) and check for propagation.
+> The mirror-to-mirror propagation check has no signal because none of the
+> pinned listeners are live consumers.
 
-Requires runtime memory write — `mem_snapshot.py` doesn't currently do
-writes, but `pymem.write_int / write_float` is straightforward. A new
-`mem_snapshot.py poke` subcommand would be a natural extension.
+Original (kept for context): for a stat with multiple listener mirrors, write
+a non-canonical value into one and observe (a) whether the in-game UI
+updates, (b) which other mirrors update or stay. The mirror that updates
+the others is the source.
+
+Requires runtime memory write — now available via `rs write` (one-shot CLI
+against the rs-shim). The earlier `mem_snapshot.py poke` extension is
+unnecessary.
 
 ### Cross-character generalization
 

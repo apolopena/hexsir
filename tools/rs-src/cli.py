@@ -17,6 +17,10 @@ from commands import (
     attach,
     detach,
     status,
+    read,
+    write,
+    find,
+    watch,
 )
 from commands.dev import dev_group
 
@@ -46,13 +50,23 @@ def _show_version(ctx, param, value):
 
 
 @click.group(help=_help, context_settings={"help_option_names": ["-h", "--help"]})
-@click.option("--version", is_flag=True, callback=_show_version,
-              expose_value=False, is_eager=True, help="Show version")
+@click.option(
+    "--version",
+    is_flag=True,
+    callback=_show_version,
+    expose_value=False,
+    is_eager=True,
+    help="Show version",
+)
 def cli():
     pass
 
 
 # [auto] scaffold:commands — insertion point
+cli.add_command(watch.watch_cmd, name="watch")
+cli.add_command(find.find_cmd, name="find")
+cli.add_command(write.write_cmd, name="write")
+cli.add_command(read.read_cmd, name="read")
 cli.add_command(attach.attach_cmd, name="attach")
 cli.add_command(detach.detach_cmd, name="detach")
 cli.add_command(status.status_cmd, name="status")
@@ -67,6 +81,10 @@ _CLICK_COMMANDS = {
     "detach": detach.detach_cmd,
     "status": status.status_cmd,
     "dev": dev_group,
+    "read": read.read_cmd,
+    "write": write.write_cmd,
+    "find": find.find_cmd,
+    "watch": watch.watch_cmd,
 }
 
 _STATE_KEY_ATTACHED = "attached_process"

@@ -142,3 +142,40 @@ RPC method list. As of this writing:
 | `read(addr, length)` | yes | hex string |
 | `write(addr, data_hex)` | yes | `{written: int}` |
 | `find(needle_hex, alignment=1)` | yes | list of `addr` |
+
+## Shim stdout logging
+
+Per-RPC logging is **on by default**. Each successfully-handled request
+produces one stdout line on the shim's PowerShell window:
+
+```
+    -> read(addr=0x27cdcfe8668, length=4) -> 8 chars
+    -> attach(process=Ravenswatch.exe) -> {ok=True, pid=22768, ...}
+    -> write(addr=0x27cdcfe8668, data_hex=06000000) -> {written=4}
+    -> read(addr=0x100, length=4) ✗ NotAttached: not attached; call attach first
+```
+
+Long hex payloads (`data_hex`, `needle_hex`) are truncated; addresses are
+rendered as hex; lists and strings show their size. The connect / disconnect
+lines (`client 1.2.3.4:54321` / `disconnected`) print regardless.
+
+Pass ``--quiet`` to suppress the per-RPC lines:
+
+```powershell
+py C:\ravensmith\scripts\rs_shim.py --quiet
+```
+
+Connect / disconnect lines still print so you can see traffic activity.
+
+## Persistent connections (rs watch)
+
+The Click CLI's ``rs watch`` command opens **one TCP connection** for the
+duration of its polling window and multiplexes all reads over it. This
+avoids paying the connection-handshake cost on every poll. The shim
+already supports this — its ``serve_client`` loops on the connection until
+the client disconnects — so no shim change is required.
+
+One-shot commands (``rs read``, ``rs write``, ``rs find``, ``rs status``,
+``rs attach``, ``rs detach``) still use the simpler one-connection-per-call
+path via ``shim_client.call()``. Use ``shim_client.Session`` from Python
+when you need persistent connections in your own scripts.

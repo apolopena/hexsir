@@ -9,6 +9,31 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.0] - 2026-04-26
+
+**FEAT:** *read / write / find / watch primitives*
+
+- `read <addr> [--length N] [--as TYPE]` — read a typed value. Types: `hex` (default), `int32`, `uint32`, `int64`, `uint64`, `float32`, `float64`, `bool`. Length defaults to the type's natural size (4 for hex). `ADDR` accepts `0x...` hex or decimal.
+- `write <addr> <value> [--as TYPE]` — write a typed value. No confirmation prompt; verify with `read` first. Same type set as `read`.
+- `find <hex> [--alignment N] [--limit N] [--all] [--out FILE]` — pass-through to the shim's heap scan. Default summary prints count + first 20 matches inline; `--all` prints everything; `--out FILE` dumps the full address list to a file.
+- `watch <addr> [--length N] [--as TYPE] [--interval S] [--duration S] [--all]` — poll a memory address over a single persistent TCP connection. Default prints baseline + on-change rows only; `--all` prints every tick.
+
+All four commands follow the existing rs convention: default single-line output, `--verbose`/`-v` for the `tree-lib` step-by-step tree.
+
+**FEAT:** *persistent shim connections*
+
+- `lib/shim_client.Session` — context manager that holds one TCP socket open across many RPCs. Used by `rs watch`; available for any caller that needs polling without paying the connection-handshake cost per call. `lib/shim_client.call` (one-shot, connection-per-call) is unchanged for one-shot CLI commands.
+
+**FEAT:** *typed value codec*
+
+- `lib/value_codec` — single source of truth for the `read`/`write`/`watch` type table (sizes, struct formats, encode/decode, address parsing). Little-endian throughout (matches x86_64 and OEngine on-disk format).
+
+**FEAT:** *shim per-RPC stdout logging*
+
+- `rw/scripts/windows/rs_shim.py` now prints one stdout line per request — method, param summary (long hex truncated, addresses rendered as hex), and result summary. On by default; pass `--quiet` to suppress.
+
+---
+
 ## [0.1.0] - 2026-04-26
 
 **FEAT:** *initial-release*
