@@ -17,7 +17,7 @@
 
 ## Done
 <!-- DONE_START -->
-PRP-3: rerw talent + tier edit primitives (2026-04-28)
+PRP-2: rerw talent + tier edit primitives (2026-04-28)
   - decoded the talent record (tag=0x12) and tier byte (tag=0x10) for Geppetto saves: 5×16-byte talent GUIDs at the talent-pick block (anchored by `[u32=0][u32=5]` sentinel), plus a u8 tier byte at offset GUID+17 of each first-occurrence tag=0x10 record
   - verified end-to-end with 3 lab swaps on the chapter-2 Geppetto proof — talent swap (slot 1: Special Creates Dummy → Trait Twins, displayed as Common), tier edit (Dummy Ball Common → Legendary), combined edit (slot 1 → Trait Twins at Legendary); all three landed as goldens at `rw/saves/edits/golden/geppetto/chapter2/laser-lenses_1/talent-slot1-*` with `info.md` per mod
   - tier-value mapping: `0=Common, 1=Rare, 2=Epic, 3=Legendary, 4=ult-marker` (slot 5 ult uses ult-marker, no real tier)
