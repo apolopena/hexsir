@@ -1,31 +1,29 @@
 # Talent record discovery in Geppetto chapter 2 saves
 
-**Status:** RESOLVED — talent storage located, structure decoded, edit primitive designed.
+**Status:** CLOSED — talent picks AND tier byte both located, decoded, and verified end-to-end (3 verified golden mods + in-game player screenshots). Edit primitive shipped as `rerw write savefile --talent-slot N --talent-id ... --tier ...` (committed as PRP-2 / planning-system PRP-3). Canonical reference: `rw/key-findings/talent-records.md`.
 **Created:** 2026-04-27
-**Resolved:** 2026-04-27 (same session, after pivoting to herodef parse)
+**Resolved:** 2026-04-28 (multi-session investigation; tier byte location landed in the second session after the body+0x35 false lead was falsified by a lab-edit test)
 
 ## Resolution summary
 
-The 5 talent picks are stored as 16-byte skill-controller GUID references in a
-fixed-tag record (tag=0x12, record GUID `bfe7f660...12a5`). Tier values (0=Common,
-1=Rare, 2=Epic, 3=Legendary) for slots 1–4 sit earlier in the same record header.
-Slot 5 (the ultimate) has no tier. Full byte layout, GUID-to-talent mapping, and
-edit-primitive design: `rw/dumps/geppetto/talent-record-decoded.txt`.
+The 5 talent picks are stored as 16-byte skill-controller GUID references in a fixed-tag record (tag=0x12, record GUID `bf e7 f6 60 43 85 cb 48 87 f6 b4 b7 9f 68 12` + separator byte `0xa5`). The picks sit at the END of the record body, anchored by an 8-byte sentinel `[u32 = 0][u32 = 5]` and laid out back-to-back at 16-byte intervals.
 
-The breakthrough came from parsing `Heroes/Geppetto.herodef.ot.DtHeroDefinition.gen`,
-extracting all 28 skill-controller GUIDs, and finding that exactly 5 of them appear
-TWICE in each save — once in the herodef-reference region near the hero record,
-and once in a dedicated talent-pick block at the end of the talent record. Each
-save's 5-pick block matches the player's gameplay-confirmed talent picks 1:1.
+Tier is **NOT** stored in the talent record. Tier is a single u8 at offset GUID+17 of each tag=0x10 first-occurrence record, in the herodef-reference region near the hero record. The engine reads tier from the tag=0x10 record matching the slot's *current* GUID — change the slot's GUID and the engine looks up tier from the new talent's tag=0x10 record. Tier-value encoding: `0=Common, 1=Rare, 2=Epic, 3=Legendary, 4=ult-marker (slot 5 ult; no real tier)`.
+
+The breakthrough came in two stages: (1) parsing `Heroes/Geppetto.herodef.ot.DtHeroDefinition.gen` to extract all 28 skill-controller GUIDs, then noticing 5 of them appear twice in each save (once in the herodef-reference region as tag=0x10 records, once in the talent-pick block at the end of the tag=0x12 record); (2) ruling out a near-coincidence (the body+0x35 u32 sequence inside the talent record statistically matched player tier distribution, but a single-byte lab edit confirmed the engine doesn't read tier from there — see "Ruled out" below).
+
+End-to-end verified by three in-game tests on Save A: talent-only swap (slot 1 → Trait Twins, displayed at Common), tier-only edit (Dummy Ball Common → Legendary), and combined (slot 1 → Trait Twins at Legendary). All three goldens shipped under `rw/saves/edits/golden/geppetto/chapter2/laser-lenses_1/talent-slot1-*/`.
 
 ## Sources
 
 - rw/saves/proofs/geppetto/chapter2/laser-lenses_1/Profile_1.ob
 - rw/saves/proofs/geppetto/chapter2/twin-dummies-all-legendary-talents/Profile_1.ob
+- rw/harvested/Definitions/Heroes/*.yqz (12 hero herodef binaries; deciphered names of form `<Name>.herodef.ot.DtHeroDefinition.gen`)
 - rw/dumps/Ravenswatch.exe
 - rw/ref/tree-deciphered.txt
 - rw/key-findings/save-binary-format.md
 - rw/key-findings/talents.md
+- rw/key-findings/talent-records.md  ← canonical state-of-knowledge after this triage closed
 
 ## Confirmed Findings
 
@@ -82,40 +80,46 @@ For the existing `laser-lenses_1` proof, only the starting talent is known: `Dum
 
 The hero record (length-prefixed `Heroes\Geppetto.herodef.ot` path) lives inside a 1323-byte container record at offsets 0x11cd0..0x121fb in `laser-lenses_1`. That container has 9 nested records. Inspection identified them as: a 35-sequential-u32 progression-flags list, a small 20-byte record, six 125–131 byte `BookMenu\UI_Icon_*` UI tracking records, and a 163-byte player profile record (which contains the Steam name `Quadrotonic`). **None are talent records** — the BookMenu UI records are content tracking; the player profile is account metadata.
 
-## Unresolved
+## Ruled out during this investigation (closed leads)
 
-### Where are talent records actually located?
+### "Inside the 83-byte high-entropy base64 run-id blob"
 
-Three previously-stated hypotheses, two now ruled out:
+Decoded both proofs' blobs and diffed byte-by-byte. Structure is `[stable 32-byte prefix][51-byte tail]`. The 32-byte prefix is byte-identical across the two distinct chapter-2 runs (so not a per-run UUID), but doesn't appear in the chapter-3, epilogue, clean, or EXE files (so not a hero key either). Most plausible: a chapter-2-entry checkpoint hash. The 51-byte tail diverges with no structural alignment to 5 talent slots. Pre-blob header parses as `[u32=3][u32=729][float — A=1409.92 / B=1221.49, fits cumulative run-time in seconds][u32=112]`. Investigation dump: `rw/dumps/geppetto/talent-blob-and-record-analysis.txt`.
 
-1. ~~**Inside the 83-byte high-entropy base64 run-id blob**~~ — **ruled out this session.** Decoded both proofs' blobs and diffed byte-by-byte. Structure is `[stable 32-byte prefix][51-byte tail]`. The 32-byte prefix is byte-identical across the two distinct chapter-2 runs (so not a per-run UUID), but doesn't appear in the chapter-3, epilogue, clean, or EXE files (so not a hero key either). Most plausible: a chapter-2-entry checkpoint hash. The 51-byte tail diverges in a pattern with no structural alignment to 5 talent slots. Pre-blob header parses as `[u32=3][u32=729][float — A=1409.92 / B=1221.49, fits cumulative run-time in seconds][u32=112]`. Full byte-level dump: `rw/dumps/geppetto/talent-blob-and-record-analysis.txt`.
+### "Size-68 / size-115 record buckets contain talents"
 
-2. **A single large record holding the entire talent loadout.** Still open. Multi-record cluster analysis this session ruled out the unique-to-each clusters and singletons at sizes 29/50/54/78/82/119/155 (all show small numeric drift consistent with engine state, not 5 talent IDs). One untested candidate remains: the **~4800-byte top-level record at offset 0x702** (an array of ~1,190 u32 values mostly in the 13–36 range, with size delta exactly -12 entries between A and B — possibly an engine-state list, but not yet exhaustively parsed).
+Heuristic: find buckets where exactly 5 records are unique to each save. Size 68 (5x in each) and size 115 (5x in each) both fit. Hex inspection ruled both out — engine-state counters / per-instance state drift, not talent identifiers.
 
-3. **Variable-size talent records.** Still open. Cluster heuristics by `(type_tag, depth, body_size)` did not surface a divergent group with the right shape, but tag-only or content-shape clustering hasn't been tried.
+### "A single large record holds the entire talent loadout"
 
-### Tier-homogeneity and talent-ID signature null results (this session)
+Multi-record cluster analysis ruled out unique-to-each clusters and singletons at sizes 29/50/54/78/82/119/155 (all small numeric drift, engine state). Also ruled out: the ~4800-byte top-level record at offset 0x702 (array of ~1,190 u32s in the 13–36 range, size delta -12 between A and B — looks like an engine-state list / spawn-id pool).
 
-Player gameplay ground truth: every talent in B is different from A, and B's 4 tiered talents are all Legendary while A had varied tiers.
+### "Tier values for slots 1–4 sit at body+0x35..+0x44 of the talent record"
 
-- **Tier-homogeneity scan** (positions where A is heterogeneous and B is constant) across all unique-record clusters with count ≥ 4: **zero matches**. Talents are not stored as parallel per-slot records with a per-record tier byte.
-- **All-distinct-IDs scan** (positions where each record holds a unique value): every "promising" position turned out to be either a session-allocation counter with a global per-save offset (e.g., tag=0x07 +0x47: A's 5 values are exactly 12 higher than B's at all positions — single counter, not 5 IDs), a run-stable shared ID (same in both saves), or a +1 mid-run drift.
+This was the closest near-miss in the investigation. The 4 u32 LE values at body+0x35..+0x44 of the tag=0x12 talent record statistically match the player's tier distribution **perfectly**:
 
-These null results push the encoding away from "5 parallel records, one per slot" toward either "inline array in one record" or "outside the bracketed-record framework entirely."
+- Save A: `[0, 2, 1, 0]` matches Common/Epic/Rare/Common (4 tiered slots).
+- Save B: `[3, 3, 3, 3]` matches all-Legendary (player gameplay-confirmed).
 
-### Why do chapter counters diverge here?
+The values appear at **exactly the same body-relative offset (0x35) in both saves**, with no other location in the file matching. The `0x00..0x03` value range fits Common-Rare-Epic-Legendary. By pure statistics this is far too clean to be coincidence.
 
-The `laser-lenses_1` proof has Counter A=1 / Counter B=1; the `twin-dummies` proof has Counter A=0 / Counter B=1. Both proofs are at chapter 2 entry per the player's confirmation. The earlier `save-binary-format.md` finding of "chapter counters always in lockstep" was based on chapter-transition saves only (chapter2 → chapter3 → epilogue). At intermediate auto-save triggers (mid-chapter, post-chapter-1-completion variants?) the counters apparently diverge. Mechanism unclear; not blocking talent work but should be noted in the canonical doc when convenient.
+**Falsified by lab test:** wrote `u32(3)` to all 4 positions in Save A and loaded — Dummy Ball still displayed at Common. The bytes ARE tier-related (a parallel encoding the engine writes alongside the canonical) but the engine does NOT read them for HUD display.
 
-### What encoding does talent storage use?
+The ACTUAL tier byte was found shortly after, at GUID+17 of each tag=0x10 first-occurrence record near the hero record. Single-byte lab edit (`0x00 → 0x03`) at that position changed Dummy Ball's display tier from Common to Legendary. End-to-end verified.
 
-Even once we locate the records, the encoding is unknown. Per the rarity-tier observations, each talent slot likely stores BOTH talent identity and tier. Three plausible encodings:
+### "Tier-homogeneity / talent-ID signature scans of unique-to-each records"
 
-- `[talent_id: u32][tier: u8 or u32]` — two fields per slot.
-- `[combined_id: u32]` — talent×tier baked into one ID (`Twin Dummies Common` and `Twin Dummies Legendary` would be different combined IDs).
-- Tier as a separate parallel record (talent IDs in one list, tier values in another, indexed in lockstep).
+Multiple structural scans all produced null results:
+- **Tier-homogeneity** (positions where A is heterogeneous and B is constant) across unique-record clusters with count ≥ 4: zero matches in any cluster.
+- **All-distinct-IDs** scan: every "promising" position turned out to be either a session-allocation counter (e.g., tag=0x07 +0x47: A's 5 values are exactly 12 higher than B's at every position — single global counter, not 5 IDs), a run-stable shared ID, or a +1 mid-run drift.
 
-The L5-ult-has-no-tier observation makes the encoding asymmetric — slots 1–4 carry tier info, slot 5 doesn't. That asymmetry might be discoverable as a structural difference between slot-5 records and slots-1-4 records once the location is found.
+These null results were correct — the unique-to-each clusters genuinely don't contain the talent picks. The picks live in the tag=0x12 record's pick block (which differs per slot but pairs by record GUID, not by content shape).
+
+## Side observation (not blocking, not closed)
+
+### Chapter counters diverge between the two chapter-2 proofs
+
+The `laser-lenses_1` proof has Counter A=1 / Counter B=1; the `twin-dummies` proof has Counter A=0 / Counter B=1. Both proofs are at chapter 2 entry per the player's confirmation. The earlier `save-binary-format.md` finding of "chapter counters always in lockstep" was based on chapter-transition saves only (chapter2 → chapter3 → epilogue). At intermediate auto-save triggers (mid-chapter, post-chapter-1-completion variants?) the counters apparently diverge. Mechanism unclear; not blocking talent work, noted here for future investigation.
 
 ## Notes
 
@@ -135,17 +139,21 @@ The two proofs are deliberately structured for talent-isolation diff:
 3. Record-level diff: parse both saves into bracketed records, compute SHA-256 fingerprint of each record body, compare set membership across saves.
 4. Bucket analysis: group records by size, find buckets where exactly 5 records are unique to each save.
 5. Full-body hex inspection of bucket-matching records to verify or reject talent-record hypothesis.
-6. **Base64 run-id blob decode + diff** (this session, dump at `rw/dumps/geppetto/talent-blob-and-record-analysis.txt`).
-7. **Cluster by `(type_tag, depth, body_size)` rather than size alone** (this session) — surfaces additional clusters but none with talent-shaped signatures.
-8. **GUID-paired diff%** across all unique-to-each records — max divergence 12%, no record is wholly different. (Caveat: GUID extraction is unreliable for container records whose offset 4..7 holds the nested-record start marker.)
-9. **Tier-homogeneity signature** scan (A heterogeneous, B homogeneous) — zero hits anywhere.
-10. **All-distinct-IDs signature** scan — every match resolves to a session counter with global offset between saves.
-11. **Anchor-based byte-level diff** of the full saves — works in early file regions (header / type registry), breaks down once files go significantly out of sync mid-run-state.
+6. Base64 run-id blob decode + diff.
+7. Cluster by `(type_tag, depth, body_size)` rather than size alone.
+8. GUID-paired diff% across all unique-to-each records — max divergence 12%, no record is wholly different. (Caveat: GUID extraction is unreliable for container records whose offset 4..7 holds the nested-record start marker.)
+9. Tier-homogeneity signature scan (A heterogeneous, B homogeneous) — zero hits.
+10. All-distinct-IDs signature scan — every match resolves to a session counter with global offset between saves.
+11. Anchor-based byte-level diff of the full saves — works in early file regions (header / type registry), breaks down once files go significantly out of sync mid-run-state.
+12. **Herodef parse — the breakthrough.** Deciphered `Heroes/Geppetto.herodef.ot.DtHeroDefinition.gen` (path `Kqjjqiir.nqurtqh.ri.NiAqurNqhdzdidrz.yqz` from the cooked Steam install via `rerw decipher`), parsed all 28 `Skill Controller XXX` length-prefixed strings + their immediately-following 16-byte GUIDs.
+13. **GUID search across both proof saves** — found exactly 5 controller GUIDs appearing TWICE in each save: once in the herodef-reference region near the hero record, once in a back-to-back block at the end of a tag=0x12 record. The 5 second-occurrences match each save's player-confirmed talent picks 1:1.
+14. **Talent-pick block byte layout characterized** — sentinel anchor `[u32=0][u32=5]` precedes 5 × 16-byte GUIDs. Single-byte lab edit verified end-to-end.
+15. **Tier byte hunt** — initially a near-miss false lead at body+0x35..+0x44 of the talent record (perfect statistical match to tier values, but lab edit had no in-game effect). Located at GUID+17 of each tag=0x10 first-occurrence record after re-examining the herodef-reference region. Single-byte lab edit (`0x00 → 0x03`) flipped Dummy Ball's display tier Common → Legendary, verified by player screenshot.
 
 ### Steam Cloud constraint affects byte-flip discrimination
 
 When a candidate record region is identified, byte-flip experiments are the discriminator: modify a u32 in the candidate region, swap into game with player permission, observe whether displayed talent in slot N changes. Each experiment is single-session per the Steam Cloud overwrite-on-launch behavior. Plan accordingly — bundle multiple flips per session if possible, observe carefully before quit.
 
-### `Heroes/Geppetto.herodef.ot` parsing as fallback
+### `Heroes/<Hero>.herodef.ot` parsing — was the fallback, became the bridge
 
-If save-byte-level discovery exhausts, parsing the cooked `Heroes/Geppetto.herodef.ot.DtHeroDefinition.gen` directly would give us the per-hero talent ID registry (since talents are inline in the herodef binary). The OEngine cooked-asset format is unknown to this project; would require reverse-engineering. Substantial effort but a definitive path. Not yet attempted.
+Originally listed as a worst-case fallback (decode the cooked OEngine binary to find a per-hero talent ID registry). Turned out to be much simpler than feared: the herodef stores Skill Controllers as length-prefixed `Skill Controller XXX` strings followed immediately by 16-byte GUIDs. Parsing them is a 30-line Python loop. All 12 hero herodefs were harvested and parsed; per-hero YAMLs at `tools/rerw-src/data/heroes/<hero>.yaml` ship 28 controller GUIDs each (336 GUIDs total).
