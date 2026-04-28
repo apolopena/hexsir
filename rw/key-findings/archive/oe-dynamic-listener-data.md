@@ -1,3 +1,9 @@
+> **ARCHIVED 2026-04-27** — superseded by [`rw/key-findings/save-binary-format.md`](../save-binary-format.md).
+> Preserved for historical detail (template specializations, vtable RVAs, RTTI-walk
+> methodology, mirror-cascade analysis, pin-identity hypotheses). Some claims here
+> are stale or contradicted by later work — consult the canonical key finding for
+> current facts.
+
 # OEngine: `oe::DynamicCpntValueListenerData<T>`
 
 OEngine (Passtech Games' game engine; namespace `oe::`) wraps observable game
@@ -342,7 +348,7 @@ session:
    use struct-relative offsets from another known anchor.
 
 Full per-session workflow & rationale (what survives a restart, what
-doesn't): `rw/docs/oe-listener-mining.md`.
+doesn't): `rw/docs/archive/oe-listener-mining.md`.
 
 ## Method to recover this map
 

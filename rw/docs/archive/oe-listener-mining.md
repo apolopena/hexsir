@@ -1,3 +1,10 @@
+> **ARCHIVED 2026-04-27** — the trainer-edit use case for live-memory work is
+> tabled. This doc is preserved as a methodology playbook (heap-scan technique,
+> RTTI walk, mirror-cascade analysis, listener-instance pinning) for the future
+> read-only monitoring track when per-session ASLR re-discovery is built.
+> For current canonical save-format state and the live-memory tabled-status
+> summary, see [`rw/key-findings/save-binary-format.md`](../../key-findings/save-binary-format.md).
+
 # OEngine listener-data mining — techniques
 
 The Ravenswatch / OEngine binary stores observable game-state values as
@@ -7,7 +14,7 @@ instances bind to the stat you care about, and read or modify the value at
 offset `+8` from the instance base.
 
 This doc is the working playbook for that work. Cross-reference:
-- `rw/key-findings/oe-dynamic-listener-data.md` — vtable map for all `<T>` specializations
+- `rw/key-findings/archive/oe-dynamic-listener-data.md` — vtable map for all `<T>` specializations
 - `rw/triage/level-runtime-address.md` — first end-to-end walk-through of these techniques
 - `rw/saves/edits/golden/geppetto/chapter2/laser-lenses_1/session1_level_analysis.md` — session 1 results
 - `rw/docs/tools/mem-snapshot.md` — `mem_snapshot.py` command reference
@@ -24,7 +31,7 @@ What stays stable across launches:
 
 | Stable | Source |
 |--------|--------|
-| Vtable RVAs (file-relative offsets) | `Ravenswatch.exe` PE layout — see RVA table in `key-findings/oe-dynamic-listener-data.md` |
+| Vtable RVAs (file-relative offsets) | `Ravenswatch.exe` PE layout — see RVA table in `key-findings/archive/oe-dynamic-listener-data.md` |
 | Class identity & layout (vtable at +0, value at +8) | RTTI in the binary |
 | Architecture pattern (which stats are listeners, which are plain fields, which are computed) | Same — engine design |
 | Relative offsets within the player stat block (e.g., HP current is 0x1E0 bytes after Level) | EXE structure — stable until the binary changes |
@@ -52,7 +59,7 @@ its current address is mechanical — no re-investigation:
    Read off the `base` for `Ravenswatch.exe`.
 
 2. **Compute the runtime vtable address.** From the RVA table in
-   `key-findings/oe-dynamic-listener-data.md`, pick the `<T>` for the stat
+   `key-findings/archive/oe-dynamic-listener-data.md`, pick the `<T>` for the stat
    (e.g., `<int>` RVA `0xef4ad0` for Level). Runtime addr = `module_base + RVA`.
 
 3. **Take 1–2 snaps and scan for vtable instances.** Use the listener instance
@@ -272,7 +279,7 @@ propagate to the live game. What they ARE beyond "not live" is undetermined
 (save-buffers, allocation-time defaults, dead-code subsystem fields, etc.
 are all consistent with the observations); see
 `rw/triage/pin-identity-uncertain.md` for the open hypothesis list and
-`rw/key-findings/oe-dynamic-listener-data.md` (Status section) for the
+`rw/key-findings/archive/oe-dynamic-listener-data.md` (Status section) for the
 full test record.
 
 This invalidates the "source-of-truth" framing throughout this doc. The

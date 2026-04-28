@@ -1,3 +1,11 @@
+> **ARCHIVED 2026-04-27** — superseded by [`rw/key-findings/save-binary-format.md`](../save-binary-format.md).
+> Preserved for historical detail. The chapter-counter facts are reproduced (with
+> corrections) in the canonical key finding's "Verified editable fields" table —
+> consult that for current claims. Note: this archived doc has an internal byte-
+> count inconsistency on GUID B's ASCII span ("11 bytes" vs string `faultdef.ot&`
+> which is 12 chars) and refers to `mod_save.py` as the canonical edit tool, both
+> of which the canonical key finding corrects.
+
 # Save: Chapter Counter
 
 The Ravenswatch save format encodes the player's chapter progression via two
@@ -84,9 +92,10 @@ What can invalidate them:
 
 GUID B's trailing 4 bytes `26 ba 45 19` correlate to the asset path
 `All_Chapters.gamemodedefaultdef.ot.GameModeDefaultDefinition.gen` or some
-substring of it. The `ProfileDreamShards` GUID
-(`b43eeb58d162fa41acef99d128f2cb`) and the `Level` GUID
-(`b5317efe6f4a95737325675793e600`) likely follow the same family —
+substring of it. The unknown GUID `b43eeb58d162fa41acef99d128f2cb`
+(originally suspected to be ProfileDreamShards; identity disproven 2026-04-27,
+see `rw/key-findings/save-binary-format.md` § "Misidentified") and the `Level`
+GUID (`b5317efe6f4a95737325675793e600`) likely follow the same family —
 ASCII-prefix or fully-hashed. Reversing this hash function would make it
 possible to mint arbitrary GUIDs from asset paths, which is plausibly the
 path to programmatic item / talent / ability editing (the unresolved

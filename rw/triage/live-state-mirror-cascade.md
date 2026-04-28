@@ -6,7 +6,7 @@
 ## Sources
 
 - rw/key-findings/oe-dynamic-listener-data.md (existing key-findings doc; updated this session with the cascade findings — most confirmed content has been folded in there directly)
-- rw/docs/oe-listener-mining.md (methodology playbook; updated with corrections)
+- rw/docs/archive/oe-listener-mining.md (methodology playbook; updated with corrections; archived 2026-04-27 with the live-memory track tabling)
 - Live Ravenswatch process verification (Geppetto, chapter 2, PID 22768; same heap state as MAINT-4 session1 captures)
 - tools/rs-src/ (rs trainer CLI used to drive all read/write/find tests this session)
 

@@ -10,7 +10,13 @@ from pathlib import Path
 # Known GUIDs for values (value follows immediately after GUID)
 KNOWN_GUIDS = {
     "Level": bytes.fromhex("b5317efe6f4a95737325675793e600"),  # WORKS! Max ~15
-    "ProfileDreamShards": bytes.fromhex("b43eeb58d162fa41acef99d128f2cb"),  # profile-level (not run)
+    # UNKNOWN identity — value 101 in all observed saves; original triage
+    # called it "ProfileDreamShards" but writes do not affect the displayed
+    # profile shards counter (verified 2026-04-27 by writing 9999 → in-game
+    # still showed 21). Likely a tier cap, milestone threshold, or other
+    # persistent constant. Keeping the entry for find/inspect; do not rely
+    # on it as a mod target.
+    "_unknown_b43eeb58": bytes.fromhex("b43eeb58d162fa41acef99d128f2cb"),
 }
 
 

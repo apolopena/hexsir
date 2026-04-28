@@ -32,3 +32,11 @@ ALWAYS use `./scripts/git-ai.sh` for git commands requiring SSH (commit, push, p
 ### GitHub Operations
 CRITICAL: Mark agent (subagent_type=mark) is responsible for ALL GitHub write operations (PRs, issues, comments, releases).
 Mark gathers context and dispatches .github/workflows/gh-dispatch-ai.yml with proper provenance.
+
+### Save-file swap operations
+ALWAYS ask the user before running `rerw swap savefile` (or any operation that overwrites the active game save in `_Save/Profile_1.ob`). Two distinct gotchas to be aware of:
+
+- **Mid-session writes don't register.** While the game is running, the file is technically writable, but the running game holds its own in-memory state and doesn't re-read `Profile_1.ob` — the swap simply has no effect on the active session.
+- **Steam Cloud sync overwrites on game quit.** When the user quits Ravenswatch, Steam syncs cloud → local, restoring whatever the cloud copy holds. Local edits made before / during the session get reverted on quit. Persistent edits require disabling Steam Cloud sync for Ravenswatch (Steam → Library → Ravenswatch → Properties → uncheck "Keep games saves in the Steam Cloud") or accepting that swaps are session-scoped only.
+
+Confirm before swapping; do not assume; if the user reports a swap "didn't take" after a play session, the most likely explanation is the cloud-sync-on-quit overwrite.

@@ -62,6 +62,17 @@ Use the **`rw-triage-report` skill** to create them — invoke with "create a tr
 - **Save files always named `Profile_1.ob`** — the game expects this filename. Never rename. Encode the variant identity in the directory path (e.g., `level99/`, `max-shards/`).
 - **Asset filenames preserve the `!` separator** — game uses `!` in filenames (e.g., `Hero_Geppetto!Hero_Geppetto.entity.ot.EntitySettingsResource.gen`). Keep it.
 
+## Save Edit Directory Conventions
+
+Both `saves/edits/lab/` and `saves/edits/golden/` are organized by the **source hero** of the save (not the post-edit hero, even when the edit changes the hero). Source hero keeps lineage traceable.
+
+- **Golden:** `saves/edits/golden/<hero>/<chapter>/<run-id>/<mod-id>/Profile_1.ob` — full structured path with verified-mod metadata baked in.
+- **Lab:** `saves/edits/lab/<hero>/<run-name>/<descriptive-mod-id>/Profile_1.ob` — lighter than golden (no separate chapter level — chapter is encoded in the mod-id when relevant, e.g. `level-downgrade-from-ch2/`). The run-name mirrors the source proof's run-name exactly (don't normalize away inconsistencies like dash-vs-underscore across proofs). Lab is gitignored so renames are free.
+
+A lab edit experiment that swaps Geppetto → Carmilla still lives under `lab/geppetto/<run>/`, because the file was *derived from* a Geppetto proof from that run. The mod-id (e.g., `hero-swap-to-carmilla/`) describes the change applied.
+
+**Delete failed tests; don't preserve them as `<mod-id>-failed/`.** A polluted lab makes it impossible to tell verified-but-not-yet-promoted edits from known-broken ones across sessions. Capture failure outcomes in the relevant key finding (e.g., the "Misidentified" subsection in `save-binary-format.md`) and remove the lab artifact. Negative results live in docs, not in the lab tree.
+
 ## Tree Files
 
 `tree-ciphered.txt` is the source of truth — game updates can change asset structure. Regenerate with Windows `tree /A /F` (the `/A` flag avoids encoding issues with box-drawing characters).
@@ -76,6 +87,10 @@ Use the **`rw-triage-report` skill** to create them — invoke with "create a tr
 4. When analysis is worth a writeup, create a triage document (use the `rw-triage-report` skill).
 5. As findings in triage firm up, extract them as curated artifacts in `key-findings/`.
 6. For save modifications: edit in `saves/edits/lab/`, test in-game, promote successful results to `saves/edits/golden/`.
+
+## External references
+
+- **Ravenswatch wiki — Heroes:** [https://ravenswatch.fandom.com/wiki/Heroes](https://ravenswatch.fandom.com/wiki/Heroes) — canonical hero list with abilities, talents, and game-side names. Useful for cross-checking asset names from the deciphered tree against in-game terminology, and for resolving hero-specific terminology questions during save analysis.
 
 ## Documentation
 

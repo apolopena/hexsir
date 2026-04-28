@@ -17,6 +17,17 @@
 
 ## Done
 <!-- DONE_START -->
+MAINT-8: Hero-swap edit primitive + save-format consolidation (2026-04-27)
+  - verified hero record format: length-prefixed ASCII path `Heroes\<Name>.herodef.ot`; locate via `data.find(b'Heroes\\<name>')`, length prefix is `u32 LE` immediately preceding
+  - verified hero swap end-to-end across 4 swaps from chapter2 proof: Carmilla (8-char, no shift), Aladdin (7-char, −1 byte), Snow_Queen (10-char, +2 bytes), Red (3-char, −5 bytes); all loaded with full identity + run-state preserved; engine tolerates body shifts across `−5..+2` byte range
+  - observed: slot 1 auto-populates with new hero's L5 ultimate on swap; slots 2/3/4/5 cleared; resolver picks per-hero ult index (3× ult #1, 1× ult #2)
+  - level-downgrade test (chapter2 proof, L5 → L1): engine accepts inconsistent state (low-level char + high-level talents); per-ability damage couples to level field (Geppetto hammer strike 23 @ L1, 34 @ L5, same talents); XP value preserved, threshold tracks level
+  - disproved `ProfileDreamShards` identification (`b43eeb58…`): writes don't affect displayed profile shards (verified 9999 → in-game still showed 21); pulled from verified-fields table; relabeled `_unknown_b43eeb58` in `mod_save.py`
+  - empirically confirmed Steam Cloud sync constraint: cloud restores on game launch following any session that loaded a save; each in-game test is single-session
+  - new key findings: `rw/key-findings/save-binary-format.md` (canonical), `rw/key-findings/hero-swaps.md`, `rw/key-findings/hero-table.md`; archived `oe-dynamic-listener-data.md`, `save-chapter-counter.md`, `oe-listener-mining.md` under `key-findings/archive/` and `docs/archive/` with superseded-banner headers
+  - new goldens: 4 hero-swap variants + `chapter-rewind-from-ch3-level99` under `rw/saves/edits/golden/geppetto/`
+  - updates: `CLAUDE.md` swap-op rule + cloud-sync guidance, `rw/docs/playbook.md` lab directory convention (`<hero>/<run-name>/<mod-id>/`) + failed-test deletion rule + Ravenswatch wiki reference, generated `rw/ref/tree-deciphered.txt` from ciphered tree
+
 PRP-1_save-chapter-edit-primitive (2026-04-27) — extended `rerw` with `read savefile` and `write savefile` commands backed by a YAML field registry; rerw 0.1.0 → 0.2.0
   - `read savefile --source FILE [--chapter] [--level] [-v]`: print field values; no field flags prints all, flags filter to specific fields; reports `<not present>` when a GUID isn't in the save
   - `write savefile --source FILE --dest DIR [--chapter N] [--level N] [-f] [-v]`: edit fields atomically (one read, all writes, single CRC32 recompute, one output file); `--force` / `-f` bypasses overwrite prompt
