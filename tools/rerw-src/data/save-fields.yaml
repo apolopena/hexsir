@@ -27,3 +27,25 @@ scalar:
 # Future categories reserved (do NOT remove):
 # array:
 # ref:
+
+talent_record:
+  # Tag=0x12 talent record holding the player's 5 talent picks for the run.
+  # Single instance per save. Record GUID + sentinel + slot count are
+  # presumed hero-independent (identify the record type in the OEngine
+  # schema, not the hero). Verified for Geppetto end-to-end; structure
+  # presumed to generalize to other heroes — verifies on first non-Geppetto
+  # run (Juliet proof pending). The CLI auto-detects the hero from the save's
+  # `Heroes\<Name>.herodef.ot` path string and routes to the matching
+  # `heroes/<name>.yaml` skill-controller registry.
+  run_picks:
+    type: talent_picks
+    record_guid: bfe7f6604385cb4887f6b4b79f6812
+    sentinel: "0000000005000000"
+    slot_count: 5
+    skills_data_dir: heroes
+    description: |
+      5 × 16-byte talent GUIDs at the talent-pick block, anchored by the
+      8-byte sentinel `00 00 00 00 05 00 00 00` (zero u32 + count=5).
+      Tag=0x10 first-occurrence records (one per skill controller, near the
+      hero record) carry the per-talent tier byte at offset GUID+17.
+      See rw/key-findings/talent-records.md.

@@ -1,0 +1,126 @@
+# Carmilla skill controllers — extracted from the herodef binary.
+#
+# Source: Heroes/Carmilla.herodef.ot.DtHeroDefinition.gen
+# Auto-generated. Aliases will be added as gameplay verifies
+# the in-game name for each controller.
+
+hero: Carmilla
+controllers:
+  - name: 'Skill Controller Ultimate Power 1'
+    guid: f156f2f780a5544d8ea36e1cc8f0e4eb
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate Power 2'
+    guid: c559438ca1eada438da879cd444c12d0
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Attack Bleed'
+    guid: c57f8986663ece4a9577cd55daed0250
+    aliases: []
+
+  - name: 'Skill Controller Dash Blood'
+    guid: 1d6c89cf91374e4192ec3e1bfdad2d5e
+    aliases: []
+
+  - name: 'Skill Controller Defense Master'
+    guid: ee72f1f066ae3449964ef627987b8a44
+    aliases: []
+
+  - name: 'Skill Controller Defense Projectile'
+    guid: eaae07f1d617554b89a91234280b28b0
+    aliases: []
+
+  - name: 'Skill Controller Passive Blood Reserve'
+    guid: daa7943c7cd56f41945e384279cad214
+    aliases: []
+
+  - name: 'Skill Controller Passive Life Use Regen'
+    guid: 583541122ae719439e3b2be6695a36e5
+    aliases: []
+
+  - name: 'Skill Controller Power Quest'
+    guid: 5a5688b2e122f847be94c3f36db1d3ee
+    aliases: []
+
+  - name: 'Skill Controller Special Quest'
+    guid: 1d7463c9f6ae79479bdd8bea8ccc29dd
+    aliases: []
+
+  - name: 'Skill Controller Trait Life Tap'
+    guid: b167a2d2997fb544a7080693b03fb066
+    aliases: []
+
+  - name: 'Skill Controller Ultimate 1 Upgrade 1'
+    guid: 49c048d36106174286c73433919c150f
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 1 Upgrade 2'
+    guid: 4433ba05e980cb468f7672b3f4921706
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 2 Upgrade 1'
+    guid: cab3e19fc15d1a4bb60c2deb994c7553
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 2 Upgrade 2'
+    guid: 8167cd9f423b4042bc07135d68f4a5a3
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Attack Last Combo Move'
+    guid: ba8ddf5ab2e58945bfd83c754bafb645
+    aliases: []
+
+  - name: 'Skill Controller Defense Aoe Bleed'
+    guid: b739454fefdb884fb0ea277381efc649
+    aliases: []
+
+  - name: 'Skill Controller Passive Critical Bleed'
+    guid: 0df79ae38ccec54594370dff155ce735
+    aliases: []
+
+  - name: 'Skill Controller Power Bleed Crit'
+    guid: 8dc83171698cc049a767204284a06e84
+    aliases: []
+
+  - name: 'Skill Controller Power Maintained Damage'
+    guid: b1228cd767f11b4b9160c8893bb7b17b
+    aliases: []
+
+  - name: 'Skill Controller Power Special Bomb'
+    guid: 370bab50874dc746892fc7b342423791
+    aliases: []
+
+  - name: 'Skill Controller Special Critical Distance'
+    guid: b10f28f61a5a214383006ef48c71132f
+    aliases: []
+
+  - name: 'Skill Controller Special Marked'
+    guid: 7ee726e4fe0c98418e7e37a42124e4b0
+    aliases: []
+
+  - name: 'Skill Controller Trait Heal Buff'
+    guid: 84a31ab6bc292a44a92e6566573935e5
+    aliases: []
+
+  - name: 'Skill Controller Trait Push back'
+    guid: a84ed0246ce86f458818c58e6f33bfbd
+    aliases: []
+
+  - name: 'Skill Controller Attack Special Rush'
+    guid: 4a49b6579d257549854cd127e0fef380
+    aliases: []
+
+  - name: 'Skill Controller Power Range'
+    guid: 468dac7304280a4685e48d53e4e9dc59
+    aliases: []
+
+  - name: 'Skill Controller Dash Taunt'
+    guid: f6cccba66fce4240b70084d6e048ed0d
+    aliases: []
+

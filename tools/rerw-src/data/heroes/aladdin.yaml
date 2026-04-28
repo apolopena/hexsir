@@ -1,0 +1,126 @@
+# Aladdin skill controllers — extracted from the herodef binary.
+#
+# Source: Heroes/Aladdin.herodef.ot.DtHeroDefinition.gen
+# Auto-generated. Aliases will be added as gameplay verifies
+# the in-game name for each controller.
+
+hero: Aladdin
+controllers:
+  - name: 'Skill Controller Attack Dive'
+    guid: 2cfd2a9bae0dd34fa7af97d71052ecc9
+    aliases: []
+
+  - name: 'Skill Controller Attack Flurry'
+    guid: 8288019b6fbc3d4a9a6a8416f0868f3a
+    aliases: []
+
+  - name: 'Skill Controller Attack No Weapon'
+    guid: 318543508c9c1843b1f8c75d7c2aca4d
+    aliases: []
+
+  - name: 'Skill Controller Attack Spawns DS'
+    guid: 44b10db74d34fe4babf4b6fcb3043891
+    aliases: []
+
+  - name: 'Skill Controller Defense Dash'
+    guid: 2c0220d59ef1c447ba3fe8076d2a3c16
+    aliases: []
+
+  - name: 'Skill Controller Defense Energy'
+    guid: 0051cf7a138577408f6deda1a329269d
+    aliases: []
+
+  - name: 'Skill Controller Passive Energy'
+    guid: 0388d44d2876b94fa0dba94aa120794c
+    aliases: []
+
+  - name: 'Skill Controller Power Blades'
+    guid: 92106db44b6f0049bca67b920675851a
+    aliases: []
+
+  - name: 'Skill Controller Power Multi Hit'
+    guid: 17003a40f6d1744e95d9fa3d0cb316d6
+    aliases: []
+
+  - name: 'Skill Controller Power Quest'
+    guid: 9e6425e871d5ec43a38e7c0eab3a6cf7
+    aliases: []
+
+  - name: 'Skill Controller Power Start AOE'
+    guid: 6c3024708927344391a6b012ee495e14
+    aliases: []
+
+  - name: 'Skill Controller Special Extra Spins'
+    guid: d3dfad1ac846e04299dc2c311a09601a
+    aliases: []
+
+  - name: 'Skill Controller Special Healing'
+    guid: fcadfe7f4be070469da4ce65d4a35bec
+    aliases: []
+
+  - name: 'Skill Controller Special Quest'
+    guid: 83ab795e4cf47c44afa484914933f08c
+    aliases: []
+
+  - name: 'Skill Controller Trait Extra Wish'
+    guid: 78f369a5a3e2b342b80f89a04da1b2ef
+    aliases: []
+
+  - name: 'Skill Controller Ultimate Power 1'
+    guid: f156f2f780a5544d8ea36e1cc8f0e4eb
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate Power 2'
+    guid: c559438ca1eada438da879cd444c12d0
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Dash Attack'
+    guid: c55e73b145996f41bbe58b75198e1842
+    aliases: []
+
+  - name: 'Skill Controller Defense Tornado'
+    guid: f7a81c43f5ea094ebc74d5274334c05d
+    aliases: []
+
+  - name: 'Skill Controller Passive Extra MO'
+    guid: 8c492f8d82800b4fb40c920bb786d31e
+    aliases: []
+
+  - name: 'Skill Controller Power Energy'
+    guid: a22a5a832e704143b019b8d199b6e50c
+    aliases: []
+
+  - name: 'Skill Controller Special Vacuum'
+    guid: 219d5baf891f4d479a132d9d740f0728
+    aliases: []
+
+  - name: 'Skill Controller Attack Wide'
+    guid: 9ebafa092064084a83b9370f4d0bd8b8
+    aliases: []
+
+  - name: 'Skill Controller Ultimate 1 Upgrade 1'
+    guid: 49c048d36106174286c73433919c150f
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 2 Upgrade 1'
+    guid: cab3e19fc15d1a4bb60c2deb994c7553
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 1 Upgrade 2'
+    guid: 4433ba05e980cb468f7672b3f4921706
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 2 Upgrade 2'
+    guid: 8167cd9f423b4042bc07135d68f4a5a3
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Trait Wish Omnipotence'
+    guid: b8b20f3cbfe0384a95198a5eeb92e339
+    aliases: []
+

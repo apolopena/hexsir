@@ -1,0 +1,126 @@
+# Sun_Wukong skill controllers — extracted from the herodef binary.
+#
+# Source: Heroes/Sun_Wukong.herodef.ot.DtHeroDefinition.gen
+# Auto-generated. Aliases will be added as gameplay verifies
+# the in-game name for each controller.
+
+hero: Sun_Wukong
+controllers:
+  - name: 'Skill Controller Attack Finisher'
+    guid: 1f2cff6d19291246ad83dc86c5dddf9f
+    aliases: []
+
+  - name: 'Skill Controller Defense Quest'
+    guid: f2e7b7ceb19ff846accb4d383096a641
+    aliases: []
+
+  - name: 'Skill Controller Defense Retaliate'
+    guid: 372e6c9a3f56024582d7e62bba92c0ab
+    aliases: []
+
+  - name: 'Skill Controller Power Extra Targets'
+    guid: 4e07fac065253a46a7418d70654504f2
+    aliases: []
+
+  - name: 'Skill Controller Special Triggers Stance'
+    guid: f0e39d06b356fd45b227220efd7da01a
+    aliases: []
+
+  - name: 'Skill Controller Trait Longer Effects'
+    guid: 13f8d3566ced8d408838a9d6307c06d5
+    aliases: []
+
+  - name: 'Skill Controller Ultimate Power 1'
+    guid: f156f2f780a5544d8ea36e1cc8f0e4eb
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate Power 2'
+    guid: c559438ca1eada438da879cd444c12d0
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Dash Attack'
+    guid: 6221d4aa3030e1489dbf4143d91f3209
+    aliases: []
+
+  - name: 'Skill Controller Dash Sprint'
+    guid: 3b1c3770248d9c48bec9ba2bfec3c5e5
+    aliases: []
+
+  - name: 'Skill Controller Defense Perfect'
+    guid: 700380518ffd9246af6c52f3df402a00
+    aliases: []
+
+  - name: 'Skill Controller Passive Objects Quest'
+    guid: 717e49d62fdb8d4bad49eb879056b1e4
+    aliases: []
+
+  - name: 'Skill Controller Power Lightning'
+    guid: 088f8ab5d2aabb4eb5209601da2b1a9c
+    aliases: []
+
+  - name: 'Skill Controller Special Attack AOE'
+    guid: 4d6b45f04e3d284abf43c4055505f84a
+    aliases: []
+
+  - name: 'Skill Controller Trait Awakened'
+    guid: e6abc488e3e74143ad46fc61fda5ea81
+    aliases: []
+
+  - name: 'Skill Controller Trait Fire'
+    guid: 0e563bc8d7b81f42824c8a7cdc56f15f
+    aliases: []
+
+  - name: 'Skill Controller Trait Frost'
+    guid: 3d34173da891ea438104a52f67d1b588
+    aliases: []
+
+  - name: 'Skill Controller Special Debuff'
+    guid: 7aea629dd34b6f4b80836ddb12642226
+    aliases: []
+
+  - name: 'Skill Controller Trait Better Stances'
+    guid: 61d752976d363940803afbad4185eb1f
+    aliases: []
+
+  - name: 'Skill Controller Attack Beam'
+    guid: 9c2fa9255af90e44a4b42d13c111a1a9
+    aliases: []
+
+  - name: 'Skill Controller Passive Reveal'
+    guid: 1cda95f694d12747bd56aaea437e96d0
+    aliases: []
+
+  - name: 'Skill Controller Power Hold'
+    guid: 5ce8b8012fe3644bb74bd4cded2c1430
+    aliases: []
+
+  - name: 'Skill Controller Special Explosion'
+    guid: 95c95ce177e50b44ba0167c98ce5f64b
+    aliases: []
+
+  - name: 'Skill Controller Special Beads Increase'
+    guid: 24f420cca420d84da20df09431b25e36
+    aliases: []
+
+  - name: 'Skill Controller Ultimate 1 Upgrade 1'
+    guid: 49c048d36106174286c73433919c150f
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 2 Upgrade 1'
+    guid: cab3e19fc15d1a4bb60c2deb994c7553
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 1 Upgrade 2'
+    guid: 4433ba05e980cb468f7672b3f4921706
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 2 Upgrade 2'
+    guid: 8167cd9f423b4042bc07135d68f4a5a3
+    aliases: []
+    is_ult: true
+

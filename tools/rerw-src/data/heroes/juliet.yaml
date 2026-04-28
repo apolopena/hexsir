@@ -1,0 +1,126 @@
+# Juliet skill controllers — extracted from the herodef binary.
+#
+# Source: Heroes/Juliet.herodef.ot.DtHeroDefinition.gen
+# Auto-generated. Aliases will be added as gameplay verifies
+# the in-game name for each controller.
+
+hero: Juliet
+controllers:
+  - name: 'Skill Controller Attack Controller Burst'
+    guid: 9b7fb68de069fe4a8acd73af3648bf22
+    aliases: []
+
+  - name: 'Skill Controller Attack Controller Ignite'
+    guid: 8a73a56df7238944858b49337535a062
+    aliases: []
+
+  - name: 'Skill Controller Ultimate Power 1'
+    guid: f156f2f780a5544d8ea36e1cc8f0e4eb
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 1 Upgrade 1'
+    guid: 49c048d36106174286c73433919c150f
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 1 Upgrade 2'
+    guid: 4433ba05e980cb468f7672b3f4921706
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 2 Upgrade 1'
+    guid: cab3e19fc15d1a4bb60c2deb994c7553
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 2 Upgrade 2'
+    guid: 8167cd9f423b4042bc07135d68f4a5a3
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate Power 2'
+    guid: c559438ca1eada438da879cd444c12d0
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Attack Rose AOE'
+    guid: 104dbc90a69ca149a6cf23f212477870
+    aliases: []
+
+  - name: 'Skill Controller Defense More Shot'
+    guid: cd84da008827824f928bec218c46c224
+    aliases: []
+
+  - name: 'Skill Controller Defense Ricochet'
+    guid: 67a7b19cce850b4d8f18a645125a4b40
+    aliases: []
+
+  - name: 'Skill Controller Passive More Ammo'
+    guid: 26a0cbc910631546826a65182f4950b6
+    aliases: []
+
+  - name: 'Skill Controller Power More Range'
+    guid: 9d207776ade86d49bcbc7382e89cf283
+    aliases: []
+
+  - name: 'Skill Controller Power Vulnerable'
+    guid: 796185a75d5ac0479118e28bf40f6795
+    aliases: []
+
+  - name: 'Skill Controller Attack Close Combat'
+    guid: c193e71927a1f74e9cf16fcae5c02314
+    aliases: []
+
+  - name: 'Skill Controller Attack Power'
+    guid: 3ff81a5fe0515147b57ecd0a2805e9a1
+    aliases: []
+
+  - name: 'Skill Controller Dash Shield'
+    guid: d0d64357ade7b34a90ceb2e98ec8e848
+    aliases: []
+
+  - name: 'Skill Controller Defense Reload'
+    guid: d099f4f749e93b4d99f0de9aae95f45a
+    aliases: []
+
+  - name: 'Skill Controller Passive Bonus Object'
+    guid: 348a88bc70adeb43825ba2f80c759575
+    aliases: []
+
+  - name: 'Skill Controller Power Attack Backstep'
+    guid: 0d3110abc48b664d86453c6194b17cea
+    aliases: []
+
+  - name: 'Skill Controller Power Cone Damage'
+    guid: e88ee67637fe534ab0586690786ff48d
+    aliases: []
+
+  - name: 'Skill Controller Power Double Shot'
+    guid: d2f3dab2905c4845ab0c56be6de51a40
+    aliases: []
+
+  - name: 'Skill Controller Power Quest Explode'
+    guid: fca82d8c550bbf45afb2b483c367e2af
+    aliases: []
+
+  - name: 'Skill Controller Special Heal'
+    guid: e5a28c22b14a1a4391b210eb3ce349aa
+    aliases: []
+
+  - name: 'Skill Controller Special Projectile'
+    guid: ff9e1c7db45d2e48b354ef2bda32639d
+    aliases: []
+
+  - name: 'Skill Controller Special Quest Dream Shard'
+    guid: f3ccd123918a06408ff6488bee84e574
+    aliases: []
+
+  - name: 'Skill Controller Trait AOE'
+    guid: c3b5fe43d42e7742bde247f0be66c509
+    aliases: []
+
+  - name: 'Skill Controller Trait Buff'
+    guid: 59831395fe43424496d1e3f7bc9d3b1b
+    aliases: []
+

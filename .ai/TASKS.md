@@ -17,6 +17,21 @@
 
 ## Done
 <!-- DONE_START -->
+PRP-2: rerw talent + tier edit primitives (2026-04-28)
+  - decoded the talent record (tag=0x12) and tier byte (tag=0x10) for Geppetto saves: 5×16-byte talent GUIDs at the talent-pick block (anchored by `[u32=0][u32=5]` sentinel), plus a u8 tier byte at offset GUID+17 of each first-occurrence tag=0x10 record
+  - verified end-to-end with 3 lab swaps on the chapter-2 Geppetto proof — talent swap (slot 1: Special Creates Dummy → Trait Twins, displayed as Common), tier edit (Dummy Ball Common → Legendary), combined edit (slot 1 → Trait Twins at Legendary); all three landed as goldens at `rw/saves/edits/golden/geppetto/chapter2/laser-lenses_1/talent-slot1-*` with `info.md` per mod
+  - tier-value mapping: `0=Common, 1=Rare, 2=Epic, 3=Legendary, 4=ult-marker` (slot 5 ult uses ult-marker, no real tier)
+  - extended the YAML field registry with a new `talent_picks` field type (record_guid + sentinel + slot_count + skills_data_dir); `lib/save_fields.Field` now carries an `extra` dict for type-specific metadata
+  - new `lib/talent_edit.py` with `find_talent_record`, `find_picks_anchor`, `read_picks`, `write_pick`, `find_tag10_record`, `read_tier`, `write_tier`, `parse_tier`, and `detect_hero` (parses `Heroes\<Name>.herodef.ot` from the save body)
+  - new `lib/skill_controllers.py` loader for per-hero YAMLs with case/punctuation/prefix-insensitive resolver (`_normalize` strips "Skill Controller " prefix and collapses whitespace/dashes/underscores), defensive alias cleanup at load time (skips empty/null/duplicate/redundant-with-canonical entries)
+  - `rerw write savefile`: new `--talent-slot N`, `--talent-id <name|alias|guid>`, `--tier <name|0..3>` flags; combined edits run atomically (one CRC pass); slot 5 rejects `--tier`; talent + tier edits route to the *current* slot occupant's tag=0x10 record (so swapping a slot's talent + tier in one invocation works correctly)
+  - `rerw read savefile`: new `--talents` flag printing slot picks with hero auto-detected, alias-preferred display, tier name + hex byte
+  - harvested all 12 hero herodef binaries from the cooked game install (`Heroes/<Name>.herodef.ot.DtHeroDefinition.gen` after substitution-cipher decode), generated `tools/rerw-src/data/heroes/<hero>.yaml` for each — 28 skill-controller GUIDs per hero (336 total); Geppetto YAML has 7 verified player-facing aliases from gameplay (Twin Dummies, Family Meeting, Clockwork Medicine, Sharp Noses, Overclock, Dummy Ball, Laser Lenses), other heroes ship with empty alias lists pending external curation
+  - new key finding `rw/key-findings/talent-records.md` (full byte layout, GUID encoding, tier mapping, the L1–L10 leveling table, all 28 Geppetto controllers); updated `save-binary-format.md` to point to it; consolidated talent-name reference at `rw/key-findings/talents.md`
+  - investigation history at `rw/triage/talent-record-discovery.md` (covers ruled-out hypotheses including the body+0x35 u32 false lead and the base64 run-id blob)
+  - new chapter-2 proof save `rw/saves/proofs/geppetto/chapter2/twin-dummies-all-legendary-talents/Profile_1.ob` (Twin Dummies / Family Meeting / Clockwork Medicine / Sharp Noses / Overclock, all 4 tiered talents at Legendary)
+  - verified scope: slots 1–5 only on Geppetto saves; slots 6–10 (L6–L9 regular picks + L10 ult upgrade) and cross-hero generality are unverified — flagged as follow-ups in the key-finding doc
+
 MAINT-8: Hero-swap edit primitive + save-format consolidation (2026-04-27)
   - verified hero record format: length-prefixed ASCII path `Heroes\<Name>.herodef.ot`; locate via `data.find(b'Heroes\\<name>')`, length prefix is `u32 LE` immediately preceding
   - verified hero swap end-to-end across 4 swaps from chapter2 proof: Carmilla (8-char, no shift), Aladdin (7-char, −1 byte), Snow_Queen (10-char, +2 bytes), Red (3-char, −5 bytes); all loaded with full identity + run-state preserved; engine tolerates body shifts across `−5..+2` byte range

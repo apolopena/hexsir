@@ -1,0 +1,126 @@
+# Red skill controllers — extracted from the herodef binary.
+#
+# Source: Heroes/Red.herodef.ot.DtHeroDefinition.gen
+# Auto-generated. Aliases will be added as gameplay verifies
+# the in-game name for each controller.
+
+hero: Red
+controllers:
+  - name: 'Skill Controller Attack Flurry'
+    guid: a9433b8a9ab353419b4ee035c328c61a
+    aliases: []
+
+  - name: 'Skill Controller Basic Cleave'
+    guid: f8647a3cef5f974ab45653b3f7d1cbc6
+    aliases: []
+
+  - name: 'Skill Controller Basic Wide Attacks'
+    guid: 4ca29dbc9779cb4b91ff174a94f8532a
+    aliases: []
+
+  - name: 'Skill Controller Defensive AOE On Trigger'
+    guid: 75575d95ebc2d741b6ceed49542d44c7
+    aliases: []
+
+  - name: 'Skill Controller Defensive Combo'
+    guid: a4a3d3dec847754982e402c98f9d9ec4
+    aliases: []
+
+  - name: 'Skill Controller Defensive Human Quest'
+    guid: 56292b7279c0d4459ad94c98f53102a9
+    aliases: []
+
+  - name: 'Skill Controller Primary Extra Combo Points'
+    guid: 620048c589eb314db80083a0526c9c10
+    aliases: []
+
+  - name: 'Skill Controller Primary Wolf Quest'
+    guid: 0f466f146efcba44b30be7d60c82b159
+    aliases: []
+
+  - name: 'Skill Controller Secondary Can Hold'
+    guid: e341dddae1da884293128dfa820a9894
+    aliases: []
+
+  - name: 'Skill Controller Secondary Ignite'
+    guid: e2b1c37a02d00d469bbe7aec640ea6d2
+    aliases: []
+
+  - name: 'Skill Controller Secondary Quick Bombs'
+    guid: 3090d6a9b1507a469c39010b6fb26cba
+    aliases: []
+
+  - name: 'Skill Controller Secondary Reduce Armour'
+    guid: a724c3143d1c3f49b1b04e8d351484e0
+    aliases: []
+
+  - name: 'Skill Controller Secondary Use Combo Points'
+    guid: ee3db48d6800444a890ec9a36d6d0e14
+    aliases: []
+
+  - name: 'Skill Controller Trait Active'
+    guid: 3b5ccc3779eadd479a648331b65fa028
+    aliases: []
+
+  - name: 'Skill Controller Trait Better Forms'
+    guid: 6a9e5940ef9e9f46bfe870f954c6d3e2
+    aliases: []
+
+  - name: 'Skill Controller Ultimate Power 1'
+    guid: f156f2f780a5544d8ea36e1cc8f0e4eb
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate Power 2'
+    guid: c559438ca1eada438da879cd444c12d0
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Dash Attack'
+    guid: c195059e8bf282418492d48c308046fb
+    aliases: []
+
+  - name: 'Skill Controller Primary Triggers Special'
+    guid: d0f6b69d9e09d947baa89cf4ca64aeec
+    aliases: []
+
+  - name: 'Skill Controller Dash Projectiles'
+    guid: a22392e7f3fc584b84c530973abafd54
+    aliases: []
+
+  - name: 'Skill Controller Defensive Mark'
+    guid: f01f2c0f2330d747be6659bd333df2db
+    aliases: []
+
+  - name: 'Skill Controller Passive Combo Chain'
+    guid: 22eb11c9d10a63448a566ab190628370
+    aliases: []
+
+  - name: 'Skill Controller Passive Combo Use Bonus'
+    guid: 27a9d751f3ca0c4389b192a8227c1b28
+    aliases: []
+
+  - name: 'Skill Controller Ultimate 1 Upgrade 1'
+    guid: 49c048d36106174286c73433919c150f
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 2 Upgrade 1'
+    guid: cab3e19fc15d1a4bb60c2deb994c7553
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 1 Upgrade 2'
+    guid: 4433ba05e980cb468f7672b3f4921706
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 2 Upgrade 2'
+    guid: 8167cd9f423b4042bc07135d68f4a5a3
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Primary Bleed'
+    guid: 57ebc4fe836cdd4392d1a683da242208
+    aliases: []
+

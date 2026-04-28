@@ -1,0 +1,126 @@
+# Melusine skill controllers — extracted from the herodef binary.
+#
+# Source: Heroes/Melusine.herodef.ot.DtHeroDefinition.gen
+# Auto-generated. Aliases will be added as gameplay verifies
+# the in-game name for each controller.
+
+hero: Melusine
+controllers:
+  - name: 'Skill Controller Attack Amplifies'
+    guid: fb1e9ac57ea69c4f905ae7beafec0dcc
+    aliases: []
+
+  - name: 'Skill Controller Attack Beat'
+    guid: 5b9c4f5f4758bd4faedde4eafe5c8f67
+    aliases: []
+
+  - name: 'Skill Controller Attack Shield'
+    guid: 1274aa697190e44ea8cc733e6929c851
+    aliases: []
+
+  - name: 'Skill Controller Defense Hold'
+    guid: e705e57d05abdf43af512f89c819bb4d
+    aliases: []
+
+  - name: 'Skill Controller Defense Improve Special'
+    guid: 8b4d91c79dac9240bee1d51f244551d4
+    aliases: []
+
+  - name: 'Skill Controller Defense Power'
+    guid: f1cfcaf90947144b9404d380000dded4
+    aliases: []
+
+  - name: 'Skill Controller Power Chill'
+    guid: 71bc13453bc85e4aa6845140692c7b01
+    aliases: []
+
+  - name: 'Skill Controller Power Core'
+    guid: 88463982efeac74ea41e057fdf373a53
+    aliases: []
+
+  - name: 'Skill Controller Power Geyser'
+    guid: 4542d64d776bc740abb25b776c6ad885
+    aliases: []
+
+  - name: 'Skill Controller Special Backwards'
+    guid: 176c3779ec692547be3395f35dc5142b
+    aliases: []
+
+  - name: 'Skill Controller Special Heal'
+    guid: 493824d374e5d74e809e5f4db2d13490
+    aliases: []
+
+  - name: 'Skill Controller Special Large Waves'
+    guid: 3a079424d2753442b084ee9bb602f120
+    aliases: []
+
+  - name: 'Skill Controller Trait Weakens'
+    guid: 39794a9723606f47a115d33881381123
+    aliases: []
+
+  - name: 'Skill Controller Ultimate Power 1'
+    guid: f156f2f780a5544d8ea36e1cc8f0e4eb
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate Power 2'
+    guid: c559438ca1eada438da879cd444c12d0
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Attack Speed'
+    guid: 4d28e5a8206a6e45ac81c2d08251924b
+    aliases: []
+
+  - name: 'Skill Controller Defense Deals Damage'
+    guid: 648de3f21f9bbe4ab26c6b67685d6663
+    aliases: []
+
+  - name: 'Skill Controller Passive Heal In Combat'
+    guid: 8e83fbce1ef9b942a0bbccee07205053
+    aliases: []
+
+  - name: 'Skill Controller Passive Auto Wisp'
+    guid: 036016006ba4214887dedb527fe6fce0
+    aliases: []
+
+  - name: 'Skill Controller Trait Armor'
+    guid: c48cec8499718f46b71fca22a86e081d
+    aliases: []
+
+  - name: 'Skill Controller Trait Teleport'
+    guid: 8302b27dd80eac4e92adbc335384f8d3
+    aliases: []
+
+  - name: 'Skill Controller Passive Detonation'
+    guid: 4bf416d6bac6e242b60b47277c080676
+    aliases: []
+
+  - name: 'Skill Controller Special Growth'
+    guid: b7db893daa3c4b4a8fc7b2446f984180
+    aliases: []
+
+  - name: 'Skill Controller Defense Block'
+    guid: 6fad3c3d0410b64a9deeda05d171872e
+    aliases: []
+
+  - name: 'Skill Controller Ultimate 1 Upgrade 1'
+    guid: 49c048d36106174286c73433919c150f
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 2 Upgrade 1'
+    guid: cab3e19fc15d1a4bb60c2deb994c7553
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 1 Upgrade 2'
+    guid: 4433ba05e980cb468f7672b3f4921706
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 2 Upgrade 2'
+    guid: 8167cd9f423b4042bc07135d68f4a5a3
+    aliases: []
+    is_ult: true
+

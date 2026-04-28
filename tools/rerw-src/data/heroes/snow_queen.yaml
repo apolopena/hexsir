@@ -1,0 +1,126 @@
+# Snow_Queen skill controllers — extracted from the herodef binary.
+#
+# Source: Heroes/Snow_Queen.herodef.ot.DtHeroDefinition.gen
+# Auto-generated. Aliases will be added as gameplay verifies
+# the in-game name for each controller.
+
+hero: Snow_Queen
+controllers:
+  - name: 'Skill Controller Attack Dual'
+    guid: f2bf2cdde89f60488dbbc30df0b030d3
+    aliases: []
+
+  - name: 'Skill Controller Attack Seeking'
+    guid: 05e868b482cd2b4b9edc8c15e2581214
+    aliases: []
+
+  - name: 'Skill Controller Defense Shield'
+    guid: acbf3429f411ca449145921c54512523
+    aliases: []
+
+  - name: 'Skill Controller Passive Better Frost'
+    guid: 7b9b43896525514da96539f1edb9771a
+    aliases: []
+
+  - name: 'Skill Controller Passive Chilled Crit'
+    guid: 84a020c97e1d654493679642b9d6204a
+    aliases: []
+
+  - name: 'Skill Controller Power Hold'
+    guid: 27a641d018efdc4dbb8b191c837c5f58
+    aliases: []
+
+  - name: 'Skill Controller Power Ice Waves'
+    guid: 588ac025ff90694ea589ec42ae17abe6
+    aliases: []
+
+  - name: 'Skill Controller Power Shatter'
+    guid: c74edffbce2fa946bdfbe6f662d12c73
+    aliases: []
+
+  - name: 'Skill Controller Trait Quest'
+    guid: 35dd1153d33411419f453384b6ce4454
+    aliases: []
+
+  - name: 'Skill Controller Trait Sends Attacks'
+    guid: 9e8ba6354cfd2046b6519449dbb4bc8d
+    aliases: []
+
+  - name: 'Skill Controller Defense Clone'
+    guid: ff84ba0f0ed99e4c879a8c69949eefda
+    aliases: []
+
+  - name: 'Skill Controller Dash Frost'
+    guid: bca11cab4a10e84286a6d03933f51bc4
+    aliases: []
+
+  - name: 'Skill Controller Ultimate Power 1'
+    guid: f156f2f780a5544d8ea36e1cc8f0e4eb
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate Power 2'
+    guid: c559438ca1eada438da879cd444c12d0
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Dash Freeze Trap'
+    guid: 8daec05dc8da6a45b2a34f3bcbba8b11
+    aliases: []
+
+  - name: 'Skill Controller Trait Charge'
+    guid: 6aec8aa15d4a6d45b6a213d0ed065924
+    aliases: []
+
+  - name: 'Skill Controller Defense Sends Attacks'
+    guid: 77961a5968e8c843b5ef753681a6e573
+    aliases: []
+
+  - name: 'Skill Controller Special Double'
+    guid: 4e4112f44d61c140b251db695c6f60e3
+    aliases: []
+
+  - name: 'Skill Controller Special Extra Waves'
+    guid: 6e987a9c8167ab41a1c2f4ba8ad18a9e
+    aliases: []
+
+  - name: 'Skill Controller Defense Final'
+    guid: e6fc51a17921a74ca7fb6c1d03a3c889
+    aliases: []
+
+  - name: 'Skill Controller Passive Damage To Chilled'
+    guid: d7084d6415414c418b5281a2fbe5e412
+    aliases: []
+
+  - name: 'Skill Controller Special Icicles'
+    guid: 5743ce1345cf804f912d951630eb0877
+    aliases: []
+
+  - name: 'Skill Controller Trait Shield'
+    guid: 406f1811ae99184fb06542545014a343
+    aliases: []
+
+  - name: 'Skill Controller Power Snowball'
+    guid: 988aec757759fa4b98c3699c62a147e6
+    aliases: []
+
+  - name: 'Skill Controller Ultimate 1 Upgrade 1'
+    guid: 49c048d36106174286c73433919c150f
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 2 Upgrade 1'
+    guid: cab3e19fc15d1a4bb60c2deb994c7553
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 1 Upgrade 2'
+    guid: 4433ba05e980cb468f7672b3f4921706
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 2 Upgrade 2'
+    guid: 8167cd9f423b4042bc07135d68f4a5a3
+    aliases: []
+    is_ult: true
+

@@ -1,0 +1,126 @@
+# Merlin skill controllers — extracted from the herodef binary.
+#
+# Source: Heroes/Merlin.herodef.ot.DtHeroDefinition.gen
+# Auto-generated. Aliases will be added as gameplay verifies
+# the in-game name for each controller.
+
+hero: Merlin
+controllers:
+  - name: 'Skill Controller Attack Bleed After Power'
+    guid: 26617a03514a1c4ea4591f3b3b3fb12e
+    aliases: []
+
+  - name: 'Skill Controller Defense Defense DMG Buff Zone'
+    guid: fc1c6ada34ce77418108e2d34830c74a
+    aliases: []
+
+  - name: 'Skill Controller Defense Power Shield'
+    guid: 90baf540d9186b45b8ff6c9afd0af8a6
+    aliases: []
+
+  - name: 'Skill Controller Defense Special Ignite'
+    guid: 7ed2e59a3632304a84dc3d9964b4185d
+    aliases: []
+
+  - name: 'Skill Controller Passive Crit Chance On Status'
+    guid: 13a2117e7bd49149b85717de576dee25
+    aliases: []
+
+  - name: 'Skill Controller Passive Quest Crit Chance'
+    guid: b324e52a36d8264bbbea06eb240061cb
+    aliases: []
+
+  - name: 'Skill Controller Power Defense Chilled'
+    guid: 2c6e3c3783d77840b7dd840bc9346cc3
+    aliases: []
+
+  - name: 'Skill Controller Power Power AOE'
+    guid: 2b89dd53a10509409453d4c39be8f929
+    aliases: []
+
+  - name: 'Skill Controller Power Special Vulnerable'
+    guid: 7f993c3a4c2fee43815b356c48257855
+    aliases: []
+
+  - name: 'Skill Controller Special Defense Attack AOE'
+    guid: 7263c1baeb9edf4d945fb2bb8b597c0e
+    aliases: []
+
+  - name: 'Skill Controller Special Power Lightning'
+    guid: 3de3245e19fda34584865440bd057203
+    aliases: []
+
+  - name: 'Skill Controller Trait Lightning'
+    guid: 01f36bef142fac4f8fe311fcc0a71dab
+    aliases: []
+
+  - name: 'Skill Controller Trait Quest Gain Charge'
+    guid: a63bdc44618a674a95f6ed7d4b25fa8c
+    aliases: []
+
+  - name: 'Skill Controller Trait Reduce Cooldown After Defense'
+    guid: c88982289c6503458220b5fc06c09a3f
+    aliases: []
+
+  - name: 'Skill Controller Ultimate Power 1'
+    guid: f156f2f780a5544d8ea36e1cc8f0e4eb
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate Power 2'
+    guid: c559438ca1eada438da879cd444c12d0
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 1 Upgrade 1'
+    guid: 49c048d36106174286c73433919c150f
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 1 Upgrade 2'
+    guid: 4433ba05e980cb468f7672b3f4921706
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 2 Upgrade 1'
+    guid: cab3e19fc15d1a4bb60c2deb994c7553
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 2 Upgrade 2'
+    guid: 8167cd9f423b4042bc07135d68f4a5a3
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Passive Gain Reroll High Talent'
+    guid: e4ccb4fcc9b76040b115d929e9f03e84
+    aliases: []
+
+  - name: 'Skill Controller Passive Repeatable Quest Gain DS'
+    guid: 49a7776abda8184babc2f63672fc4b90
+    aliases: []
+
+  - name: 'Skill Controller Defense Attack Finisher'
+    guid: 1046f81e244d404ca51d4a4a33b68e6d
+    aliases: []
+
+  - name: 'Skill Controller Power Heal'
+    guid: 6d6d9ebd1bae6049a8037217e45d107f
+    aliases: []
+
+  - name: 'Skill Controller Special Gain Potency'
+    guid: a6de62abf0803d47ad4d30ad54b6f715
+    aliases: []
+
+  - name: 'Skill Controller Dash Heal'
+    guid: a991c57dc17baa49915a5739fb867480
+    aliases: []
+
+  - name: 'Skill Controller Special Block'
+    guid: 64a8835571044d4ab4599b3092f3a48f
+    aliases: []
+
+  - name: 'Skill Controller Special Special Missiles'
+    guid: 2f2958b9c78e6f4ebedf504b6b331f46
+    aliases: []
+

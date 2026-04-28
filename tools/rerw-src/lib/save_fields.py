@@ -10,15 +10,17 @@ command modules — adding a new YAML entry does NOT auto-expose a flag.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field as dataclass_field
 from pathlib import Path
+from typing import Any
 
 import yaml
 
-# Currently the only supported value type. Future types (e.g. float32_le,
-# string, array) should be added here and in `save_edit.py`.
-# TODO: extend to non-int32 value types as they're identified.
-SUPPORTED_TYPES = frozenset({"int32_le"})
+# Supported value types. Each type uses a different YAML body shape and a
+# different edit path in the lib modules:
+#   int32_le     — scalar; keyed by 15-byte GUID, value is int32 LE at GUID+15
+#   talent_picks — talent record; 5×16-byte GUIDs anchored by sentinel
+SUPPORTED_TYPES = frozenset({"int32_le", "talent_picks"})
 
 GUID_LEN = 15
 
@@ -29,11 +31,14 @@ class Field:
 
     Attributes:
         name: Field identifier (e.g. "chapter").
-        category: Top-level grouping (e.g. "scalar").
-        type: Binary value type — currently only "int32_le".
-        guids: 15-byte GUIDs that locate the value. When more than one is
-            present, all are written in lockstep on edit.
+        category: Top-level grouping (e.g. "scalar", "talent_record").
+        type: Binary value type — see SUPPORTED_TYPES.
+        guids: For `int32_le`: 15-byte GUIDs that locate the value (>=1, all
+            written in lockstep). Empty for `talent_picks`.
         description: Free-form notes from the YAML.
+        extra: Type-specific metadata. For `talent_picks`:
+            record_guid (bytes, 15B), sentinel (bytes), slot_count (int),
+            skills_data (str, relative path to per-hero controllers YAML).
     """
 
     name: str
@@ -41,6 +46,7 @@ class Field:
     type: str
     guids: tuple[bytes, ...]
     description: str
+    extra: dict[str, Any] = dataclass_field(default_factory=dict)
 
 
 class SaveFieldsError(ValueError):
@@ -77,11 +83,8 @@ def _parse_field(name: str, category: str, body: object) -> Field:
         raise SaveFieldsError(
             f"Field '{name}': body must be a mapping, got {type(body).__name__}"
         )
-    missing = {"type", "guids"} - set(body.keys())
-    if missing:
-        raise SaveFieldsError(
-            f"Field '{name}': missing required key(s): {sorted(missing)}"
-        )
+    if "type" not in body:
+        raise SaveFieldsError(f"Field '{name}': missing required key 'type'")
 
     vtype = body["type"]
     if not isinstance(vtype, str):
@@ -94,26 +97,76 @@ def _parse_field(name: str, category: str, body: object) -> Field:
             f"(supported: {sorted(SUPPORTED_TYPES)})"
         )
 
-    guids_raw = body["guids"]
-    if not isinstance(guids_raw, list) or not guids_raw:
-        raise SaveFieldsError(f"Field '{name}': guids must be a non-empty list")
-    guids = tuple(
-        _parse_guid(g, field_name=name, index=i) for i, g in enumerate(guids_raw)
-    )
-
     description = body.get("description", "") or ""
     if not isinstance(description, str):
         raise SaveFieldsError(
             f"Field '{name}': description must be a string when present"
         )
 
-    return Field(
-        name=name,
-        category=category,
-        type=vtype,
-        guids=guids,
-        description=description.strip(),
-    )
+    if vtype == "int32_le":
+        if "guids" not in body:
+            raise SaveFieldsError(
+                f"Field '{name}': type 'int32_le' requires a 'guids' list"
+            )
+        guids_raw = body["guids"]
+        if not isinstance(guids_raw, list) or not guids_raw:
+            raise SaveFieldsError(
+                f"Field '{name}': guids must be a non-empty list"
+            )
+        guids = tuple(
+            _parse_guid(g, field_name=name, index=i)
+            for i, g in enumerate(guids_raw)
+        )
+        return Field(
+            name=name,
+            category=category,
+            type=vtype,
+            guids=guids,
+            description=description.strip(),
+        )
+
+    if vtype == "talent_picks":
+        for required in ("record_guid", "sentinel", "slot_count", "skills_data_dir"):
+            if required not in body:
+                raise SaveFieldsError(
+                    f"Field '{name}': type 'talent_picks' requires '{required}'"
+                )
+        record_guid = _parse_guid(
+            body["record_guid"], field_name=name, index=0
+        )
+        try:
+            sentinel = bytes.fromhex(str(body["sentinel"]))
+        except ValueError as exc:
+            raise SaveFieldsError(
+                f"Field '{name}': sentinel not valid hex: {body['sentinel']!r}"
+            ) from exc
+        slot_count = body["slot_count"]
+        if not isinstance(slot_count, int) or slot_count <= 0:
+            raise SaveFieldsError(
+                f"Field '{name}': slot_count must be a positive int"
+            )
+        skills_data_dir = body["skills_data_dir"]
+        if not isinstance(skills_data_dir, str):
+            raise SaveFieldsError(
+                f"Field '{name}': skills_data_dir must be a string path"
+            )
+        extra = {
+            "record_guid": record_guid,
+            "sentinel": sentinel,
+            "slot_count": slot_count,
+            "skills_data_dir": skills_data_dir,
+        }
+        return Field(
+            name=name,
+            category=category,
+            type=vtype,
+            guids=(),
+            description=description.strip(),
+            extra=extra,
+        )
+
+    # Unreachable due to SUPPORTED_TYPES check above.
+    raise SaveFieldsError(f"Field '{name}': unhandled type {vtype!r}")
 
 
 def load_fields(path: Path | None = None) -> dict[str, Field]:

@@ -1,0 +1,126 @@
+# Piper skill controllers — extracted from the herodef binary.
+#
+# Source: Heroes/Piper.herodef.ot.DtHeroDefinition.gen
+# Auto-generated. Aliases will be added as gameplay verifies
+# the in-game name for each controller.
+
+hero: Piper
+controllers:
+  - name: 'Skill Controller Attack Move Speed'
+    guid: 3929a5579f9c0043a83627f2ceb28b75
+    aliases: []
+
+  - name: 'Skill Controller Basic Big Shots'
+    guid: b0e709f67fa2304bb6ab68d121535040
+    aliases: []
+
+  - name: 'Skill Controller Basic Primary Long Shots'
+    guid: 4735cc823c28674b8effdd418e7af42c
+    aliases: []
+
+  - name: 'Skill Controller Defensive Armor Quest'
+    guid: 2758447ce4b34848b7626ac49ef1262b
+    aliases: []
+
+  - name: 'Skill Controller Defensive Deals Damage'
+    guid: 509f012893d50640a5b98d722696b184
+    aliases: []
+
+  - name: 'Skill Controller Defensive Heal On Hit'
+    guid: f348c0e1cc6f9d4f8d3380e96fa349ce
+    aliases: []
+
+  - name: 'Skill Controller Primary Evasion'
+    guid: 4229bf5788fb1b419f00161cfa21e64e
+    aliases: []
+
+  - name: 'Skill Controller Primary More Waves After Defense'
+    guid: d92bad9737f2914cb2fcd961a7b2703b
+    aliases: []
+
+  - name: 'Skill Controller Primary Wide Spread'
+    guid: f1c0848a24c7ab45aa6069124336eb5f
+    aliases: []
+
+  - name: 'Skill Controller Secondary DOT'
+    guid: a010c29c5cc9ea4ab1c19ff1af5a2b37
+    aliases: []
+
+  - name: 'Skill Controller Secondary Explosive Zone'
+    guid: a9359e437840ef44bdeb10b1c503115d
+    aliases: []
+
+  - name: 'Skill Controller Secondary Chill'
+    guid: 7176f033ef505d4d9574cf3425fab7b0
+    aliases: []
+
+  - name: 'Skill Controller Trait Big Pets'
+    guid: 5e30551c32de8d4286ce8430bf7b7539
+    aliases: []
+
+  - name: 'Skill Controller Trait Explosive Pets'
+    guid: 9f9c2ce186fced4ea058c1341b136a01
+    aliases: []
+
+  - name: 'Skill Controller Trait More Controllable Pets'
+    guid: dde1658a5ef20f4fb4bdd1fbd134c0b7
+    aliases: []
+
+  - name: 'Skill Controller Ultimate Power 1'
+    guid: f156f2f780a5544d8ea36e1cc8f0e4eb
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate Power 2'
+    guid: c559438ca1eada438da879cd444c12d0
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Trait Pets Within Special'
+    guid: 31be0a1bba1d6c4a9d08a21d6939b967
+    aliases: []
+
+  - name: 'Skill Controller Dash Trap'
+    guid: c7c9762284f2fd469027ea3c56333bfc
+    aliases: []
+
+  - name: 'Skill Controller Attack Ghost Notes'
+    guid: cb82b3553d0fb141a3c7cb20bb832604
+    aliases: []
+
+  - name: 'Skill Controller Defense Spawn Pets'
+    guid: eb71a5c74f611b44b8793b3711edaec4
+    aliases: []
+
+  - name: 'Skill Controller Special Sends Attacks'
+    guid: c9c497a371058744975b4e6141f195ea
+    aliases: []
+
+  - name: 'Skill Controller Trait Pets Heal'
+    guid: 1287adf2905f0d469b7966c43e945d8c
+    aliases: []
+
+  - name: 'Skill Controller Special Implosive'
+    guid: cc65be1c086c2541b35554edd7fbed5e
+    aliases: []
+
+  - name: 'Skill Controller Ultimate 1 Upgrade 1'
+    guid: 49c048d36106174286c73433919c150f
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 2 Upgrade 1'
+    guid: cab3e19fc15d1a4bb60c2deb994c7553
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 1 Upgrade 2'
+    guid: 4433ba05e980cb468f7672b3f4921706
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 2 Upgrade 2'
+    guid: 8167cd9f423b4042bc07135d68f4a5a3
+    aliases: []
+    is_ult: true
+

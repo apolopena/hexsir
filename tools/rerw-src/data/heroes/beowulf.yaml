@@ -1,0 +1,126 @@
+# Beowulf skill controllers — extracted from the herodef binary.
+#
+# Source: Heroes/Beowulf.herodef.ot.DtHeroDefinition.gen
+# Auto-generated. Aliases will be added as gameplay verifies
+# the in-game name for each controller.
+
+hero: Beowulf
+controllers:
+  - name: 'Skill Controller Attack Special Crit'
+    guid: 4a71a0e268c80343b7ad3f25105bca67
+    aliases: []
+
+  - name: 'Skill Controller Attack Speed'
+    guid: 53309af2c7829a4580ba610c24f990ed
+    aliases: []
+
+  - name: 'Skill Controller Attack Wide'
+    guid: 3784e02c9e46474a9c4b2fd9fd8c13c0
+    aliases: []
+
+  - name: 'Skill Controller Defense Dash'
+    guid: 8d9d9165b76bac47917038a0be0389a0
+    aliases: []
+
+  - name: 'Skill Controller Defense Quest'
+    guid: 53975806c0bd7642a8b2bd679ba19e60
+    aliases: []
+
+  - name: 'Skill Controller Passive Better Ignite'
+    guid: 0a5ef8351cd6c24d870e275e1ea489de
+    aliases: []
+
+  - name: 'Skill Controller Passive Ignite Explosion'
+    guid: 83b8b6f9b56afe4fa2ebc05bdf9a778e
+    aliases: []
+
+  - name: 'Skill Controller Power Double'
+    guid: c3ec1705e2678f40a270ba8774690313
+    aliases: []
+
+  - name: 'Skill Controller Power End AOE'
+    guid: d89ee385cfa7ea4eaa02c188361e2ad4
+    aliases: []
+
+  - name: 'Skill Controller Power Trail'
+    guid: be61843743c964489d61ca658fdf1842
+    aliases: []
+
+  - name: 'Skill Controller Special Loop'
+    guid: 4ef3319a6d37ff47aaf7153288fb1855
+    aliases: []
+
+  - name: 'Skill Controller Special Multi Shock'
+    guid: 3c5010df2c1c9f42bcb858bdee74e784
+    aliases: []
+
+  - name: 'Skill Controller Trait AOE'
+    guid: 4a3d815ef209354586ae3575e8ffc027
+    aliases: []
+
+  - name: 'Skill Controller Trait Quest'
+    guid: 2d313cdfd246f64ea03558613a5099d8
+    aliases: []
+
+  - name: 'Skill Controller Ultimate Power 1'
+    guid: f156f2f780a5544d8ea36e1cc8f0e4eb
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate Power 2'
+    guid: c559438ca1eada438da879cd444c12d0
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Attack Flurry'
+    guid: 1b7a60f8601606449da1fc8f798ca8ba
+    aliases: []
+
+  - name: 'Skill Controller Dash Attack'
+    guid: 1fac8c70d4e45c479c9760c3e893847b
+    aliases: []
+
+  - name: 'Skill Controller Defense Block Deals Damage'
+    guid: 58b06074754fe443a40ec160e80ecc3a
+    aliases: []
+
+  - name: 'Skill Controller Special Sends Power'
+    guid: 0fbf82d35cf91c40a8c19ee216c5309d
+    aliases: []
+
+  - name: 'Skill Controller Trait Battlecry'
+    guid: dbffc2e6f2749a49b887c2b271e586fa
+    aliases: []
+
+  - name: 'Skill Controller Attack After Special'
+    guid: dac333d6b0fbb74b86f5acef505c7ccd
+    aliases: []
+
+  - name: 'Skill Controller Defense Damage Aura'
+    guid: 4a84f40bead1fb49a65cd935443d5fee
+    aliases: []
+
+  - name: 'Skill Controller Attack Fire Cone'
+    guid: 113cc6e6e6eedf42b2dd74ffc67fab78
+    aliases: []
+
+  - name: 'Skill Controller Ultimate 1 Upgrade 1'
+    guid: 49c048d36106174286c73433919c150f
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 1 Upgrade 2'
+    guid: 4433ba05e980cb468f7672b3f4921706
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 2 Upgrade 1'
+    guid: cab3e19fc15d1a4bb60c2deb994c7553
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 2 Upgrade 2'
+    guid: 8167cd9f423b4042bc07135d68f4a5a3
+    aliases: []
+    is_ult: true
+

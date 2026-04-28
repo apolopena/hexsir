@@ -1,0 +1,126 @@
+# Romeo skill controllers — extracted from the herodef binary.
+#
+# Source: Heroes/Romeo.herodef.ot.DtHeroDefinition.gen
+# Auto-generated. Aliases will be added as gameplay verifies
+# the in-game name for each controller.
+
+hero: Romeo
+controllers:
+  - name: 'Skill Controller Attack Kick'
+    guid: 8a2f44eb12390240bb29c274f5b75909
+    aliases: []
+
+  - name: 'Skill Controller Attack Panache'
+    guid: 4fdc5735653a6746b33f6e85a450846b
+    aliases: []
+
+  - name: 'Skill Controller Attack Rose Seed'
+    guid: 7c53ad770bf5fe42a463ba41d1e01610
+    aliases: []
+
+  - name: 'Skill Controller Defense Power'
+    guid: 185ab5911c68cc4ba791dd7dd5a6b759
+    aliases: []
+
+  - name: 'Skill Controller Defense Quest'
+    guid: 4b35d1725f5e224f82a2a1245563ee86
+    aliases: []
+
+  - name: 'Skill Controller Power Heal'
+    guid: 01e0d1b2e406a54da824576311332cba
+    aliases: []
+
+  - name: 'Skill Controller Power Trail'
+    guid: 5e5800c2ccf2a6419e4194e81acb46fd
+    aliases: []
+
+  - name: 'Skill Controller Trait Beam'
+    guid: e4b6bd6d2678ec449bd94b9c2d61a230
+    aliases: []
+
+  - name: 'Skill Controller Ultimate Power 1'
+    guid: f156f2f780a5544d8ea36e1cc8f0e4eb
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 1 Upgrade 1'
+    guid: 49c048d36106174286c73433919c150f
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 1 Upgrade 2'
+    guid: 4433ba05e980cb468f7672b3f4921706
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 2 Upgrade 1'
+    guid: cab3e19fc15d1a4bb60c2deb994c7553
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate 2 Upgrade 2'
+    guid: 8167cd9f423b4042bc07135d68f4a5a3
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Ultimate Power 2'
+    guid: c559438ca1eada438da879cd444c12d0
+    aliases: []
+    is_ult: true
+
+  - name: 'Skill Controller Defense AOE'
+    guid: dae4fb4df1c81f46b8f3f196878456d0
+    aliases: []
+
+  - name: 'Skill Controller Defense Shield'
+    guid: d6614e2dd880944d9376854efe2952e3
+    aliases: []
+
+  - name: 'Skill Controller Power Burst'
+    guid: fd89b5e7a519ab4ab4511c8c96d7759c
+    aliases: []
+
+  - name: 'Skill Controller Trait AOE'
+    guid: ca2e5aa2e7c5124a943767fe7cab98ba
+    aliases: []
+
+  - name: 'Skill Controller Attack Block'
+    guid: e0ab3977d6586e408032401574f53c44
+    aliases: []
+
+  - name: 'Skill Controller Attack Power Ripost'
+    guid: e0a88b57e27bef4481bee05ebbd1521a
+    aliases: []
+
+  - name: 'Skill Controller Dash AOE Attack'
+    guid: 16304a08817a194d92644ba893c05e8e
+    aliases: []
+
+  - name: 'Skill Controller Dash Attack Return'
+    guid: 72c46666c42a4d4fafbbae4d267ff03f
+    aliases: []
+
+  - name: 'Skill Controller Power Chilled'
+    guid: 76d8d0412dab514d8c374ee8d2cd4cfc
+    aliases: []
+
+  - name: 'Skill Controller Power Cone Attack'
+    guid: c1b6db6f5a67044b91990af13fcbc666
+    aliases: []
+
+  - name: 'Skill Controller Special Buff Attack'
+    guid: bd0780f8d51b9d4b819411af6fdedbbb
+    aliases: []
+
+  - name: 'Skill Controller Special Ignite'
+    guid: 07efb1931202d64b88c620347ccaff3d
+    aliases: []
+
+  - name: 'Skill Controller Special Invulnerable'
+    guid: cb5defa1a0f4e24889f19a1ca8ab7b81
+    aliases: []
+
+  - name: 'Skill Controller Special Quest Dream Shard'
+    guid: f3ccd123918a06408ff6488bee84e574
+    aliases: []
+
