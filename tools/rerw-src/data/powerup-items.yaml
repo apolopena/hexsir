@@ -1,0 +1,196 @@
+# Powerup catalog — extracted from cooked entity-settings files.
+#
+# Source: EntitySettings/Obzects/Magical_Obzects!Powerups!<Effect>.entity.ot.EntitySettingsResource.gen
+# Each entry maps a powerup effect filename to its 16-byte runtime GUID.
+#
+# Powerups are instant-pickup buffs (Sandman fairy fountains, Grimoire pages,
+# Astral altar effects, +damage / +crit / +heal pickups) — mechanically distinct
+# from equippable Magical Objects. Powerups have no rarity tier.
+#
+# `key` is the player-facing pickup name. Helper fills in as gameplay verifies.
+# See `rw/key-findings/item-table.md` for full per-item details (catalog GUIDs).
+
+powerups:
+  - key: 
+    effect: Power_Up_Armor
+    guid: a5b09a8600cc324c858f34534d76dfe3
+
+  - key: 
+    effect: Power_Up_Astral_Relearn_Talents_High
+    guid: 9ebbbdba460a2b4188c236ec2b5a0ef4
+
+  - key: 
+    effect: Power_Up_Astral_Relearn_Talents_Low
+    guid: f863d8390e3d554498a4e72de23f7a63
+
+  - key: 
+    effect: Power_Up_Astral_Relearn_Talents_Medium
+    guid: bb40c485a6c3104982a61714e115992b
+
+  - key: 
+    effect: Power_Up_Astral_Reroll_High
+    guid: 9038bc6d6281f340a0f42f484fbd7d61
+
+  - key: 
+    effect: Power_Up_Astral_Reroll_Low
+    guid: 0bf487a1bad43f478c1575bcb5d5ef77
+
+  - key: 
+    effect: Power_Up_Astral_Reroll_Medium
+    guid: cee204c117b9484a9dfb3a4eecf4a4a0
+
+  - key: 
+    effect: Power_Up_Astral_Upgrade_Talents_High
+    guid: edb0b01c018b4c4c9ab857f47da5fac6
+
+  - key: 
+    effect: Power_Up_Astral_Upgrade_Talents_Low
+    guid: 1f0eb4be5fc89942962c489dde626e7b
+
+  - key: 
+    effect: Power_Up_Astral_Upgrade_Talents_Medium
+    guid: 9e804da930916049b296bbacc1e84aa4
+
+  - key: 
+    effect: Power_Up_Critical_Chance
+    guid: 4c96d6bacc63a343aa54c60b8c2e33d5
+
+  - key: 
+    effect: Power_Up_Critical_Damage
+    guid: 808559072a5d1c4f8a9f514f798b438b
+
+  - key: 
+    effect: Power_Up_Damage
+    guid: 5fad4a9e50377040ab97eec60598742e
+
+  - key: 
+    effect: Power_Up_Grimoire_Armor_High
+    guid: c947a78006fcaa478d8d2f8327f5962e
+
+  - key: 
+    effect: Power_Up_Grimoire_Armor_Low
+    guid: 0e7c948b7e44304f94969a6824d0c94e
+
+  - key: 
+    effect: Power_Up_Grimoire_Armor_Medium
+    guid: ac8d1d1b4adf054593b74ab2f784419b
+
+  - key: 
+    effect: Power_Up_Grimoire_Crit_Chance_High
+    guid: f60a2c58fc915244ba50a771be81a4ac
+
+  - key: 
+    effect: Power_Up_Grimoire_Crit_Chance_Low
+    guid: cb24d1a706455847bdf98e2913d9d195
+
+  - key: 
+    effect: Power_Up_Grimoire_Crit_Chance_Medium
+    guid: 7583cefd9a787d498a0cb87670deadeb
+
+  - key: 
+    effect: Power_Up_Grimoire_Crit_Damage_High
+    guid: f2f629c2dfe4ee41986ab29fad100137
+
+  - key: 
+    effect: Power_Up_Grimoire_Crit_Damage_Low
+    guid: 985e04d5cac82d4b87950536e75b38a2
+
+  - key: 
+    effect: Power_Up_Grimoire_Crit_Damage_Medium
+    guid: b77e08bc8f30cb4eab3e153bc4a9bf5e
+
+  - key: 
+    effect: Power_Up_Grimoire_Damage_High
+    guid: 0bfd860d5ba5ab4f9c39fe87f1cef10a
+
+  - key: 
+    effect: Power_Up_Grimoire_Damage_Low
+    guid: 1df5bb60a12cd64699ea36dd01ee4d1d
+
+  - key: 
+    effect: Power_Up_Grimoire_Damage_Medium
+    guid: d740c75e23e4ce4491bc0c55bfc6920d
+
+  - key: 
+    effect: Power_Up_Grimoire_Dream_Shard_High
+    guid: 96d87509f866b846a155409ac11bf2d3
+
+  - key: 
+    effect: Power_Up_Grimoire_Dream_Shard_Low
+    guid: bf42e87827819940a3b5c1a434db8c3a
+
+  - key: 
+    effect: Power_Up_Grimoire_Dream_Shard_Medium
+    guid: 761b1b60cbbdc941a28ae35c8371db25
+
+  - key: 
+    effect: Power_Up_Grimoire_Reroll_High
+    guid: bb0a5145795d1744bb336c4e6626121e
+
+  - key: 
+    effect: Power_Up_Grimoire_Reroll_Low
+    guid: df4b5545a8173643a8b59497dfdaafa4
+
+  - key: 
+    effect: Power_Up_Grimoire_Reroll_Medium
+    guid: 0a9690b3fabedf45a6a7370ef6381928
+
+  - key: 
+    effect: Power_Up_Grimoire_Vitality_High
+    guid: e4216a998446e045be775748bad7fe7c
+
+  - key: 
+    effect: Power_Up_Grimoire_Vitality_Low
+    guid: 9a87a144ba0bd0419190bb9de43592a2
+
+  - key: 
+    effect: Power_Up_Grimoire_Vitality_Medium
+    guid: ae655c5b934f844ab6b39874efb294c9
+
+  - key: 
+    effect: Power_Up_Heal
+    guid: cd00f8bf584ede4684a3f8f8fc74101d
+
+  - key: 
+    effect: Power_Up_Sandman_Mazor_Duplicate_Epic_Obzect
+    guid: 9d12f8cb97bb9f4498df58e993487163
+
+  - key: 
+    effect: Power_Up_Sandman_Mazor_Upgrade_Talent_To_Legendary
+    guid: 8507cb019489964b9122d62b662124a2
+
+  - key: 
+    effect: Power_Up_Sandman_Medium_Duplicate_Common_Obzect
+    guid: b8576af53db52244aae1c06d6938742f
+
+  - key: 
+    effect: Power_Up_Sandman_Medium_Duplicate_Obzect
+    guid: 0cf9b4a2161cc34a952b761f23d80899
+
+  - key: 
+    effect: Power_Up_Sandman_Medium_Duplicate_Rare_Obzect
+    guid: e300d39659e62449a9108afc3b4bcb2a
+
+  - key: 
+    effect: Power_Up_Sandman_Medium_Upgrade_2_Talent
+    guid: c0ece9844a4c244893abb68b9aa62880
+
+  - key: 
+    effect: Power_Up_Sandman_Minor_Heal
+    guid: 7ba27e8cc8bef84c882b3ed2e4fb62f0
+
+  - key: 
+    effect: Power_Up_Sandman_Minor_Reroll
+    guid: b9f8ef4c30e84f48b6ebc583da0a1191
+
+  - key: 
+    effect: Power_Up_Sandman_Minor_Shield
+    guid: ecf2c3a488651a4cafd1f79eb6d97401
+
+  - key: 
+    effect: Power_Up_Sandman_Minor_Strength
+    guid: 3ddade2c29d3dc4dbf681379a6e93bb4
+
+  - key: 
+    effect: Power_Up_Vitality
+    guid: cc7ed5d4e4dedd43bbf65a114f4626d4

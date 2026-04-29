@@ -4,123 +4,261 @@
 # Auto-generated. Aliases will be added as gameplay verifies
 # the in-game name for each controller.
 
-hero: Romeo
 controllers:
-  - name: 'Skill Controller Attack Kick'
-    guid: 8a2f44eb12390240bb29c274f5b75909
-    aliases: []
-
-  - name: 'Skill Controller Attack Panache'
+  - display_name: "Panache"
+    key: Panache
+    controller_name: "Skill Controller Attack Panache"
     guid: 4fdc5735653a6746b33f6e85a450846b
-    aliases: []
+    is_start: true
+    desc: |
+      Hitting an enemy with any additional ATTACK move, such as DASH attack or DEFENSE's Riposte grants one Panache token (up to 3). Each Panache token grants +5 DMG and +4% ATTACK SPEED. When Romeo is hit, all Panache tokens are lost.
+      Changes per rarity:
+      +1% ATTACK SPEED
 
-  - name: 'Skill Controller Attack Rose Seed'
-    guid: 7c53ad770bf5fe42a463ba41d1e01610
-    aliases: []
-
-  - name: 'Skill Controller Defense Power'
-    guid: 185ab5911c68cc4ba791dd7dd5a6b759
-    aliases: []
-
-  - name: 'Skill Controller Defense Quest'
+  - display_name: "Secret Weapon"
+    key: SecretWeapon
+    controller_name: "Skill Controller Defense Quest"
     guid: 4b35d1725f5e224f82a2a1245563ee86
-    aliases: []
+    is_start: true
+    desc: |
+      Quest (x20): Blocking at least one attack during DEFENSE grants +0.5 DMG. Reward: ATTACK Riposte after DEFENSE deals +32% more damage per successful block (up to 3 times).
+      Changes per rarity:
+      +8% more damage
 
-  - name: 'Skill Controller Power Heal'
-    guid: 01e0d1b2e406a54da824576311332cba
-    aliases: []
-
-  - name: 'Skill Controller Power Trail'
-    guid: 5e5800c2ccf2a6419e4194e81acb46fd
-    aliases: []
-
-  - name: 'Skill Controller Trait Beam'
-    guid: e4b6bd6d2678ec449bd94b9c2d61a230
-    aliases: []
-
-  - name: 'Skill Controller Ultimate Power 1'
-    guid: f156f2f780a5544d8ea36e1cc8f0e4eb
-    aliases: []
-    is_ult: true
-
-  - name: 'Skill Controller Ultimate 1 Upgrade 1'
-    guid: 49c048d36106174286c73433919c150f
-    aliases: []
-    is_ult: true
-
-  - name: 'Skill Controller Ultimate 1 Upgrade 2'
-    guid: 4433ba05e980cb468f7672b3f4921706
-    aliases: []
-    is_ult: true
-
-  - name: 'Skill Controller Ultimate 2 Upgrade 1'
-    guid: cab3e19fc15d1a4bb60c2deb994c7553
-    aliases: []
-    is_ult: true
-
-  - name: 'Skill Controller Ultimate 2 Upgrade 2'
-    guid: 8167cd9f423b4042bc07135d68f4a5a3
-    aliases: []
-    is_ult: true
-
-  - name: 'Skill Controller Ultimate Power 2'
-    guid: c559438ca1eada438da879cd444c12d0
-    aliases: []
-    is_ult: true
-
-  - name: 'Skill Controller Defense AOE'
-    guid: dae4fb4df1c81f46b8f3f196878456d0
-    aliases: []
-
-  - name: 'Skill Controller Defense Shield'
-    guid: d6614e2dd880944d9376854efe2952e3
-    aliases: []
-
-  - name: 'Skill Controller Power Burst'
-    guid: fd89b5e7a519ab4ab4511c8c96d7759c
-    aliases: []
-
-  - name: 'Skill Controller Trait AOE'
-    guid: ca2e5aa2e7c5124a943767fe7cab98ba
-    aliases: []
-
-  - name: 'Skill Controller Attack Block'
-    guid: e0ab3977d6586e408032401574f53c44
-    aliases: []
-
-  - name: 'Skill Controller Attack Power Ripost'
-    guid: e0a88b57e27bef4481bee05ebbd1521a
-    aliases: []
-
-  - name: 'Skill Controller Dash AOE Attack'
-    guid: 16304a08817a194d92644ba893c05e8e
-    aliases: []
-
-  - name: 'Skill Controller Dash Attack Return'
-    guid: 72c46666c42a4d4fafbbae4d267ff03f
-    aliases: []
-
-  - name: 'Skill Controller Power Chilled'
+  - display_name: "Ice Rose"
+    key: IceRose
+    controller_name: "Skill Controller Power Chilled"
     guid: 76d8d0412dab514d8c374ee8d2cd4cfc
-    aliases: []
+    is_start: true
+    desc: |
+      POWER now throws ice Roses, applying CHILLED to hit enemies. POWER deals +40% damage.
+      Changes per rarity:
+      +10% damage
 
-  - name: 'Skill Controller Power Cone Attack'
-    guid: c1b6db6f5a67044b91990af13fcbc666
-    aliases: []
-
-  - name: 'Skill Controller Special Buff Attack'
-    guid: bd0780f8d51b9d4b819411af6fdedbbb
-    aliases: []
-
-  - name: 'Skill Controller Special Ignite'
-    guid: 07efb1931202d64b88c620347ccaff3d
-    aliases: []
-
-  - name: 'Skill Controller Special Invulnerable'
-    guid: cb5defa1a0f4e24889f19a1ca8ab7b81
-    aliases: []
-
-  - name: 'Skill Controller Special Quest Dream Shard'
+  - display_name: "Kiss the Bride"
+    key: KissTheBride
+    controller_name: "Skill Controller Special Quest Dream Shard"
     guid: f3ccd123918a06408ff6488bee84e574
-    aliases: []
+    is_start: true
+    desc: |
+      Quest (x20): Hitting at least one enemy with SPECIAL grants +0.5 Crit Chance. Reward: Any enemy hit by SPECIAL has a 40% chance to grant Romeo 2 Dream Shard(s).
+      Changes per rarity:
+      +10% chance
 
+  - display_name: "Wild Waltz"
+    key: WildWaltz
+    controller_name: "Skill Controller Ultimate Power 1"
+    guid: f156f2f780a5544d8ea36e1cc8f0e4eb
+    is_ult: true
+    desc: |
+      [CO-OP] Romeo rushes towards Juliet to perform an INTANGIBLE dance for 7 seconds. Both Heroes influence the moving direction and the more identical the directions, the faster the movement. Deal between 130 to 260 area damage per second (depending on their movement speed). Romeo and Juliet are INTANGIBLE during Wild Waltz. [SOLO] Romeo spawns a phantom of Juliet at a fixed distance then rushes towards her for an INTANGIBLE dance for 7 seconds. Deal 195 area damage per second. Romeo is INTANGIBLE during Wild Waltz.
+
+  - display_name: "Black Roses"
+    key: BlackRoses
+    controller_name: "Skill Controller Ultimate Power 2"
+    guid: c559438ca1eada438da879cd444c12d0
+    is_ult: true
+    desc: |
+      Send 42 Black Roses forward, piercing through enemies and dealing 13 damage each. Romeo can still be damaged while channeling Black Roses.
+
+  - display_name: "Burning Dance"
+    key: BurningDance
+    controller_name: "Skill Controller Ultimate 1 Upgrade 1"
+    guid: 49c048d36106174286c73433919c150f
+    ult_upgrade_for: "WildWaltz"
+    desc: |
+      ULTIMATE applies IGNITE to hit enemies and deals 40% damage.
+      Changes per rarity:
+      +10% damage
+
+  - display_name: "Funeral Bouquet"
+    key: FuneralBouquet
+    controller_name: "Skill Controller Ultimate 1 Upgrade 2"
+    guid: 4433ba05e980cb468f7672b3f4921706
+    ult_upgrade_for: "BlackRoses"
+    desc: |
+      ATTACKS throw ULTIMATE's Black Roses, dealing 3 damage each.
+      Changes per rarity:
+      Rare: +0 damage / Epic & Legendary: +1 damage
+
+  - display_name: "Explosive Performance"
+    key: ExplosivePerformance
+    controller_name: "Skill Controller Ultimate 2 Upgrade 1"
+    guid: cab3e19fc15d1a4bb60c2deb994c7553
+    ult_upgrade_for: "WildWaltz"
+    desc: |
+      During ULTIMATE's dance, launch 24 firework rockets all around, exploding on impact and dealing 17 damage each.
+      Changes per rarity:
+      +6 firework rockets
+
+  - display_name: "Tempestuous Roses"
+    key: TempestuousRoses
+    controller_name: "Skill Controller Ultimate 2 Upgrade 2"
+    guid: 8167cd9f423b4042bc07135d68f4a5a3
+    ult_upgrade_for: "BlackRoses"
+    desc: |
+      Romeo throws 56 Black Roses in a wide cone dealing 13 damage each and is now surrounded by a tempest, dealing 32 area damage per second.
+      Changes per rarity:
+      +8 Black Roses / +8 area damage + Hero Level + DMG
+
+  - display_name: "Kick"
+    key: Kick
+    controller_name: "Skill Controller Attack Kick"
+    guid: 8a2f44eb12390240bb29c274f5b75909
+    desc: |
+      Adds a kick to ATTACK combo, dealing 400% damage and pushing light enemies back. Kick can grant a Panache Token.
+      Changes per rarity:
+      +100% damage
+
+  - display_name: "Deadly Brambles"
+    key: DeadlyBrambles
+    controller_name: "Skill Controller Attack Rose Seed"
+    guid: 7c53ad770bf5fe42a463ba41d1e01610
+    desc: |
+      4th strike of ATTACK combo implants brambles on enemies, dealing 40 damage over 5 seconds. Brambles explode when Romeo implants an already affected enemy again or on enemy death, dealing 200% area damage.
+      Changes per rarity:
+      +10 damage + Hero Level + DMG / +50% area damage
+
+  - display_name: "Floral Dodge"
+    key: FloralDodge
+    controller_name: "Skill Controller Defense Power"
+    guid: 185ab5911c68cc4ba791dd7dd5a6b759
+    desc: |
+      DEFENSE now creates a POWER Rose dealing 40% damage.
+      Changes per rarity:
+      +10% damage
+
+  - display_name: "Healing Rose"
+    key: HealingRose
+    controller_name: "Skill Controller Power Heal"
+    guid: 01e0d1b2e406a54da824576311332cba
+    desc: |
+      Every 2 times the POWER Rose hits an enemy, it restores 2 Health to all Heroes around.
+      Changes per rarity:
+      +0.5 Health + Hero Level
+
+  - display_name: "Thorny Rose"
+    key: ThornyRose
+    controller_name: "Skill Controller Power Trail"
+    guid: 5e5800c2ccf2a6419e4194e81acb46fd
+    desc: |
+      When POWER Rose blooms, 5 paths of thorns spread around, dealing 13 damage per second to enemies crossing through.
+      Changes per rarity:
+      Rare & Legendary: +3 damage + Hero Level + DMG / Epic: +4 damage + Hero Level + DMG
+
+  - display_name: "Love Thread"
+    key: LoveThread
+    controller_name: "Skill Controller Trait Beam"
+    guid: e4b6bd6d2678ec449bd94b9c2d61a230
+    desc: |
+      Using TRAIT casts a beam towards Juliet for 6 second(s), dealing 33 damage per second to crossed enemies.
+      Changes per rarity:
+      +6 damage + Hero Level + DMG
+
+  - display_name: "Wind Spiral"
+    key: WindSpiral
+    controller_name: "Skill Controller Defense AOE"
+    guid: dae4fb4df1c81f46b8f3f196878456d0
+    desc: |
+      DEFENSE creates a wind spiral around Romeo dealing up to 60 area damage.
+      Changes per rarity:
+      +15 damage + Hero Level + DMG
+
+  - display_name: "Selfless Defender"
+    key: SelflessDefender
+    controller_name: "Skill Controller Defense Shield"
+    guid: d6614e2dd880944d9376854efe2952e3
+    desc: |
+      Blocking at least one attack during DEFENSE grants 12 SHIELD to all Heroes around for 8 second(s).
+      Changes per rarity:
+      +3 SHIELD + Hero Level
+
+  - display_name: "Bursting Bloom"
+    key: BurstingBloom
+    controller_name: "Skill Controller Power Burst"
+    guid: fd89b5e7a519ab4ab4511c8c96d7759c
+    desc: |
+      When POWER Rose blooms, trigger a burst of petals dealing 40% area damage.
+      Changes per rarity:
+      +10% area damage
+
+  - display_name: "Thorns Aura"
+    key: ThornsAura
+    controller_name: "Skill Controller Trait AOE"
+    guid: ca2e5aa2e7c5124a943767fe7cab98ba
+    desc: |
+      After using TRAIT or receiving Juliet's TRAIT, an aura of thorns appears around Romeo dealing x area damage per second for 6 second(s).
+      Changes per rarity:
+      +5 area damage + Hero Level + DMG
+
+  - display_name: "Fencing Reflex"
+    key: FencingReflex
+    controller_name: "Skill Controller Attack Block"
+    guid: e0ab3977d6586e408032401574f53c44
+    desc: |
+      Basic ATTACKS can turn into a block when Romeo gets hit (every 5 seconds max). After it blocks, Romeo gains +40% Crit Chance for 4 second(s).
+      Changes per rarity:
+      +10% Crit Chance
+
+  - display_name: "Relentless Assaults"
+    key: RelentlessAssaults
+    controller_name: "Skill Controller Attack Power Ripost"
+    guid: e0a88b57e27bef4481bee05ebbd1521a
+    desc: |
+      ATTACK used right after POWER triggers DEFENSE's Riposte launching a flurry of attacks, dealing up to 64 damage.
+      Changes per rarity:
+      +16 damage + Hero Level + DMG
+
+  - display_name: "Broad Stroke"
+    key: BroadStroke
+    controller_name: "Skill Controller Dash AOE Attack"
+    guid: 16304a08817a194d92644ba893c05e8e
+    desc: |
+      ATTACK used right after DASH triggers a broad stroke, dealing 400% damage all around. Broad Stroke can grant a Panache Token.
+      Changes per rarity:
+      +100% damage
+
+  - display_name: "Flash of Steel"
+    key: FlashOfSteel
+    controller_name: "Skill Controller Dash Attack Return"
+    guid: 72c46666c42a4d4fafbbae4d267ff03f
+    desc: |
+      Holding DASH during a dash attack makes Romeo rush back towards his starting location, dealing 120% damage along his path.
+      Changes per rarity:
+      +30% damage
+
+  - display_name: "Swarm of Petals"
+    key: SwarmOfPetals
+    controller_name: "Skill Controller Power Cone Attack"
+    guid: c1b6db6f5a67044b91990af13fcbc666
+    desc: |
+      Using POWER also launches a swarm of petals in a cone, pushing back light enemies and dealing 40% damage.
+      Changes per rarity:
+      +10% damage
+
+  - display_name: "Surge of bravery"
+    key: SurgeOfBravery
+    controller_name: "Skill Controller Special Buff Attack"
+    guid: bd0780f8d51b9d4b819411af6fdedbbb
+    desc: |
+      After SPECIAL's kiss, the next 6 ATTACKS gain +30% range and deal +30% damage.
+      Changes per rarity:
+      +2 ATTACKS
+
+  - display_name: "Burning Kiss"
+    key: BurningKiss
+    controller_name: "Skill Controller Special Ignite"
+    guid: 07efb1931202d64b88c620347ccaff3d
+    desc: |
+      SPECIAL's area of effect gains +25% range, +40% more damage and applies IGNITE to hit enemies.
+      Changes per rarity:
+      +10% more damage
+
+  - display_name: "Love Shield"
+    key: LoveShield
+    controller_name: "Skill Controller Special Invulnerable"
+    guid: cb5defa1a0f4e24889f19a1ca8ab7b81
+    desc: |
+      After SPECIAL's kiss, Romeo and Juliet are surrounded by a Love Shield, making them INVINCIBLE for 4 seconds. Love Shield has a cooldown of 14 seconds.
+      Changes per rarity:
+      -2 seconds

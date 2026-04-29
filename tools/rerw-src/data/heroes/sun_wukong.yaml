@@ -4,123 +4,261 @@
 # Auto-generated. Aliases will be added as gameplay verifies
 # the in-game name for each controller.
 
-hero: Sun_Wukong
 controllers:
-  - name: 'Skill Controller Attack Finisher'
-    guid: 1f2cff6d19291246ad83dc86c5dddf9f
-    aliases: []
-
-  - name: 'Skill Controller Defense Quest'
+  - display_name: "Stone Monkey"
+    key: StoneMonkey
+    controller_name: "Skill Controller Defense Quest"
     guid: f2e7b7ceb19ff846accb4d383096a641
-    aliases: []
+    is_start: true
+    desc: |
+      Quest (x40): Each successful DEFENSE grants +0.5 ARMOR. Complete: Each block triggers an attack dealing 100% of the blocked damage as area damage.
+      Changes per rarity:
+      +25% of the blocked damage
 
-  - name: 'Skill Controller Defense Retaliate'
-    guid: 372e6c9a3f56024582d7e62bba92c0ab
-    aliases: []
-
-  - name: 'Skill Controller Power Extra Targets'
-    guid: 4e07fac065253a46a7418d70654504f2
-    aliases: []
-
-  - name: 'Skill Controller Special Triggers Stance'
-    guid: f0e39d06b356fd45b227220efd7da01a
-    aliases: []
-
-  - name: 'Skill Controller Trait Longer Effects'
-    guid: 13f8d3566ced8d408838a9d6307c06d5
-    aliases: []
-
-  - name: 'Skill Controller Ultimate Power 1'
-    guid: f156f2f780a5544d8ea36e1cc8f0e4eb
-    aliases: []
-    is_ult: true
-
-  - name: 'Skill Controller Ultimate Power 2'
-    guid: c559438ca1eada438da879cd444c12d0
-    aliases: []
-    is_ult: true
-
-  - name: 'Skill Controller Dash Attack'
-    guid: 6221d4aa3030e1489dbf4143d91f3209
-    aliases: []
-
-  - name: 'Skill Controller Dash Sprint'
-    guid: 3b1c3770248d9c48bec9ba2bfec3c5e5
-    aliases: []
-
-  - name: 'Skill Controller Defense Perfect'
-    guid: 700380518ffd9246af6c52f3df402a00
-    aliases: []
-
-  - name: 'Skill Controller Passive Objects Quest'
+  - display_name: "Thirst for Immortality"
+    key: ThirstForImmortality
+    controller_name: "Skill Controller Passive Objects Quest"
     guid: 717e49d62fdb8d4bad49eb879056b1e4
-    aliases: []
+    is_start: true
+    desc: |
+      Quest (x7): Obtaining a Magical Object with Rare quality or higher grants +2 DMG. Complete: Grants +100 VITALITY but now only Hero or Magical Object heals are effective.
+      Changes per rarity:
+      +25 VITALITY
 
-  - name: 'Skill Controller Power Lightning'
-    guid: 088f8ab5d2aabb4eb5209601da2b1a9c
-    aliases: []
-
-  - name: 'Skill Controller Special Attack AOE'
-    guid: 4d6b45f04e3d284abf43c4055505f84a
-    aliases: []
-
-  - name: 'Skill Controller Trait Awakened'
+  - display_name: "Way of Awakening"
+    key: WayOfAwakening
+    controller_name: "Skill Controller Trait Awakened"
     guid: e6abc488e3e74143ad46fc61fda5ea81
-    aliases: []
+    is_start: true
+    desc: |
+      After 8 successful DEFENSE actions, the next TRAIT activates AWAKENED STANCE for 12 second(s). AWAKENED STANCE grants both YIN and YANG effects without taking any additional damage.
+      Changes per rarity:
+      +3 second(s)
 
-  - name: 'Skill Controller Trait Fire'
-    guid: 0e563bc8d7b81f42824c8a7cdc56f15f
-    aliases: []
-
-  - name: 'Skill Controller Trait Frost'
-    guid: 3d34173da891ea438104a52f67d1b588
-    aliases: []
-
-  - name: 'Skill Controller Special Debuff'
-    guid: 7aea629dd34b6f4b80836ddb12642226
-    aliases: []
-
-  - name: 'Skill Controller Trait Better Stances'
+  - display_name: "Supreme Polarity"
+    key: SupremePolarity
+    controller_name: "Skill Controller Trait Better Stances"
     guid: 61d752976d363940803afbad4185eb1f
-    aliases: []
+    is_start: true
+    desc: |
+      Switching STANCE increases the power of the new STANCE for 7 second(s). YIN: +4% LIFE ON HIT. YANG: deals 20% more damage.
+      Changes per rarity:
+      +1% LIFE ON HIT / +5% more damage
 
-  - name: 'Skill Controller Attack Beam'
-    guid: 9c2fa9255af90e44a4b42d13c111a1a9
-    aliases: []
+  - display_name: "Monkey Clones"
+    key: MonkeyClones
+    controller_name: "Skill Controller Ultimate Power 1"
+    guid: f156f2f780a5544d8ea36e1cc8f0e4eb
+    is_ult: true
+    desc: |
+      Sun Wukong becomes INTANGIBLE and summons 6 clones in the area, which will fight nearby enemies and attract their attention. Clones copy Sun Wukong's VITALITY and DMG and disappear after 10 second(s).
 
-  - name: 'Skill Controller Passive Reveal'
-    guid: 1cda95f694d12747bd56aaea437e96d0
-    aliases: []
+  - display_name: "Transfiguration"
+    key: Transfiguration
+    controller_name: "Skill Controller Ultimate Power 2"
+    guid: c559438ca1eada438da879cd444c12d0
+    is_ult: true
+    desc: |
+      Sun Wukong transforms for 20 seconds into a copy of another random hero, with all their standard Talents activated, of Epic quality. When transformed as Aladdin, TRAIT can only be activated once per transformation. Sun Wukong CANNOT transform into Romeo or Juliet.
 
-  - name: 'Skill Controller Power Hold'
-    guid: 5ce8b8012fe3644bb74bd4cded2c1430
-    aliases: []
-
-  - name: 'Skill Controller Special Explosion'
-    guid: 95c95ce177e50b44ba0167c98ce5f64b
-    aliases: []
-
-  - name: 'Skill Controller Special Beads Increase'
-    guid: 24f420cca420d84da20df09431b25e36
-    aliases: []
-
-  - name: 'Skill Controller Ultimate 1 Upgrade 1'
+  - display_name: "Army of Monkeys"
+    key: ArmyOfMonkeys
+    controller_name: "Skill Controller Ultimate 1 Upgrade 1"
     guid: 49c048d36106174286c73433919c150f
-    aliases: []
-    is_ult: true
+    ult_upgrade_for: "MonkeyClones"
+    desc: |
+      ULTIMATE summons 3 additional clones.
+      Changes per rarity:
+      +1 additional clone(s)
 
-  - name: 'Skill Controller Ultimate 2 Upgrade 1'
+  - display_name: "Mantra of Replication"
+    key: MantraOfReplication
+    controller_name: "Skill Controller Ultimate 2 Upgrade 1"
     guid: cab3e19fc15d1a4bb60c2deb994c7553
-    aliases: []
-    is_ult: true
+    ult_upgrade_for: "MonkeyClones"
+    desc: |
+      Whenever SPECIAL is cast, summon 3 Monkey Clones that fight for 8 seconds.
+      Changes per rarity:
+      +2 seconds
 
-  - name: 'Skill Controller Ultimate 1 Upgrade 2'
+  - display_name: "Perfect Copy"
+    key: PerfectCopy
+    controller_name: "Skill Controller Ultimate 1 Upgrade 2"
     guid: 4433ba05e980cb468f7672b3f4921706
-    aliases: []
-    is_ult: true
+    ult_upgrade_for: "Transfiguration"
+    desc: |
+      During the ULTIMATE transformation, Sun Wukong can use a random ULTIMATE ability of the Hero copied. Transfiguration lasts 4 more seconds.
+      Changes per rarity:
+      +1 more second(s)
 
-  - name: 'Skill Controller Ultimate 2 Upgrade 2'
+  - display_name: "Divine Beverage"
+    key: DivineBeverage
+    controller_name: "Skill Controller Ultimate 2 Upgrade 2"
     guid: 8167cd9f423b4042bc07135d68f4a5a3
-    aliases: []
-    is_ult: true
+    ult_upgrade_for: "Transfiguration"
+    desc: |
+      ULTIMATE transformation grants all heroes around OMNIPOTENCE for 8 seconds. During OMNIPOTENCE, Heroes' POWER, SPECIAL and DEFENSE have a 0.5 second cooldown.
+      Changes per rarity:
+      +2 seconds
 
+  - display_name: "Celestial Pillar"
+    key: CelestialPillar
+    controller_name: "Skill Controller Attack Finisher"
+    guid: 1f2cff6d19291246ad83dc86c5dddf9f
+    desc: |
+      Adds a crushing blow to the ATTACK combo, dealing 80 damage around the point of impact.
+      Changes per rarity:
+      +20 damage + Hero Level + DMG
+
+  - display_name: "One-Inch Punch"
+    key: OneInchPunch
+    controller_name: "Skill Controller Defense Retaliate"
+    guid: 372e6c9a3f56024582d7e62bba92c0ab
+    desc: |
+      ATTACK triggered a successful DEFENSE launches a powerful punch, dealing 600% damage.
+      Changes per rarity:
+      +150% damage
+
+  - display_name: "Airbender"
+    key: Airbender
+    controller_name: "Skill Controller Power Extra Targets"
+    guid: 4e07fac065253a46a7418d70654504f2
+    desc: |
+      POWER can strike up to to 1 more time(s).
+      Changes per rarity:
+      +1 more time(s)
+
+  - display_name: "Resonance"
+    key: Resonance
+    controller_name: "Skill Controller Special Triggers Stance"
+    guid: f0e39d06b356fd45b227220efd7da01a
+    desc: |
+      When the SPECIAL effect expires, all the activation effects of the current STANCE are restarted. SPECIAL deals +20% damage.
+      Changes per rarity:
+      +5% damage
+
+  - display_name: "Mind Fortress"
+    key: MindFortress
+    controller_name: "Skill Controller Trait Longer Effects"
+    guid: 13f8d3566ced8d408838a9d6307c06d5
+    desc: |
+      SHIELD and STRENGTH effects triggered upon TRAIT activation last 60% longer.
+      Changes per rarity:
+      lasts +15% longer
+
+  - display_name: "Stick Twirl"
+    key: StickTwirl
+    controller_name: "Skill Controller Dash Attack"
+    guid: 6221d4aa3030e1489dbf4143d91f3209
+    desc: |
+      ATTACK triggered after a DASH launches a rapid series of 5 strikes, each dealing 60% area damage.
+      Changes per rarity:
+      +15% area damage
+
+  - display_name: "Sprint"
+    key: Sprint
+    controller_name: "Skill Controller Dash Sprint"
+    guid: 3b1c3770248d9c48bec9ba2bfec3c5e5
+    desc: |
+      Gain +10% Move Speed. DASH can be held for up to 3 second(s) to sprint at high speed.
+      Changes per rarity:
+      +2% Move Speed
+
+  - display_name: "Divine Palm"
+    key: DivinePalm
+    controller_name: "Skill Controller Defense Perfect"
+    guid: 700380518ffd9246af6c52f3df402a00
+    desc: |
+      Blocking with DEFENSE less than 0.2 second(s) after its activation triggers perfect block: YIN: restores 4 Health to all nearby heroes. YANG: deals 80 area damage.
+      Changes per rarity:
+      +1 Health / +20 area damage + Hero Level + DMG
+
+  - display_name: "Thundercloud"
+    key: Thundercloud
+    controller_name: "Skill Controller Power Lightning"
+    guid: 088f8ab5d2aabb4eb5209601da2b1a9c
+    desc: |
+      Enemies hit by POWER are soon afterwards struck by lightning dealing 20% damage all around the point of impact.
+      Changes per rarity:
+      +5% damage
+
+  - display_name: "Ringing Beads"
+    key: RingingBeads
+    controller_name: "Skill Controller Special Attack AOE"
+    guid: 4d6b45f04e3d284abf43c4055505f84a
+    desc: |
+      While SPECIAL is active, ATTACK makes beads ring, dealing 30% ATTACK damage all around.
+      Changes per rarity:
+      +5% of ATTACK damage
+
+  - display_name: "Fiery Dragon"
+    key: FieryDragon
+    controller_name: "Skill Controller Trait Fire"
+    guid: 0e563bc8d7b81f42824c8a7cdc56f15f
+    desc: |
+      Adds an explosion of fire to the activation of YANG STANCE, dealing 55 area damage and inflicting enemies with IGNITE.
+      Changes per rarity:
+      Rare: +13 area damage + Hero Level + DMG / Epic & Legendary: +14 area damage + Hero Level + DMG
+
+  - display_name: "Frost Tiger"
+    key: FrostTiger
+    controller_name: "Skill Controller Trait Frost"
+    guid: 3d34173da891ea438104a52f67d1b588
+    desc: |
+      Adds an explosion of frost to the activation of YIN STANCE, dealing 44 area damage and inflicting enemies with CHILLED.
+      Changes per rarity:
+      +11 area damage + Hero Level + DMG
+
+  - display_name: "Mantra of Balance"
+    key: MantraOfBalance
+    controller_name: "Skill Controller Special Debuff"
+    guid: 7aea629dd34b6f4b80836ddb12642226
+    desc: |
+      When SPECIAL is triggered, it applies a negative status effect to nearby enemies within range: YIN: VULNERABLE for 4 second(s). YANG: WEAKENED for 6 second(s).
+      Changes per rarity:
+      +1 second of VULNERABLE / +2 second(s) of WEAKENED
+
+  - display_name: "Ch'i Outburst"
+    key: ChIOutburst
+    controller_name: "Skill Controller Attack Beam"
+    guid: 9c2fa9255af90e44a4b42d13c111a1a9
+    desc: |
+      After POWER hits at least one enemy, the next ATTACK can be held down to store power, then released to deliver an energy beam dealing up to 220% POWER damage to all enemies it passes through.
+      Changes per rarity:
+      +55% POWER damage
+
+  - display_name: "Fiery Golden Eyes"
+    key: FieryGoldenEyes
+    controller_name: "Skill Controller Passive Reveal"
+    guid: 1cda95f694d12747bd56aaea437e96d0
+    desc: |
+      At the start of each DAY or NIGHT, reveal 2 point(s) of interest on the map. Personal Dream Shards gains are increased by 20%.
+      Changes per rarity:
+      +5% Personal Dream Shard(s)
+
+  - display_name: "Focused Strikes"
+    key: FocusedStrikes
+    controller_name: "Skill Controller Power Hold"
+    guid: 5ce8b8012fe3644bb74bd4cded2c1430
+    desc: |
+      POWER can be held down to deliver the next strike to the same target and deals +12% damage.
+      Changes per rarity:
+      +4% damage
+
+  - display_name: "Sacred Seal"
+    key: SacredSeal
+    controller_name: "Skill Controller Special Explosion"
+    guid: 95c95ce177e50b44ba0167c98ce5f64b
+    desc: |
+      When SPECIAL ends, orbs sink into the ground to draw a sacred pattern that explodes after a short time, dealing 100 area damage.
+      Changes per rarity:
+      +25 area damage + Hero Level + DMG
+
+  - display_name: "Om"
+    key: Om
+    controller_name: "Skill Controller Special Beads Increase"
+    guid: 24f420cca420d84da20df09431b25e36
+    desc: |
+      While SPECIAL is active, beads gradually increase their action radius, up to +24%, and hit all enemies present in the area.
+      Changes per rarity:
+      +6% radius

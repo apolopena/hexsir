@@ -17,6 +17,21 @@
 
 ## Done
 <!-- DONE_START -->
+MAINT-12: items-record decode + hero/item YAML schema migration (2026-04-29)
+  - decoded the magical-object item record format: tag=0x1a records nested inside the tag=0x12 run-state record, each 32 bytes (marker + tag + 16-byte runtime GUID + u32 sequence counter + close); cataloged 114 entries (68 magical objects + 46 powerups) via `oCDtMagicalObjectProfileData` tag=0x05 records
+  - lab-verified items mechanism end-to-end: chapter-2 Save A Vorpal Blade swap (`Kill_Low_Life_Enemies` runtime GUID `cf7d88d6…` → `Avoid_Death_Once_Per_Chapter` runtime GUID `1cc781a5…`); in-game display changed (Vorpal Blade → Water of Life) and the on-revive label flashed during follow-up lethal-damage test, confirming the swapped runtime GUID drives both display and effect resolution
+  - identified the Mortar migration ghost: pre-rework Baba Yaga's Mortar entity (`Avoid_Death_Once_Per_Chapter`, Legendary folder) is rerouted via inheritance to `Full_Heal_At_Day_Night.entity.ot` (Water of Life), with the legacy revive effect retained alongside Water of Life's vitality bonus — sole confirmed hybrid in the catalog; new-Mortar effect lives in Cursed/`Destroy_Legendary_To_Damage`
+  - runtime-GUID extraction recipe for any item entity file: 16 bytes immediately preceding the `[u32 strlen=22]"Dt Magical Object Data"` anchor; verified against 114-of-114 entity files (5 cross-checked against active save records)
+  - new key-finding: `rw/key-findings/item-table.md` (canonical 114-item catalog with effect filename, icon, name-key, catalog GUID, runtime GUID, rarity per row; ghost migration history; verified aliases section)
+  - new key-finding (in-flight): `rw/key-findings/save-catalog-flag-bytes.md` (7 distinct 12-byte flag patterns across 114 catalog records; hypothesized MO/Powerup distinction via byte-3 = `0x03` vs `0xff`; per-row attribute interpretation pending)
+  - new registry: `tools/rerw-src/data/magical-items.yaml` (68 entries; 67 clean + 1 Mortar ghost block with `displays_as` / `inherits_from` / `meta_notes`; 9 legacy upgrade-pair bases share canonical's `display_name` + `key`; 59 entries fully aliased from Ravenswatch wiki tables (Common/Rare/Epic/Legendary/Cursed))
+  - new registry: `tools/rerw-src/data/powerup-items.yaml` (46 entries; `key:` field present, alias values pending helper curation)
+  - migrated all 12 hero YAMLs to new schema: `display_name` (player-facing) + `key` (PascalCase, no spaces/punct) + `controller_name` (engine `Skill Controller XXX`) + `guid` + at-most-one marker (`is_start: true` for the 4 starting talents per hero | `is_ult: true` for the 2 base ults | `ult_upgrade_for: "<UltKey>"` for the 4 upgrades) + `desc: |` block (verbatim wiki effect text + `Changes per rarity:` line + rarity changes)
+  - dropped the `hero: <Name>` top-level field from hero YAMLs (filename is sufficient)
+  - documented the `ult_upgrade_for` derivation rule: SUFFIX number M in `Skill Controller Ultimate N Upgrade M` determines the parent ult (Upgrade M → `Ultimate Power M`'s key), NOT the prefix N — fixes an incorrect presumption in `talent-records.md` that paired by the prefix
+  - all 12 hero files populated from Ravenswatch wiki tables (28 talents per hero × 12 heroes = 336 entries); display_name + desc + rarity_changes verbatim from wiki
+  - rerw CLI integration deferred: registry YAMLs ready for `rerw read savefile --items` and `rerw write savefile --item-slot N --item-id <id>` but not yet wired in `commands/{read,write}_savefile.py`
+
 PRP-2: rerw talent + tier edit primitives (2026-04-28)
   - decoded the talent record (tag=0x12) and tier byte (tag=0x10) for Geppetto saves: 5×16-byte talent GUIDs at the talent-pick block (anchored by `[u32=0][u32=5]` sentinel), plus a u8 tier byte at offset GUID+17 of each first-occurrence tag=0x10 record
   - verified end-to-end with 3 lab swaps on the chapter-2 Geppetto proof — talent swap (slot 1: Special Creates Dummy → Trait Twins, displayed as Common), tier edit (Dummy Ball Common → Legendary), combined edit (slot 1 → Trait Twins at Legendary); all three landed as goldens at `rw/saves/edits/golden/geppetto/chapter2/laser-lenses_1/talent-slot1-*` with `info.md` per mod

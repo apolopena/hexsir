@@ -4,123 +4,261 @@
 # Auto-generated. Aliases will be added as gameplay verifies
 # the in-game name for each controller.
 
-hero: Red
 controllers:
-  - name: 'Skill Controller Attack Flurry'
-    guid: a9433b8a9ab353419b4ee035c328c61a
-    aliases: []
-
-  - name: 'Skill Controller Basic Cleave'
-    guid: f8647a3cef5f974ab45653b3f7d1cbc6
-    aliases: []
-
-  - name: 'Skill Controller Basic Wide Attacks'
-    guid: 4ca29dbc9779cb4b91ff174a94f8532a
-    aliases: []
-
-  - name: 'Skill Controller Defensive AOE On Trigger'
-    guid: 75575d95ebc2d741b6ceed49542d44c7
-    aliases: []
-
-  - name: 'Skill Controller Defensive Combo'
-    guid: a4a3d3dec847754982e402c98f9d9ec4
-    aliases: []
-
-  - name: 'Skill Controller Defensive Human Quest'
+  - display_name: "Shadow Strikes"
+    key: ShadowStrikes
+    controller_name: "Skill Controller Defensive Human Quest"
     guid: 56292b7279c0d4459ad94c98f53102a9
-    aliases: []
+    is_start: true
+    desc: |
+      Quest (x30): ATTACK or POWER triggered during Human DEFENSE earns Crit Chance +0.5% per enemy hit. Complete: +20% Crit Damage.
+      Changes per rarity:
+      +5% Crit Damage
 
-  - name: 'Skill Controller Primary Extra Combo Points'
-    guid: 620048c589eb314db80083a0526c9c10
-    aliases: []
-
-  - name: 'Skill Controller Primary Wolf Quest'
+  - display_name: "Devourer"
+    key: Devourer
+    controller_name: "Skill Controller Primary Wolf Quest"
     guid: 0f466f146efcba44b30be7d60c82b159
-    aliases: []
+    is_start: true
+    desc: |
+      Quest (x20): Each kill with Werewolf POWER earns +0.5 DMG. Complete: POWER has a 40% chance to have no cooldown if it kills an enemy (for both forms).
+      Changes per rarity:
+      +20% chance for no cooldown
 
-  - name: 'Skill Controller Secondary Can Hold'
+  - display_name: "Distant Explosions"
+    key: DistantExplosions
+    controller_name: "Skill Controller Secondary Can Hold"
     guid: e341dddae1da884293128dfa820a9894
-    aliases: []
+    is_start: true
+    desc: |
+      SPECIAL now targets a farther location and deals +40% damage. The longer it's held, the further it aims.
+      Changes per rarity:
+      +10% damage
 
-  - name: 'Skill Controller Secondary Ignite'
-    guid: e2b1c37a02d00d469bbe7aec640ea6d2
-    aliases: []
-
-  - name: 'Skill Controller Secondary Quick Bombs'
-    guid: 3090d6a9b1507a469c39010b6fb26cba
-    aliases: []
-
-  - name: 'Skill Controller Secondary Reduce Armour'
-    guid: a724c3143d1c3f49b1b04e8d351484e0
-    aliases: []
-
-  - name: 'Skill Controller Secondary Use Combo Points'
-    guid: ee3db48d6800444a890ec9a36d6d0e14
-    aliases: []
-
-  - name: 'Skill Controller Trait Active'
+  - display_name: "Shapeshifter"
+    key: Shapeshifter
+    controller_name: "Skill Controller Trait Active"
     guid: 3b5ccc3779eadd479a648331b65fa028
-    aliases: []
+    is_start: true
+    desc: |
+      TRAIT becomes activatable (with a 30 second cooldown) and HEALS 20% of Maximum Health when used. Maximum Health is reduced by 20%.
+      Changes per rarity:
+      -4 second(s) cooldown
 
-  - name: 'Skill Controller Trait Better Forms'
-    guid: 6a9e5940ef9e9f46bfe870f954c6d3e2
-    aliases: []
-
-  - name: 'Skill Controller Ultimate Power 1'
+  - display_name: "Gusting Roar"
+    key: GustingRoar
+    controller_name: "Skill Controller Ultimate Power 1"
     guid: f156f2f780a5544d8ea36e1cc8f0e4eb
-    aliases: []
     is_ult: true
+    desc: |
+      Deal 292 damage per second in a wide cone for 3 seconds. Scarlet can still be damaged while channeling Gusting Roar. Gusting Roar can be cancelled early and its cooldown is proportional to the time it has been used (with a minimum of 10s).
 
-  - name: 'Skill Controller Ultimate Power 2'
+  - display_name: "In the Belly"
+    key: InTheBelly
+    controller_name: "Skill Controller Ultimate Power 2"
     guid: c559438ca1eada438da879cd444c12d0
-    aliases: []
     is_ult: true
+    desc: |
+      Eat the closest non-boss enemy, instantly killing it. Cooldown is proportional to the eaten enemy's level. Using In The Belly with no target puts the ability on a 10 second(s) cooldown.
 
-  - name: 'Skill Controller Dash Attack'
-    guid: c195059e8bf282418492d48c308046fb
-    aliases: []
-
-  - name: 'Skill Controller Primary Triggers Special'
-    guid: d0f6b69d9e09d947baa89cf4ca64aeec
-    aliases: []
-
-  - name: 'Skill Controller Dash Projectiles'
-    guid: a22392e7f3fc584b84c530973abafd54
-    aliases: []
-
-  - name: 'Skill Controller Defensive Mark'
-    guid: f01f2c0f2330d747be6659bd333df2db
-    aliases: []
-
-  - name: 'Skill Controller Passive Combo Chain'
-    guid: 22eb11c9d10a63448a566ab190628370
-    aliases: []
-
-  - name: 'Skill Controller Passive Combo Use Bonus'
-    guid: 27a9d751f3ca0c4389b192a8227c1b28
-    aliases: []
-
-  - name: 'Skill Controller Ultimate 1 Upgrade 1'
+  - display_name: "Fiery Maw"
+    key: FieryMaw
+    controller_name: "Skill Controller Ultimate 1 Upgrade 1"
     guid: 49c048d36106174286c73433919c150f
-    aliases: []
-    is_ult: true
+    ult_upgrade_for: "GustingRoar"
+    desc: |
+      ULTIMATE gains +30% range, deals +20% damage and applies IGNITE to enemies hit.
+      Changes per rarity:
+      +5% damage
 
-  - name: 'Skill Controller Ultimate 2 Upgrade 1'
+  - display_name: "Reload"
+    key: Reload
+    controller_name: "Skill Controller Ultimate 2 Upgrade 1"
     guid: cab3e19fc15d1a4bb60c2deb994c7553
-    aliases: []
-    is_ult: true
+    ult_upgrade_for: "GustingRoar"
+    desc: |
+      Every 16 times POWER, SPECIAL or DEFENSE is used, clear ULTIMATE cooldown.
+      Changes per rarity:
+      -2 times
 
-  - name: 'Skill Controller Ultimate 1 Upgrade 2'
+  - display_name: "Bone Cracker"
+    key: BoneCracker
+    controller_name: "Skill Controller Ultimate 1 Upgrade 2"
     guid: 4433ba05e980cb468f7672b3f4921706
-    aliases: []
-    is_ult: true
+    ult_upgrade_for: "IntheBelly"
+    desc: |
+      Human: Ash cloud deals 20 damage per second to enemies inside. Werewolf: Devouring an enemy causes it to explode, dealing 40 to 120 area damage (depending on its size).
+      Changes per rarity:
+      25 damage per second + Hero Level + DMG / 12 to 37 damage area damage + Hero Level + DMG
 
-  - name: 'Skill Controller Ultimate 2 Upgrade 2'
+  - display_name: "Pack Leader"
+    key: PackLeader
+    controller_name: "Skill Controller Ultimate 2 Upgrade 2"
     guid: 8167cd9f423b4042bc07135d68f4a5a3
-    aliases: []
-    is_ult: true
+    ult_upgrade_for: "IntheBelly"
+    desc: |
+      Human: Ash cloud restores 3 hit points per second to all Heroes within. Werewolf: Eating an enemy applies a 12 to 15 SHIELD to all heroes around (depending on its size).
+      Changes per rarity:
+      1 hit points per second + Hero Level / 1 to 3 SHIELD + Hero Level
 
-  - name: 'Skill Controller Primary Bleed'
+  - display_name: "Slash Flurry"
+    key: SlashFlurry
+    controller_name: "Skill Controller Attack Flurry"
+    guid: a9433b8a9ab353419b4ee035c328c61a
+    desc: |
+      After using POWER, the next ATTACK within 3 seconds delivers a flurry of 5 slashes with +20% increased damage.
+      Changes per rarity:
+      +10% increased damage
+
+  - display_name: "Cleave"
+    key: Cleave
+    controller_name: "Skill Controller Basic Cleave"
+    guid: f8647a3cef5f974ab45653b3f7d1cbc6
+    desc: |
+      ATTACK has a 25% chance to cleave all around and deal +120% damage.
+      Changes per rarity:
+      +30% damage
+
+  - display_name: "Wide Attacks"
+    key: WideAttacks
+    controller_name: "Skill Controller Basic Wide Attacks"
+    guid: 4ca29dbc9779cb4b91ff174a94f8532a
+    desc: |
+      ATTACK gains +40% range and deals +20% damage.
+      Changes per rarity:
+      +5% damage
+
+  - display_name: "Aggressive Defense"
+    key: AggressiveDefense
+    controller_name: "Skill Controller Defensive AOE On Trigger"
+    guid: 75575d95ebc2d741b6ceed49542d44c7
+    desc: |
+      Deal 60 damage all around when triggering DEFENSE.
+      Changes per rarity:
+      +15 damage + Hero Level + DMG
+
+  - display_name: "Murderous Intent"
+    key: MurderousIntent
+    controller_name: "Skill Controller Defensive Combo"
+    guid: a4a3d3dec847754982e402c98f9d9ec4
+    desc: |
+      DEFENSE instantly grants 2 COMBO POINTS and lasts 20% longer.
+      Changes per rarity:
+      +5% longer
+
+  - display_name: "Energy"
+    key: Energy
+    controller_name: "Skill Controller Primary Extra Combo Points"
+    guid: 620048c589eb314db80083a0526c9c10
+    desc: |
+      Maximum COMBO POINTS is increased by 2. POWER has +4% Crit Chance per COMBO POINT stored.
+      Changes per rarity:
+      +1% Crit Chance
+
+  - display_name: "Pyromania"
+    key: Pyromania
+    controller_name: "Skill Controller Secondary Ignite"
+    guid: e2b1c37a02d00d469bbe7aec640ea6d2
+    desc: |
+      SPECIAL applies IGNITE to hit enemies and gains +40% Crit Chance.
+      Changes per rarity:
+      +10% Crit Chance
+
+  - display_name: "Short Wick"
+    key: ShortWick
+    controller_name: "Skill Controller Secondary Quick Bombs"
+    guid: 3090d6a9b1507a469c39010b6fb26cba
+    desc: |
+      Human: SPECIAL no longer affects Scarlet and bomb explodes as soon as it hits the ground. SPECIAL recharges 20% faster in both forms.
+      Changes per rarity:
+      +5% faster
+
+  - display_name: "Armor Break"
+    key: ArmorBreak
+    controller_name: "Skill Controller Secondary Reduce Armour"
+    guid: a724c3143d1c3f49b1b04e8d351484e0
+    desc: |
+      SPECIAL applies VULNERABLE to enemies hit for 3 seconds.
+      Changes per rarity:
+      +1 second(s)
+
+  - display_name: "Pulverize"
+    key: Pulverize
+    controller_name: "Skill Controller Secondary Use Combo Points"
+    guid: ee3db48d6800444a890ec9a36d6d0e14
+    desc: |
+      Special hits enemies 30% farther. Special consumes one COMBO POINT and deals +40% damage.
+      Changes per rarity:
+      +10% damage
+
+  - display_name: "True Instincts"
+    key: TrueInstincts
+    controller_name: "Skill Controller Trait Better Forms"
+    guid: 6a9e5940ef9e9f46bfe870f954c6d3e2
+    desc: |
+      In Human Form, gain +10% Move Speed. In Werewolf Form, gain +20% Maximum Health.
+      Changes per rarity:
+      +2% Move Speed / +5% Maximum Health
+
+  - display_name: "Double Strike"
+    key: DoubleStrike
+    controller_name: "Skill Controller Dash Attack"
+    guid: c195059e8bf282418492d48c308046fb
+    desc: |
+      ATTACK triggered right after DASH triggers a double strike, dealing 400% damage and generating one COMBO POINT.
+      Changes per rarity:
+      +100% damage
+
+  - display_name: "Explosive Rush"
+    key: ExplosiveRush
+    controller_name: "Skill Controller Primary Triggers Special"
+    guid: d0f6b69d9e09d947baa89cf4ca64aeec
+    desc: |
+      When at 3 COMBO POINTS or more, POWER triggers SPECIAL's effect upon use, dealing 40% of its normal damage amount.
+      Changes per rarity:
+      +10% of its normal damage
+
+  - display_name: "Fan of Spikes"
+    key: FanOfSpikes
+    controller_name: "Skill Controller Dash Projectiles"
+    guid: a22392e7f3fc584b84c530973abafd54
+    desc: |
+      DASH can consume a COMBO POINT to send 4 spikes, with each one dealing 100% ATTACK damage to enemies it passes through.
+      Changes per rarity:
+      +1 spike(s)
+
+  - display_name: "On the Hunt"
+    key: OnTheHunt
+    controller_name: "Skill Controller Defensive Mark"
+    guid: f01f2c0f2330d747be6659bd333df2db
+    desc: |
+      DEFENSE applies MARKED to the nearest enemy for 4 seconds. MARKED targets take +25% damage and spread this status to another nearby enemy when they die.
+      Changes per rarity:
+      +2 seconds
+
+  - display_name: "Savagery"
+    key: Savagery
+    controller_name: "Skill Controller Passive Combo Chain"
+    guid: 22eb11c9d10a63448a566ab190628370
+    desc: |
+      Each time Scarlet earns or spends COMBO POINTS, she gains a stack of Savagery (up to 20), each granting +1 DMG. Savagery stacks disappear after 5 seconds if no new stacks are gained.
+      Changes per rarity:
+      +5 Maximum stacks of Savagery / +0.2 DMG
+
+  - display_name: "Adrenaline"
+    key: Adrenaline
+    controller_name: "Skill Controller Passive Combo Use Bonus"
+    guid: 27a9d751f3ca0c4389b192a8227c1b28
+    desc: |
+      Each time you spend COMBO POINTS, each point spent: Human: restores 2.0 Health. Werewolf: increases ATTACK SPEED by 4% for 6 seconds.
+      Changes per rarity:
+      +0.8 Health + Hero Level / +1% ATTACK SPEED
+
+  - display_name: "Evisceration"
+    key: Evisceration
+    controller_name: "Skill Controller Primary Bleed"
     guid: 57ebc4fe836cdd4392d1a683da242208
-    aliases: []
-
+    desc: |
+      Each Combo Point spent by POWER applies 8% damage dealt in the form of BLEED.
+      Changes per rarity:
+      +2% damage dealt

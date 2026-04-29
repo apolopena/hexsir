@@ -11,122 +11,261 @@
 # prefix automatically. So `aliases: ["Twin Dummies"]` accepts user input
 # "twin dummies", "Twin_Dummies", "TwinDummies", "TWIN-DUMMIES", etc.
 
-hero: Geppetto
 controllers:
-  - name: "Skill Controller Attack Finisher"
-    guid: e7763662f645ad4a85dc45e0e75ff312
-    aliases: []
-
-  - name: "Skill Controller Trait Attack Move"
-    guid: 21785d41837b5246b366746dd9c602f2
-    aliases: []
-
-  - name: "Skill Controller Trait Max Health"
-    guid: 8d4006d92172b447aee88ab1239aadf0
-    aliases: []
-
-  - name: "Skill Controller Ultimate Power 1"
-    guid: f156f2f780a5544d8ea36e1cc8f0e4eb
-    aliases: []
-    is_ult: true
-
-  - name: "Skill Controller Ultimate Power 2"
-    guid: c559438ca1eada438da879cd444c12d0
-    aliases: ["Overclock"]
-    is_ult: true
-
-  - name: "Skill Controller Attack Makes Dummies Attack"
-    guid: c43347dac07d7f4fb2753bf41eec4aa0
-    aliases: []
-
-  - name: "Skill Controller Dash Deals Damage"
+  - display_name: "Rocket Science"
+    key: RocketScience
+    controller_name: "Skill Controller Dash Deals Damage"
     guid: 3eb79ea457a27c4cba0f4c3bb5d91e17
-    aliases: []
+    is_start: true
+    desc: |
+      DASH can be held for up to 1 second(s), dealing 32 damage along its path and applying IGNITE to all enemies hit. Crossed DUMMIES catch fire and increase their attack rate by 25% for 5 seconds.
+      Changes per rarity:
+      +8 damage + Hero Level + DMG / Epic & Legendary: +5% attack rate
 
-  - name: "Skill Controller Special Creates Dummy"
+  - display_name: "Dummyball"
+    key: Dummyball
+    controller_name: "Skill Controller Special Creates Dummy"
     guid: 830f33de77f48c4f92169cdf1aa2a1d2
-    aliases: ["Dummy Ball"]
+    is_start: true
+    desc: |
+      SPECIAL creates a DUMMY when it explodes and deals 155% damage. Has no effect if the max number of DUMMIES are already active.
+      Changes per rarity:
+      +15% damage
 
-  - name: "Skill Controller Trait Buff On Dummy Death"
-    guid: b0dca163180f834d91882149b98a0fb2
-    aliases: []
-
-  - name: "Skill Controller Trait Extra Charge"
-    guid: 135cfc3f6f4f214382ad7a1ef7bfc8a9
-    aliases: []
-
-  - name: "Skill Controller Trait Twins"
+  - display_name: "Twin Dummies"
+    key: TwinDummies
+    controller_name: "Skill Controller Trait Twins"
     guid: 33cdbac4ce86134da99bc59a19021b6a
-    aliases: ["Twin Dummies"]
+    is_start: true
+    desc: |
+      TRAIT has 55% chance to build two DUMMIES at once.
+      Changes per rarity:
+      +15% chance
 
-  - name: "Skill Controller Defense Lightning"
-    guid: 6456dec2173ce941862604997a5740ea
-    aliases: []
-
-  - name: "Skill Controller Special Regeneration"
-    guid: cbf6b4ae2146e443b692afbafebbdb59
-    aliases: ["Clockwork Medicine"]
-
-  - name: "Skill Controller Trait Missiles"
-    guid: e95ab3b1bef1a44aa4f9d97c9cc67c2a
-    aliases: []
-
-  - name: "Skill Controller Power Unstable"
+  - display_name: "Unstable Cores"
+    key: UnstableCores
+    controller_name: "Skill Controller Power Unstable"
     guid: b16d6d4efbabf9419d1ef8929840eeba
-    aliases: []
+    is_start: true
+    desc: |
+      5 seconds after their creation, DUMMIES become UNSTABLE. If an unstable DUMMY is hit with POWER - or if it is destroyed or dismantled - this will cause it to explode, dealing 80 area damage.
+      Changes per rarity:
+      +10 area damage + Hero Level + DMG
 
-  - name: "Skill Controller Power Overcharge"
-    guid: be6943130657c54eb192f164d6de14ab
-    aliases: []
+  - display_name: "Meca-Puppet"
+    key: MecaPuppet
+    controller_name: "Skill Controller Ultimate Power 1"
+    guid: f156f2f780a5544d8ea36e1cc8f0e4eb
+    is_ult: true
+    desc: |
+      Create an autonomous giant PUPPET that will attack the closest target and deal up to 77 damage per second. PUPPET follows Geppetto if no target is nearby and lasts up to 40 seconds.
 
-  - name: "Skill Controller Attack Group Speed"
-    guid: 56e3027d194292418b86d128135e85e0
-    aliases: ["Family Meeting"]
+  - display_name: "Overclock"
+    key: Overclock
+    controller_name: "Skill Controller Ultimate Power 2"
+    guid: c559438ca1eada438da879cd444c12d0
+    is_ult: true
+    desc: |
+      Make all active DUMMIES spin around and track nearby enemies, each one dealing 50 per second all around. DUMMIES under the effect of Overclock are INTANGIBLE. Cooldown is proportional to the number of DUMMIES affected.
 
-  - name: "Skill Controller Defense Laser Eyes"
-    guid: 6aec13fa8e2c314d88babb71a8e3c4df
-    aliases: ["Laser Lenses"]
-
-  - name: "Skill Controller Special Pushback"
-    guid: 12399e775781ea489fac7990c12b5e72
-    aliases: []
-
-  - name: "Skill Controller Defense AOE"
-    guid: 59e150803ee1c241a888c588a0212de8
-    aliases: []
-
-  - name: "Skill Controller Passive Create Objects"
-    guid: d02382d89c13354dafb8d13ebc7c3f66
-    aliases: []
-
-  - name: "Skill Controller Trait Nose Attack"
-    guid: ad0838845a9ac14c8f4936a6d8b763ba
-    aliases: ["Sharp Noses"]
-
-  - name: "Skill Controller Power Magnet"
-    guid: 12f93e1092efa64fa9d3002b4dfe4765
-    aliases: []
-
-  - name: "Skill Controller Trait Blast Construction"
-    guid: 904b2028a8eb904aa3154773e72f6788
-    aliases: []
-
-  - name: "Skill Controller Ultimate 1 Upgrade 1"
+  - display_name: "Bomb Reserve"
+    key: BombReserve
+    controller_name: "Skill Controller Ultimate 1 Upgrade 1"
     guid: 49c048d36106174286c73433919c150f
-    aliases: []
-    is_ult: true
+    ult_upgrade_for: "MecaPuppet"
+    desc: |
+      When in combat, PUPPET sends a bomb around itself every 1 second(s), dealing 40 area damage.
+      Changes per rarity:
+      +50 area damage + Hero Level + DMG
 
-  - name: "Skill Controller Ultimate 2 Upgrade 1"
+  - display_name: "Master Puppet"
+    key: MasterPuppet
+    controller_name: "Skill Controller Ultimate 2 Upgrade 1"
     guid: cab3e19fc15d1a4bb60c2deb994c7553
-    aliases: []
-    is_ult: true
+    ult_upgrade_for: "MecaPuppet"
+    desc: |
+      When the Meca-Puppet is built, it consumes any DUMMY built around to gain 20% max health and deal 10% more damage per DUMMY consumed.
+      Changes per rarity:
+      +5% max health and +2% more damage
 
-  - name: "Skill Controller Ultimate 1 Upgrade 2"
+  - display_name: "High Voltage"
+    key: HighVoltage
+    controller_name: "Skill Controller Ultimate 1 Upgrade 2"
     guid: 4433ba05e980cb468f7672b3f4921706
-    aliases: []
-    is_ult: true
+    ult_upgrade_for: "Overclock"
+    desc: |
+      After a DUMMY is displaced by POWER, it activates the Overclock effect of the ULTIMATE for 1 second(s).
+      Changes per rarity:
+      +0.5 second(s)
 
-  - name: "Skill Controller Ultimate 2 Upgrade 2"
+  - display_name: "Hyperclock"
+    key: Hyperclock
+    controller_name: "Skill Controller Ultimate 2 Upgrade 2"
     guid: 8167cd9f423b4042bc07135d68f4a5a3
-    aliases: []
-    is_ult: true
+    ult_upgrade_for: "Overclock"
+    desc: |
+      DUMMIES under the Overclock effect overheat, applying IGNITE to enemies hit, and lastly, explode to deal 80 area damage.
+      Changes per rarity:
+      +20 area damage + Hero Level + DMG
+
+  - display_name: "Nailing Strike"
+    key: NailingStrike
+    controller_name: "Skill Controller Attack Finisher"
+    guid: e7763662f645ad4a85dc45e0e75ff312
+    desc: |
+      Adds an additional strike to ATTACK combo, dealing 400% damage.
+      Changes per rarity:
+      +100% damage
+
+  - display_name: "Pogo-Hoppers"
+    key: PogoHoppers
+    controller_name: "Skill Controller Trait Attack Move"
+    guid: 21785d41837b5246b366746dd9c602f2
+    desc: |
+      DUMMIES move 100% farther when attacking.
+      Changes per rarity:
+      +33% farther
+
+  - display_name: "Heart Ties"
+    key: HeartTies
+    controller_name: "Skill Controller Trait Max Health"
+    guid: 8d4006d92172b447aee88ab1239aadf0
+    desc: |
+      DUMMIES gain 40% of Geppetto's VITALITY. Geppetto gains +5 ARMOR per active DUMMY.
+      Changes per rarity:
+      +10% of Geppetto's VITALITY
+
+  - display_name: "Oiled Mechanisms"
+    key: OiledMechanisms
+    controller_name: "Skill Controller Attack Makes Dummies Attack"
+    guid: c43347dac07d7f4fb2753bf41eec4aa0
+    desc: |
+      DUMMIES hit by Geppetto's ATTACK immediately attack in their current position, dealing 50% damage.
+      Changes per rarity:
+      +10% damage
+
+  - display_name: "Mourning Rage"
+    key: MourningRage
+    controller_name: "Skill Controller Trait Buff On Dummy Death"
+    guid: b0dca163180f834d91882149b98a0fb2
+    desc: |
+      Whenever a DUMMY is destroyed, Geppetto and other DUMMIES gain STRENGTH for 4 seconds.
+      Changes per rarity:
+      +2 seconds
+
+  - display_name: "Large Family"
+    key: LargeFamily
+    controller_name: "Skill Controller Trait Extra Charge"
+    guid: 135cfc3f6f4f214382ad7a1ef7bfc8a9
+    desc: |
+      Increase maximum active DUMMIES by 1. TRAIT has a 10% reduced cooldown.
+      Changes per rarity:
+      +5% reduced cooldown
+
+  - display_name: "Forked Lightning"
+    key: ForkedLightning
+    controller_name: "Skill Controller Defense Lightning"
+    guid: 6456dec2173ce941862604997a5740ea
+    desc: |
+      DEFENSE send bolts of lightning out towards DUMMIES, each one dealing 40 damage.
+      Changes per rarity:
+      +10 damage + Hero Level + DMG
+
+  - display_name: "Clockwork Medicine"
+    key: ClockworkMedicine
+    controller_name: "Skill Controller Special Regeneration"
+    guid: cbf6b4ae2146e443b692afbafebbdb59
+    desc: |
+      DUMMIES healed by SPECIAL also gain +8 REGENERATION.
+      Changes per rarity:
+      +2 REGENERATION
+
+  - display_name: "Fireworks"
+    key: Fireworks
+    controller_name: "Skill Controller Trait Missiles"
+    guid: e95ab3b1bef1a44aa4f9d97c9cc67c2a
+    desc: |
+      Each time a DUMMY regains 30% of its Maximum Health, it shoots a homing missile that deals 15 damage to a nearby enemy.
+      Changes per rarity:
+      -5% of its Maximum Health threshold
+
+  - display_name: "Flux Capacitor"
+    key: FluxCapacitor
+    controller_name: "Skill Controller Power Overcharge"
+    guid: be6943130657c54eb192f164d6de14ab
+    desc: |
+      While Geppetto has SHIELD, POWER affects all DUMMIES within range and deals +20% damage.
+      Changes per rarity:
+      +5% damage
+
+  - display_name: "Family Meeting"
+    key: FamilyMeeting
+    controller_name: "Skill Controller Attack Group Speed"
+    guid: 56e3027d194292418b86d128135e85e0
+    desc: |
+      When three or more DUMMIES are active, Geppetto and DUMMIES gain +20% ATTACK SPEED.
+      Changes per rarity:
+      +5% ATTACK SPEED
+
+  - display_name: "Laser Lenses"
+    key: LaserLenses
+    controller_name: "Skill Controller Defense Laser Eyes"
+    guid: 6aec13fa8e2c314d88babb71a8e3c4df
+    desc: |
+      When the DEFENSE effect is applied, DUMMIES' next attack shoots lasers from their eyes, dealing 200% ranged damage.
+      Changes per rarity:
+      +50% ranged damage
+
+  - display_name: "Vacuum Capsule"
+    key: VacuumCapsule
+    controller_name: "Skill Controller Special Pushback"
+    guid: 12399e775781ea489fac7990c12b5e72
+    desc: |
+      DUMMIES hit by SPECIAL are jerked toward the center of the explosion, dealing 40% of POWER damage along the way.
+      Changes per rarity:
+      +10% of POWER damage
+
+  - display_name: "Lightning Rod Dummies"
+    key: LightningRodDummies
+    controller_name: "Skill Controller Defense AOE"
+    guid: 59e150803ee1c241a888c588a0212de8
+    desc: |
+      After 2-2.5 seconds of DEFENSE is applied, DUMMIES are struck by lightning and deal 36 damage around.
+      Changes per rarity:
+      +9 damage + Hero Level + DMG
+
+  - display_name: "Flash of Genius"
+    key: FlashOfGenius
+    controller_name: "Skill Controller Passive Create Objects"
+    guid: d02382d89c13354dafb8d13ebc7c3f66
+    desc: |
+      Instantly create 1 random Magical Object(s). Each upgrade to this talent will create an additional item.
+      Changes per rarity:
+      +1 random Magical Object(s)
+
+  - display_name: "Sharp Noses"
+    key: SharpNoses
+    controller_name: "Skill Controller Trait Nose Attack"
+    guid: ad0838845a9ac14c8f4936a6d8b763ba
+    desc: |
+      DUMMIES have a 50% chance of attacking with their nose, dealing 160% damage on all enemies they hit.
+      Changes per rarity:
+      +40% damage
+
+  - display_name: "Magnetic Hammer"
+    key: MagneticHammer
+    controller_name: "Skill Controller Power Magnet"
+    guid: 12f93e1092efa64fa9d3002b4dfe4765
+    desc: |
+      Holding POWER allows Geppetto to pull in a DUMMY in front of him. Upon release, the DUMMY that has been pulled in deals +40% damage across a 100% wider area.
+      Changes per rarity:
+      +10% damage
+
+  - display_name: "Explosive Builds"
+    key: ExplosiveBuilds
+    controller_name: "Skill Controller Trait Blast Construction"
+    guid: 904b2028a8eb904aa3154773e72f6788
+    desc: |
+      When built by TRAIT, DUMMIES emit a blast, dealing 40 area damage.
+      Changes per rarity:
+      +10 area damage + Hero Level + DMG
