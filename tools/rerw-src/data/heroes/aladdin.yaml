@@ -6,7 +6,7 @@
 
 controllers:
   - display_name: "Jinn's Might"
-    key: JinnSMight
+    key: JinnsMight
     controller_name: "Skill Controller Power Quest"
     guid: 9e6425e871d5ec43a38e7c0eab3a6cf7
     is_start: true
@@ -26,7 +26,7 @@ controllers:
       +3 SHIELD + Hero Level
 
   - display_name: "Jinniya's Gift"
-    key: JinniyaSGift
+    key: JinniyasGift
     controller_name: "Skill Controller Trait Extra Wish"
     guid: 78f369a5a3e2b342b80f89a04da1b2ef
     is_start: true
@@ -174,7 +174,7 @@ controllers:
       Rare: +40% damage / Epic and Legendary: +20% damage
 
   - display_name: "Jinn's Fury"
-    key: JinnSFury
+    key: JinnsFury
     controller_name: "Skill Controller Power Multi Hit"
     guid: 17003a40f6d1744e95d9fa3d0cb316d6
     desc: |

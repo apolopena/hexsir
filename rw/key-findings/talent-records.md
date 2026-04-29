@@ -26,8 +26,10 @@ A Ravenswatch run uses 10 talent slots, but only 6 of them are actively chosen a
 | 10 | 10 | 2 ult upgrades, MUST match the L5 ult pick | **no** | constrained by slot 5 |
 
 Slot-10 ult-upgrade constraint:
-- If slot 5 = `Ultimate Power 1` → slot 10 must be `Ultimate 1 Upgrade 1` or `Ultimate 1 Upgrade 2`
-- If slot 5 = `Ultimate Power 2` → slot 10 must be `Ultimate 2 Upgrade 1` or `Ultimate 2 Upgrade 2`
+- If slot 5 = `Ultimate Power 1` → slot 10 must be `Ultimate 1 Upgrade 1` or `Ultimate 2 Upgrade 1` (the **suffix** number, not the prefix, identifies which base ult an upgrade pairs with)
+- If slot 5 = `Ultimate Power 2` → slot 10 must be `Ultimate 1 Upgrade 2` or `Ultimate 2 Upgrade 2`
+
+Verified 2026-04-29 via cross-reference against the Ravenswatch wiki for all 12 heroes: `Skill Controller Ultimate N Upgrade M` pairs with `Skill Controller Ultimate Power M` (the M suffix, not the N prefix). The prior version of this section had it backwards — corrected.
 
 (For Geppetto. Each hero defines its own four ult-upgrade controllers in its herodef.)
 
@@ -76,7 +78,7 @@ Beyond the 5-pick block, the record also contains:
 - A header with timing/state floats (purpose unconfirmed).
 - 4 u32 LE values at body+0x35..+0x44 that statistically perfectly match the player's tier distribution (A = `[0, 2, 1, 0]` matching A's Common/Epic/Rare/Common picks; B = `[3, 3, 3, 3]` matching B's all-Legendary picks). However, **editing these does NOT change the displayed tier in-game** — they are a parallel encoding the engine doesn't read for HUD tier. See `rw/dumps/geppetto/talent-record-decoded.txt` for the falsifying lab test record.
 - Six consecutive u32(4) values at body+0x45..+0x5c (purpose unknown, same in both proofs).
-- A nested-record list of tag=0x1a records (16 in Save A, 11 in Save B). Each is 25 bytes, holding a 16-byte GUID and a u32 sequence number. GUIDs don't match skill controllers — likely a "talents seen at level-up offers" history. Not yet edit-verified.
+- A nested-record list of tag=0x1a records (21 in Save A, 11 in Save B). Each is 32 bytes (`marker + tag + 16-byte runtime GUID + u32 sequence counter + close`). **Identified 2026-04-29 as item pickup records, not talent-offer history.** Each record represents one item the player collected during the run; the 16-byte GUID matches a magical-object entity-component instance. See `magical-objects.md` for the full record format and verified SWAP edit primitive.
 
 ## Tier record (tag=0x10, first-occurrence)
 

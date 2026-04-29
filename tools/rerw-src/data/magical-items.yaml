@@ -54,6 +54,12 @@ items:
     rarity: Common
     desc: "Healing Orbs grant 5 SHIELD (amount scales with the current hero level) when picked up. Set Bonus: +30 DMG while a SHIELD is active"
 
+  - display_name: "Legacy Goldilocks' Porridge"
+    key: LegacyGoldilocksPorridge
+    effect: Orb_Grants_Strength
+    guid: 0f43ddbf2741e548881b3a33f6c480f4
+    rarity: Common
+
   - display_name: "Mermaid Tears"
     key: MermaidTears
     effect: Healing_Effect
@@ -63,21 +69,15 @@ items:
 
   - display_name: "Voodoo Doll"
     key: VoodooDoll
-    effect: Increase_Damage_To_Boss
-    guid: 7062e5befc247a498b6998ee7d70b4cf
-    rarity: Common
-
-  - display_name: "Voodoo Doll"
-    key: VoodooDoll
     effect: Increase_Damage_To_Boss_And_Ignore_Resistance
     guid: ab17a5c4944b6245bf2c5abf9357ec03
     rarity: Common
     desc: "Deal +15% damage to Bosses. Set Bonus: 30% of damage dealt ignores enemies' ARMOR"
 
-  - display_name: "Goldilocks' Porridge"
-    key: GoldilocksPorridge
-    effect: Orb_Grants_Strength
-    guid: 0f43ddbf2741e548881b3a33f6c480f4
+  - display_name: "Legacy Voodoo Doll"
+    key: LegacyVoodooDoll
+    effect: Increase_Damage_To_Boss
+    guid: 7062e5befc247a498b6998ee7d70b4cf
     rarity: Common
 
   - display_name: "Dreamcatcher"
@@ -87,8 +87,8 @@ items:
     rarity: Common
     desc: "Reduces all Dream Shards prices by 10%. Set Bonus: One free purchase at the Sandman per chapter"
 
-  - display_name: "Dreamcatcher"
-    key: Dreamcatcher
+  - display_name: "Legacy Dreamcatcher"
+    key: LegacyDreamcatcher
     effect: Reduce_Dream_Shard_Price
     guid: fc11ec3f4d247d45ad8a43bfa54dd8d1
     rarity: Common
@@ -113,12 +113,6 @@ items:
     guid: ae6896038d2a3544a25280d91a8c25e5
     rarity: Rare
     desc: "Gain +1 DMG per 150 Dream Shards spent during the game. Set Bonus: +30% to any Dream Shard gains"
-
-  - display_name: "Dragon Hide"
-    key: DragonHide
-    effect: Armour_Gain_Per_Missing_Health
-    guid: a8a7edbaba5b9a4eb5db05c266f1403e
-    rarity: Rare
 
   - display_name: "Cryptic Prophecy"
     key: CrypticProphecy
@@ -162,12 +156,24 @@ items:
     rarity: Rare
     desc: "+1/+2/+3/+4 ARMOR for each Common, Rare, Epic or Legendary Talent. Set Bonus: ARMOR grants 40% of its value as DMG"
 
+  - display_name: "Legacy Dragon Hide"
+    key: LegacyDragonHide
+    effect: Armour_Gain_Per_Missing_Health
+    guid: a8a7edbaba5b9a4eb5db05c266f1403e
+    rarity: Rare
+
   - display_name: "Queen of Hearts"
     key: QueenOfHearts
     effect: Gain_Passive_Heal
     guid: e47ba211bd56c44a9522b0057b32ae97
     rarity: Rare
     desc: "Passively heals 1% Max Health every 5 seconds. Set Bonus: +30 DMG when at full Health"
+
+  - display_name: "Legacy Queen of Hearts"
+    key: LegacyQueenOfHearts
+    effect: Passive_Heal
+    guid: 764539167186ed47bf73a59d923b5ab6
+    rarity: Rare
 
   - display_name: "Unicorn Horn"
     key: UnicornHorn
@@ -182,12 +188,6 @@ items:
     guid: a87a5f06ddff894f8448d10a5d5b0231
     rarity: Rare
     desc: "When taking damage, gain 10 SHIELD (at most every 30 seconds, amount scales with the current hero level). Set Bonus: +50% to any SHIELD applied or received"
-
-  - display_name: "Queen of Hearts"
-    key: QueenOfHearts
-    effect: Passive_Heal
-    guid: 764539167186ed47bf73a59d923b5ab6
-    rarity: Rare
 
   - display_name: "Joker"
     key: Joker
@@ -216,12 +216,6 @@ items:
     guid: 1954d8bcf75030459201b0f94019f044
     rarity: Epic
     desc: "POWER gains +1 charge(s). Set Bonus: POWER deals +15% damage to enemies for each Negative Status they have"
-
-  - display_name: "Raven Eye"
-    key: RavenEye
-    effect: Reduce_CD_And_Buff_Ultimate
-    guid: 9a2c24abcf7e5f499f01f466b8a16c59
-    rarity: Epic
 
   - display_name: "Raven Wing"
     key: RavenWing
@@ -258,18 +252,18 @@ items:
     rarity: Epic
     desc: "Reduce ULTIMATE cooldown by +25%. Set Bonus: ULTIMATE deals +40% damage"
 
+  - display_name: "Legacy Raven Eye"
+    key: LegacyRavenEye
+    effect: Reduce_CD_And_Buff_Ultimate
+    guid: 9a2c24abcf7e5f499f01f466b8a16c59
+    rarity: Epic
+
   - display_name: "Thunderstone"
     key: Thunderstone
     effect: Secondary_Gain_Charge
     guid: 1d97edbd51d1934996a9cf79bca1a7ee
     rarity: Epic
     desc: "SPECIAL gains +1 charge(s). Set Bonus: SPECIAL casts a Lightning Strike upon the 3 closest enemies"
-
-  - display_name: "Father Time's Hourglass"
-    key: FatherTimesHourglass
-    effect: Abilities_Cooldown_Reduction_Per_Missing_Health
-    guid: c84ebfbeef7bfc49918e30fd77d48fbd
-    rarity: Legendary
 
   - display_name: "Raven Effigy"
     key: RavenEffigy
@@ -355,11 +349,17 @@ items:
     desc: "Any damage you deal kills standard enemies below 20% Health or elite enemies below 10% Health"
 
   - display_name: "Father Time's Hourglass"
-    key: FatherTimeSHourglass
+    key: FatherTimesHourglass
     effect: Reduce_All_Abilities_CD
     guid: 6f72772e6a162948ba9cb6003d03cdfb
     rarity: Legendary
     desc: "Reduce POWER, SPECIAL, DEFENSE cooldowns by 20%"
+
+  - display_name: "Legacy Father Time's Hourglass"
+    key: LegacyFatherTimesHourglass
+    effect: Abilities_Cooldown_Reduction_Per_Missing_Health
+    guid: c84ebfbeef7bfc49918e30fd77d48fbd
+    rarity: Legendary
 
   - display_name: "Nibelungen Ring"
     key: NibelungenRing
@@ -376,31 +376,25 @@ items:
     desc: "Improves the rarity of all Talents already learned and all future Talents once selected"
 
   - display_name: "Philosopher's Stone"
-    key: PhilosopherSStone
+    key: PhilosophersStone
     effect: Vitality_Per_Health_Globe
     guid: 47db8829a3666e459b45aed07c03bdf2
     rarity: Legendary
     desc: "Gain +1 VITALITY each time you collect a Healing Orb"
 
   - display_name: "Balor's Eye"
-    key: BalorSEye
+    key: BalorsEye
     effect: Charge_To_Damage
     guid: 409b76ab14558c46bb75ce4e1dda5de6
     rarity: Cursed
     desc: "When picked up, remove all current and future charges of POWER and SPECIAL to make them deal +100% damage per charge removed"
 
   - display_name: "Bloody Mary's Mirror"
-    key: BloodyMarySMirror
+    key: BloodyMarysMirror
     effect: Convert_Vitality_Into_AP
     guid: 9b9330629cf3824e9505b99fb4a41d0a
     rarity: Cursed
     desc: "Gain +0.5 DMG per VITALITY point. VITALITY now only increases Maximum Health by 0.5% per point (from 1%)"
-
-  - display_name: "Baba Yaga's Mortar"
-    key: BabaYagasMortar
-    effect: Curse_Baba_Yaga_Revive
-    guid: ac7fe9ce5861474daa1e877aeff84dbb
-    rarity: Cursed
 
   - display_name: "Nightmare Thorn"
     key: NightmareThorn
@@ -430,8 +424,14 @@ items:
     rarity: Cursed
     desc: "+70 DMG but every 60 seconds, inflicts damage equal to 50% of maximum health"
 
+  - display_name: "Legacy Mad Hat"
+    key: LegacyMadHat
+    effect: Gain_Dream_Shards_On_Hit
+    guid: d9e99e9e0a92d5419f264b9836839ec7
+    rarity: Cursed
+
   - display_name: "Devil's Pocket"
-    key: DevilSPocket
+    key: DevilsPocket
     effect: Curse_Stack_Shard_Quest
     guid: 60734f5d04b42d42af25a9c194fe3214
     rarity: Cursed
@@ -445,18 +445,24 @@ items:
     desc: "+15 DMG for each Cursed Magical Object, -10 ARMOR for each Legendary Magical Object"
 
   - display_name: "Witch's Broom"
-    key: WitchSBroom
+    key: WitchsBroom
     effect: Dash_Intangible
     guid: db75af84025c8f4fb7011fd480fe312f
     rarity: Cursed
     desc: "DASH makes the hero INTANGIBLE but any damage taken is increased by +15%"
 
   - display_name: "Baba Yaga's Mortar"
-    key: BabaYagaSMortar
+    key: BabaYagasMortar
     effect: Destroy_Legendary_To_Damage
     guid: a2ec4039eb665d41a491b20077ce2f5c
     rarity: Cursed
     desc: "All current and future Legendary Objects are destroyed and gain +50 DMG for each object destroyed this way"
+
+  - display_name: "Legacy Baba Yaga's Mortar"
+    key: LegacyBabaYagasMortar
+    effect: Curse_Baba_Yaga_Revive
+    guid: ac7fe9ce5861474daa1e877aeff84dbb
+    rarity: Cursed
 
   - display_name: "Hope Diamond"
     key: HopeDiamond
@@ -464,12 +470,6 @@ items:
     guid: d84f55cad16a3e4698083c49c52ed843
     rarity: Cursed
     desc: "Gain extra 50% the amount of collected Dream Shards but lose all Dream Shards at Death's Door"
-
-  - display_name: "Mad Hat"
-    key: MadHat
-    effect: Gain_Dream_Shards_On_Hit
-    guid: d9e99e9e0a92d5419f264b9836839ec7
-    rarity: Cursed
 
   - display_name: "Cauldron of Dyrnwch"
     key: CauldronOfDyrnwch

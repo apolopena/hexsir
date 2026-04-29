@@ -219,7 +219,7 @@ controllers:
       +1 second of VULNERABLE / +2 second(s) of WEAKENED
 
   - display_name: "Ch'i Outburst"
-    key: ChIOutburst
+    key: ChiOutburst
     controller_name: "Skill Controller Attack Beam"
     guid: 9c2fa9255af90e44a4b42d13c111a1a9
     desc: |
