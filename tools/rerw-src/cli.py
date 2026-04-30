@@ -17,7 +17,7 @@ from repl_lib import Repl
 from commands import (
     cipher,
     decipher,
-    harvest,
+    game_assets,
     read_savefile,
     swap_savefile,
     write_savefile,
@@ -94,7 +94,7 @@ _CLICK_COMMANDS = {
     # [auto] scaffold:repl-commands — insertion point
     "cipher": cipher.cipher_cmd,
     "decipher": decipher.decipher_cmd,
-    "harvest": harvest.harvest_group,
+    "game-assets": game_assets.game_assets_group,
 }
 
 
@@ -249,7 +249,7 @@ cli.add_command(read_, name="read")
 cli.add_command(write_, name="write")
 cli.add_command(cipher.cipher_cmd, name="cipher")
 cli.add_command(decipher.decipher_cmd, name="decipher")
-cli.add_command(harvest.harvest_group, name="harvest")
+cli.add_command(game_assets.game_assets_group, name="game-assets")
 cli.add_command(interactive_cmd, name="interactive")
 
 

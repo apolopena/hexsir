@@ -21,7 +21,7 @@ def test_help():
     runner = CliRunner()
     result = runner.invoke(cli, ["--help"])
     assert_cli_ok(result)
-    assert "harvest" in result.output
+    assert "game-assets" in result.output
 
 
 def test_version_from_pyproject():

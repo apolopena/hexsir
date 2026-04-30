@@ -283,6 +283,76 @@ WinDbg: http://127.0.0.1:8000/mcp
 
 Keep the Windows-side MCP server windows running while Codex is using them.
 
+## Live debugging session — WinDbg attach + MCP usage
+
+This is the operational flow for using WinDbg + MCP against a running game. **Do not vary
+this sequence**; deviating from it has caused crashes and lost runs in past sessions.
+
+### Setup (do this before starting any in-game work that you can't redo cheaply)
+
+1. **Start the WinDbg MCP server on Windows** (per the section above). Confirm from WSL:
+   ```bash
+   curl --max-time 5 -i http://127.0.0.1:8000/mcp
+   ```
+   Expect a `307 Temporary Redirect` to `/mcp/`. Anything else means networking is broken.
+
+2. **Launch WinDbg (X64) on Windows as Administrator.**
+
+3. **Attach WinDbg to `Ravenswatch.exe`**: `File → Attach to Process → Ravenswatch.exe`.
+   The game will pause automatically — this is normal. **Do not resume yet.**
+
+4. **In WinDbg's command bar, start the remote server:**
+   ```
+   .server tcp:port=5005
+   ```
+   WinDbg prints connection strings; the AI uses `tcp:Port=5005,Server=127.0.0.1`.
+
+5. **Tell the AI: "paused and listening."** **Do NOT type `g` yet.** Resuming before
+   breakpoints are armed makes every subsequent MCP query hang, because most WinDbg
+   commands require the target to be paused.
+
+6. **The AI sets breakpoints and resumes the target via MCP.** All BPs include `gc`
+   (go-from-conditional) so they auto-continue when they fire — the game runs normally,
+   no manual stepping needed.
+
+### During play
+
+- The game runs at full speed once BPs are armed. BP fires log to the WinDbg session
+  in the background and continue automatically.
+- If something looks wrong and you need the AI to inspect, hit **Ctrl+Break** in WinDbg
+  (or click the Break / pause-`||` button) to pause briefly, then tell the AI. Do
+  **not** detach, do **not** Stop Debugging.
+
+### Detach (CRITICAL — read before ending the session)
+
+WinDbg has multiple ways to "stop debugging" and **most of them kill the target process**.
+This has cost real chapter runs in past sessions. The only safe options:
+
+- **`.detach` then `qq`** in the WinDbg command bar — leaves the game running and exits
+  WinDbg cleanly. Or `qd` which combines them.
+- **Menu: Debug → Detach Debuggee** — same effect via GUI.
+
+Anything that says "Stop Debugging," `q` alone, or just closing the WinDbg window with
+the X button calls `q` (quit), which **terminates the debugged process**. Do not use
+those unless you want to end the game session.
+
+### Common failure modes
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| MCP commands hang / time out after attach | Target running freely (`g` was issued); query commands need a paused target | In WinDbg, hit Ctrl+Break to pause briefly, then retry the MCP call |
+| Game crashes on detach | Used "Stop Debugging" or closed the WinDbg window directly (sends `q`) | Always use `.detach` + `qq`, or `qd`, or menu Debug → Detach Debuggee |
+| `lm m Ravenswatch` returns "deferred" | Symbols not loaded; this is fine for unstripped binaries we're reverse-engineering | No action needed; module addresses still resolve |
+| `WARNING: The debugger does not have a current process or thread` | cdb client connected but in unsynced state | Usually self-heals once first command runs against a paused target |
+| `g` MCP call times out | Expected — `g` doesn't return until a BP fires or you break | Not a failure; the game is running. Wait for BP fires or hit Ctrl+Break to regain control |
+
+### Why we don't use the paste-back fallback
+
+In an earlier session we tried to set BPs by pasting commands directly into WinDbg's
+command bar (no MCP roundtrip). That works mechanically but pushes the work onto the
+human at the worst time (mid-play, time pressure). The MCP path is the right path; the
+fix is to keep the target **paused** during setup, not to bypass MCP.
+
 ## Notes
 
 Binding to `0.0.0.0` makes the server listen on all interfaces. Use this only on a trusted machine/network, or add firewall rules that restrict access.

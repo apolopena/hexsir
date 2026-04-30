@@ -7,7 +7,7 @@ from test_lib.cli import assert_cli_ok
 
 
 def test_runs():
-    """Group executes without error."""
+    """Group executes without error as a game-assets subcommand."""
     runner = CliRunner()
     result = runner.invoke(harvest_group, [])
     assert_cli_ok(result)

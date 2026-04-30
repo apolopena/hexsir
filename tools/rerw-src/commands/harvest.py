@@ -10,4 +10,4 @@ from display_lib.output import info
 def harvest_group(ctx) -> None:
     """Harvest and organize game assets."""
     if ctx.invoked_subcommand is None:
-        info("Use 'rerw harvest --help' to see available subcommands")
+        info("Use 'rerw game-assets harvest --help' to see available subcommands")

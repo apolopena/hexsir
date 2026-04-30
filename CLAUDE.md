@@ -40,3 +40,11 @@ ALWAYS ask the user before running `rerw swap savefile` (or any operation that o
 - **Steam Cloud sync overwrites on game quit.** When the user quits Ravenswatch, Steam syncs cloud → local, restoring whatever the cloud copy holds. Local edits made before / during the session get reverted on quit. Persistent edits require disabling Steam Cloud sync for Ravenswatch (Steam → Library → Ravenswatch → Properties → uncheck "Keep games saves in the Steam Cloud") or accepting that swaps are session-scoped only.
 
 Confirm before swapping; do not assume; if the user reports a swap "didn't take" after a play session, the most likely explanation is the cloud-sync-on-quit overwrite.
+
+### Save-load error modal — read the actual outcome, not the modal
+The "Save Loading Error (Error code: N)" modal does NOT always indicate a hard failure. It can appear in two distinct scenarios:
+
+- **True failure.** Click OK → routed to fresh-account hero-selection screen. The game now treats the file as unreadable; the next save event overwrites local with fresh-account defaults, wiping unlocks and any other progression. Quit immediately to preserve local.
+- **False negative (warning).** Click OK → routed to the Continue / New Game dialog. The save *did* load successfully — the modal was a non-fatal warning about something the loader chose to flag. Game state is intact and the user can proceed.
+
+**Always click through the modal once and observe destination before concluding a test result.** Save-edit experiments must report not "got error 4" but "error 4 → fresh-account" or "error 4 → continue dialog." This applies retroactively: any past test report stating only "got the error modal" is ambiguous and may need re-running with click-through to determine actual outcome.

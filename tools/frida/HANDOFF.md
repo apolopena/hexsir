@@ -2,6 +2,29 @@
 
 Context for an agent picking up this work mid-session.
 
+> **Update 2026-04-30 (revised, late):** The "prep function" hunt was reframed.
+> The job at `data_source+0x1928` IS an `oCMemoryBinaryStream`. The buffer pointer
+> at job+0x30 (= data_source+0x1958) is **NULL at construction** — there is no
+> single "allocate buffer" call to find. The buffer is allocated and grown lazily
+> by `oCMemoryBinaryStream::Write` (image+0x5257d0) inside its grow path
+> (`oCMemoryBinaryStream_grow_buffer` at image+0x24e700). Chapter-end serialization
+> calls Write many times (vtable-dispatched), each appending a record. Static
+> analysis can't see those callers because vtable dispatches don't appear in xref
+> graphs. The cleanest path forward is a **hardware data breakpoint on
+> `*(data_source + 0x1958)`** during a real chapter-end run: the instruction that
+> writes the first non-NULL pointer there is the FIRST Write call, and its call
+> stack reveals the chapter-end SerializeArchive entry point.
+>
+> See `rw/key-findings/save-subsystem.md` "Where the prep most likely happens —
+> REFRAMED" section for the full architectural picture, and
+> `rw/key-findings/save-flow-diagrams.md` for mermaid diagrams of the entire
+> save flow, class hierarchy, and data layout.
+>
+> **Also confirmed empirically 2026-04-29:** WinDbg attached at boss-spawn or
+> boss-kill triggers a process self-termination (anti-debug check). Frida is
+> unaffected. WinDbg-based capture for the chapter-end chain only works when
+> attached AFTER boss-kill, during the post-boss-die animation window.
+
 ## Goal
 
 Build a Frida-driven save trigger for Ravenswatch. The user can edit save bytes externally, then run a single Frida command that makes the running game serialize current in-memory state to `Profile_1.ob` — collapsing the test cycle from ~20 minutes (chapter run) to ~5 seconds.
@@ -88,6 +111,7 @@ These cost hours to figure out the first time:
 |---|---|
 | `save_now.js` | The final save trigger. Defines `globalThis.go()` which scans for oCDtRootGs and calls save_request_sync. Drive with `printf 'go()\nexit\n' \| frida -n Ravenswatch.exe -l save_now.js`. Heap scan takes ~60-90 seconds; the function-call path avoids the 30s script-load timeout. |
 | `repl.js` | Interactive REPL toolkit. Exposes `scan()`, `dump()`, `field()`, `stats()`, `imageInfo()`, `typedesc()`. Useful for ad-hoc memory inspection. |
+| `trace_save_dialog.js` | Passive chapter-end trace hooks for modal-open, `GAME_END_*` handlers, save-result handlers, and `save_request_*`. The hot modal callback at `0x281b40` is opt-in via `hot()` because it fires continuously during modal lifetime. |
 | `README.md` | User-facing setup/usage. |
 | `HANDOFF.md` | This file — for picking up the work. |
 
@@ -144,6 +168,11 @@ Safer Frida owner-discovery path added after the crash:
 - It verifies candidates by checking whether `candidate+8` linked-list traversal contains the data source.
 - This avoids recursive “find all references to all previous nodes” scans and should be the next Frida diagnostic before trying another live chapter-end run.
 
+Latest live-safety note:
+
+- A later `session()` attempt against an in-progress chapter run was stopped before it produced a live `data_source` address. Do not assume a current live `data_source` value exists in this handoff unless a fresh diagnostic prints it.
+- While the user is carrying a live run to chapter end, avoid broad heap scans. Use static Ghidra work, passive hooks, or narrow WinDbg breakpoints/watchpoints instead.
+
 Run output from the working pipeline:
 
 ```
@@ -182,6 +211,37 @@ Latest live diagnostic observations:
 `save_request_sync` does NOT introspect run state. The worker thread reads `*(job+0x30)` (data buffer ptr) and `*(job+0x38)` (size), then writes those bytes to disk. The Frida-triggered save does produce some new serialized records, so some upstream state/buffer content is current. What is still missing is the full natural-save preparation/finalization that makes the file complete and loadable.
 
 We bypassed at least part of the prep/finalizer path. Result: file has hero header, catalog (114 immutable records), picked talent, and some newly written records — but still does not contain the complete resumable-run state the engine expects.
+
+## Static event-bus finding (2026-04-29)
+
+This was investigated to answer whether the chapter-end save dialog path is a publish site or a subscriber.
+
+Event names such as `GAME_END_SUCCESS` are not passed around as raw string pointers in the runtime event calls. The boot/static initializer hashes the string with the engine CRC table, calls `FUN_140506950(0, crc)`, and stores the resulting runtime ID. For `GAME_END_SUCCESS`:
+
+- Literal string: `0x140ef16c8`.
+- Runtime event ID storage: `DAT_1412bfca0`.
+- Xrefs to the ID storage: write at `0x14002e537`, reads at `0x140280574` and `0x140281832`.
+
+The repeated subscribe shape in `FUN_14027fde0` is:
+
+1. Load a hashed event ID into a local.
+2. Call `FUN_14023d6e0(event_map, out_pair, &event_id)` to find/create the event bucket.
+3. Call `FUN_140216210()` to allocate a callback node.
+4. Call `FUN_140503df0(callback_node, closure)` to install `{this, thunk}`.
+5. Append the callback node to the bucket list/vector and store the handle on the session object for cleanup.
+
+Confirmed subscriptions in `FUN_14027fde0`:
+
+- `GAME_END_SUCCESS` ID `DAT_1412bfca0`, read at `0x140280574`, installs thunk `LAB_1402c85c0`, which resolves to handler `FUN_140282df0`.
+- `GAME_END_SUCCESS_SKIP_NEXT` ID `DAT_1412c02a0`, read at `0x140280644`, installs thunk `LAB_1402c85e0`, which resolves to handler `FUN_140282b50`.
+
+`FUN_14027fde0` also publishes `GAME_CHRONO_START`; it does not merely subscribe to it. Near the modal resource load:
+
+- It loads `GameUis\\Modal\\Modal_Save_Or_Quit.entity.ot` through `FUN_14048be40`, then stores the handle at `session+0xf8` via `FUN_14010b260`.
+- It constructs an `oCGameNamedEvent` from `DAT_1412c00a8` (`GAME_CHRONO_START`) with `FUN_140652960`.
+- It dispatches/publishes that event with `FUN_140652b60(event_context, event_obj)` at `0x140280eb5`.
+
+Implication: `FUN_14027fde0` is the save-or-continue modal setup path and a `GAME_CHRONO_START` publish site. The actual "chapter complete / show save dialog" trigger is upstream of this function, likely where `GAME_END_SUCCESS` is published and the registered handler chain enters this modal setup.
 
 ## ⭐ NEXT TASK: Find the prep function
 
