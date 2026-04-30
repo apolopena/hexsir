@@ -4,7 +4,7 @@ The player's collected magical objects are encoded as `tag=0x1a` records nested 
 
 A separate `tag=0x05` compendium catalog (114 records, identical across all saves) tracks profile-level magical-object discovery state. Catalog records use a different GUID per item (the asset-level GUID) than the runtime records — both GUIDs come from the same entity-settings file, but they're not interchangeable.
 
-**Status:** record format and SWAP primitive verified end-to-end on chapter-2 Geppetto saves. ADD / REMOVE primitives unverified. Ghost migration mechanism documented and lab-confirmed. See `item-table.md` for the full 114-item catalog.
+**Status:** record format, SWAP primitive, ADD primitive, and REMOVE primitive verified end-to-end on Geppetto chapter 2 / chapter 3 / epilogue saves. Engine validation has TWO independent ceilings on ADD: **Rule A** is a fresh-reference-allocation cap (chapter 2: +2, chapter 3: +3, epilogue: +7) that is **fully bypassed by reusing an existing record's reference value**; **Rule C** is a separate record-count ceiling that triggers even with full ref reuse (Save A: ~94 records). See triage `rw/triage/items-add-primitive-cap.md` and Ghidra dive `rw/triage/ghidra-rule-c-investigation.md`. Ghost migration mechanism documented and lab-confirmed. See `item-table.md` for the full 114-item catalog.
 **Created:** 2026-04-29
 
 ## Item record (tag=0x1a) — verified
@@ -20,6 +20,41 @@ Each item-pickup record is **32 bytes**, nested inside the run-state record:
 ```
 
 The 16-byte **runtime GUID** matches the GUID extracted from the item's cooked entity-settings file. The **counter** is a u32 sequence number; in chapter-2 Geppetto Save A the records use counters 730–750 (consecutive, +1 per record), in Save B 730–740. Counter scope (per-run / per-profile / global) is unverified.
+
+### Records-array layout inside the run-state record body
+
+Verified by byte-diff across chapter 2 / chapter 3 / epilogue saves:
+
+```
+body+0x61: u32 LE — items count
+body+0x65: records array — count × 32 bytes
+body+0x65 + count*32: trailing block (variable-length, structure below)
+```
+
+The trailing block grows with run progression and has the structure:
+
+```
+[u32 = N items currently at set-bonus threshold]
+[N × 16-byte runtime GUIDs of those items]
+[u32 = M talents picked]
+[M × 16-byte talent runtime GUIDs]
+[8 zero bytes]
+[u32 — per-save scalar (float-shaped; possibly run-time/score)]
+[8 zero bytes]
+[22 22 bb aa close marker]
+```
+
+Observed sizes:
+
+| Save | N (set-bonus items) | Set-bonus GUIDs | M (talents) | Trailing block |
+|---|---|---|---|---|
+| Save A (Ch2) | 0 | (none) | 5 | 112 bytes |
+| Chapter 3 | 1 | Moonstone | 8 | 176 bytes |
+| Epilogue | 3 | Moonstone, Raven Skull, Adder Stone | 10 | 240 bytes |
+
+The run-state record has **no outer length prefix** — the marker/close framing self-terminates.
+
+Counter sequence: strictly +1 sequential within all observed saves. `last_counter + 1` is the safe value for newly inserted records (lab-verified across multiple saves).
 
 ### Locating the runtime GUID in entity files
 
@@ -74,17 +109,110 @@ In-game observed: slot displayed as Water of Life (the ghost's display target vi
 
 Lab golden: `rw/saves/edits/lab/geppetto/laser-lenses_1/item-vorpal-blade-to-baba-yagas-mortar/Profile_1.ob` (lab-side, not promoted because the destination GUID was a ghost rather than a clean canonical).
 
-### Item stacking rules (player gameplay reference, unverified at engine validation level)
+## Edit primitive: ADD — verified within per-save tolerance
 
-| Rarity | Max stack |
-|---|---|
-| Common | 5 |
-| Rare | 4 |
-| Epic | 3 |
-| Legendary | 1 (no stack) |
-| Cursed | 1 (no stack) |
+Insert a new `tag=0x1a` record at the end of the records array. Variable-size; shifts the trailing block forward by 32 bytes.
 
-These rules govern in-run pickup behavior. Whether the engine enforces them on save load (rejecting hand-injected over-stack records) is **untested** — that's the next lab probe.
+```
+1. Find the run-state record (find tag=0x12 + run_state_guid_15, walk back to marker).
+2. Read items count = u32 LE at body+0x61.
+3. Compute insertion offset = body+0x65 + count*32 (just before the [u32=0][u32=5] sentinel).
+4. Build new record:
+   [11 11 bb aa][1a 00 00 00][16-byte runtime GUID][u32 LE counter=last_counter+1][22 22 bb aa]
+5. Splice the 32-byte record at the insertion offset (file grows by 32 bytes).
+6. Write count+1 back at body+0x61.
+7. Recompute CRC32 of body (data[16:]) and write at offset 0x0C.
+```
+
+**Safe domain:** ADD that respects both engine ceilings:
+- **Rule A (fresh-ref allocation):** small fresh-ref tolerance per save (Save A / Ch2: +2; Ch3: +3; epilogue: +7). **Bypassable by reusing an existing record's counter value as the new record's counter** — Save A then tolerates +50 reused-ref records loading cleanly (53× Moonstone in inventory).
+- **Rule C (total record count):** separate ceiling that triggers even with full ref reuse. Save A bisected to [89, 94] total records. Other saves' Rule C ceilings unmeasured.
+- **Per-item rarity rules** (Common 5 / Rare 4 / Epic 3) are **set-bonus thresholds, not hard caps** — items can legitimately exceed them in normal play. True hard caps are only Legendary 1 and Cursed 1; save-edited overage tolerated up to +2 instances. See `rw/triage/items-add-primitive-cap.md` for the full investigation and `rw/triage/ghidra-rule-c-investigation.md` for the engine-side trace.
+
+### Verified lab probes (selection — see triage for full table)
+
+| Probe | Edit | Result |
+|---|---|---|
+| ADD #1 | Save A Moonstone 3 → 4 | ✅ load |
+| ADD #2 | Save A Moonstone 3 → 5 | ✅ load + set bonus verified (damage 46 → 102, 2.22× ratio combining +50% set bonus and per-stack effect) — promoted to `golden/geppetto/chapter2/laser-lenses_1/item-add-fill-moonstone-stack-5of5/` |
+| Save A boundary | +3 records → 17 MOs | ❌ crash |
+| Chapter 3 boundary | +4 records → 29 MOs | ❌ crash (29 MOs is fine in epilogue natural — proves cap is per-save, not absolute) |
+| Epilogue boundary | +8 records → 37 MOs | ❌ crash |
+
+The set-bonus result on ADD #2 is the strongest possible confirmation that hand-injected records are fully functional — they participate in stack-counting, set-bonus checks, and per-stack damage calculations, not just inventory display.
+
+## Engine validation on save load
+
+The engine enforces **two independent ceilings** on the records array. Either can crash the engine on load if exceeded.
+
+### Rule A — Fresh-reference-allocation cap
+
+Each new (unique) record-counter value consumes a slot in the engine's load-time reference-fixup vector. The cap on this vector varies per save state. Bypassed entirely by reusing an existing counter value when adding records.
+
+Empirical fresh-ref tolerance (records that can be added past natural baseline using fresh counters):
+
+| Save | Baseline records | Fresh-ref tolerance | Max records (fresh) |
+|---|---|---|---|
+| Save A (Geppetto Ch2) | 21 (14 MO + 7 PU) | +2 | 23 |
+| Chapter 3 proof | 43 (25 MO + 18 PU) | +3 | 46 |
+| Epilogue proof | 51 (29 MO + 22 PU) | +7 | 58 |
+
+Crash signature when exceeded:
+
+```
+Exception:        0xC0000005 ACCESS_VIOLATION (read)
+Read target:      0xffffffffffffffff
+Failure bucket:   BAD_INSTRUCTION_PTR_INVALID_POINTER_READ
+Failure ID hash:  276109f4-3a0d-29ee-1ac0-fc5b348ff902
+Crash address:    Ravenswatch+0x204760  (inside vec_u64_assign_resize)
+Caller chain:     hero_controller_init_replay_persistent_data → entity_sync_component_vector → vec_u64_assign_resize
+```
+
+### Rule C — Total record-count ceiling
+
+Independent of Rule A. Triggered by record count alone, regardless of ref novelty. Bisected on Save A: cap ∈ [89, 94] records (loads at 89, crashes at 95). Save A safely loads up to **+50 reused-ref records / 71 total** with comfortable headroom.
+
+Other saves' Rule C ceilings are unmeasured. Crash signature differs from Rule A:
+
+```
+Exception:        0xC0000005 ACCESS_VIOLATION (write)
+Write through:    null pointer
+Failure bucket:   NULL_POINTER_WRITE_NULL_INSTRUCTION_PTR_INVALID_POINTER_WRITE
+Failure ID hash:  6b52cc56-5a0e-1553-b6cb-84d1d5a95d5d
+Symbol:           Ravenswatch+748653 (= 0x1400B6C6D, in startup-init code → return-address corruption hides the real fault site)
+```
+
+Ghidra investigation narrowed Rule C to a subscriber's `vtable[0x10]` in the post-loop count-event broadcast called from `hero_inventory_recompute_and_broadcast_counts` (after iterating all save records). Likely a skill-controller passive that creates child entities scaled by item count and overflows around 94+ items. Pinpointing requires dynamic analysis or full skill-controller vtable mapping. Full trace: `rw/triage/ghidra-rule-c-investigation.md`.
+
+### Falsified hypotheses
+
+- "Fixed 16-MO total cap" — disproved by epilogue's 29 MOs loading natively. The `object.0..object.15` strings in crash dumps are slot-name format outputs from `hero_inventory_bind_magical_object_name`, not array indices.
+- "Going +3 over per-item set-bonus threshold crashes" — disproved by maxed-stacks (no item over threshold) crashing.
+- "External chapter field controls tolerance" — disproved by tool-bumped chapter (Save A → ch3) keeping Save A's +2 tolerance.
+- "Tolerance = set-bonus-tracker count + 2" — fit Save A and chapter 3, falsified by epilogue (predicted +5, actual +7).
+- "Cap is stored as a literal integer somewhere" — searched all three saves for predicted cap values; zero common offsets.
+- "Rule A is a per-save record-count cap" — superseded by the reference-allocation reframing (lab-confirmed via reuse-ref probe).
+- "Rule C cap is at exactly 95 records (96-buffer)" — falsified by +74 reused-ref probe (95 records crashed, so cap < 95).
+
+### Implication for tooling
+
+ADD operations should reuse an existing record's ref value to bypass Rule A and gain much higher headroom. The remaining ceiling is Rule C, which on Save A is far above natural inventory sizes. Conservative recommendation: cap at +30 reused-ref records on any save until per-save Rule C ceilings are measured or the cap formula is decoded. SWAP is unaffected (record count never changes). REMOVE is verified end-to-end (see triage).
+
+### Item stacking rules — corrected understanding
+
+Earlier docs (and the wiki) treat Common 5 / Rare 4 / Epic 3 as "max stack" per rarity. Empirically these are **set-bonus thresholds, not hard caps**. Items can exceed them in normal play (epilogue's 4× Adder Stone exceeds the Epic threshold of 3 in a clean natural save).
+
+| Rarity | Set-bonus threshold | Hard cap |
+|---|---|---|
+| Common | 5 | none (can exceed in normal play) |
+| Rare | 4 | none |
+| Epic | 3 | none |
+| Legendary | — | 1 (no stack) |
+| Cursed | — | 1 (no stack) |
+
+Reaching a set-bonus threshold registers the item in the run-state's set-bonus tracker (the `[u32 = N][N × GUIDs]` block at the start of the trailing region). Going beyond the threshold doesn't add a new tracker entry; it counts unique items at-or-above threshold, not instances.
+
+For Legendary/Cursed (true hard cap of 1), the engine still tolerates save-edited overage up to 3 instances on Save A (3-VB probe loaded; 4-VB crashed). The over-cap behavior is bounded by the per-save record-count tolerance, not by per-item rarity rules.
 
 ## Ghost migration — verified
 
@@ -133,12 +261,15 @@ Powerups appear in the records list (one record per pickup event) but don't show
 
 | Question | Status | Notes |
 |---|---|---|
-| Items count field location | unverified | Save A (21 records) vs Save B (11 records) byte-diff inside run-state record body should reveal it |
-| Run-state record outer length field | unverified | Adding/removing items shifts body bytes; does outer record have a length prefix that needs updating? |
-| Sequence counter rules | unverified | A's records 730–750, B's 730–740. What value is valid for inserting a new record? |
-| Stack-limit engine validation on load | unverified | Does engine reject hand-injected over-limit records? Lab-test progression in next probe |
+| Items count field location | ✅ resolved | u32 LE at run-state body+0x61. Records array starts at body+0x65 |
+| Run-state record outer length field | ✅ resolved | No length prefix; marker/close framing self-terminates. Splices verified at +32 / +64 / +288 bytes without any other length field needing update |
+| Sequence counter rules | ✅ resolved | Strictly +1 sequential within a save. `last_counter + 1` is safe (lab-verified at +1, +2, and +9 record adds) |
+| Stack-limit engine validation on load | ✅ resolved | Engine has a per-save record-count cap (NOT a per-item stack cap). See "Engine validation on save load" section above and `rw/triage/items-add-primitive-cap.md`. |
+| What computes the per-save cap? | ❓ unresolved | Cap correlates with chapter progression but isn't controlled by the chapter byte alone. Not stored as a literal integer at any common offset. Likely computed by the engine from inputs we haven't decoded — see triage. |
+| Inventory slot cap (16-slot hint) | ❌ disproved as "fixed cap" | The `object.0`–`object.15` strings exist but don't represent a fixed 16-MO ceiling. Epilogue loads with 29 MOs natively. The 16-indexed strings probably name a fixed-size scratch buffer in the inventory-build path, role unverified. |
 | Cross-rarity swap behavior | unverified | Swap of Legendary slot → stackable item: how does engine handle |
 | Powerup record retention | unverified | Why are consumed powerups in the records list at all? Event log? Achievement tracking? |
+| No-stack duplicate ADD behavior | ✅ resolved | Engine accepts duplicates of Legendary/Cursed (no-stack) items as separate functional instances. Lab-verified: 2× and 3× Vorpal Blade load, contribute to damage scaling, no display dedup or rejection. The +N tolerance applies normally regardless of whether the duplicates are no-stack. |
 
 ## Tooling
 
@@ -154,5 +285,7 @@ The data side (`magical-items.yaml`, `powerup-items.yaml`, `item-table.md`) is r
 
 - `rw/saves/proofs/geppetto/{clean,chapter2,chapter3,epilogue}/.../Profile_1.ob` — proof saves (catalog reference + Save A/B for active items).
 - `rw/saves/edits/lab/geppetto/laser-lenses_1/item-vorpal-blade-to-baba-yagas-mortar/Profile_1.ob` — verified SWAP lab edit.
-- `rw/dumps/items_*.py` — recon scripts (gitignored).
+- `rw/saves/edits/golden/geppetto/chapter2/laser-lenses_1/item-add-fill-moonstone-stack-5of5/Profile_1.ob` — verified ADD probe (5-of-5 Moonstones, set bonus active).
+- `/mnt/d/steam-storage/steamapps/common/Ravenswatch/CrashDB/reports/180da781-979c-43c5-bb83-a4b9012b4af7.dmp` — crash dump from over-tolerance ADD probe (3 → 12 Moonstones, instruction-pointer corruption in `Skill Controller Passive Create Objects`).
+- `rw/dumps/items_*.py` — recon scripts (gitignored). Notable: `items_inspect_post_records.py` (records-array layout RE), `items_make_lab_add.py` / `items_make_lab_add_5of5.py` (verified ADD probes), `items_make_lab_add_overstack.py` (over-tolerance crash probe).
 - `rw/harvested/EntitySettings/Obzects/` — 204 cooked item entity files (gitignored).
