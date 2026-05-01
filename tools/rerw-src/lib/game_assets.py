@@ -113,16 +113,8 @@ def _cooked_relative(path: str) -> str:
 def _truncate_cooked_prefix(path: str) -> str:
     if COOKING_MARKER not in path:
         return path
-    prefix, suffix = path.split(COOKING_MARKER, 1)
-    trimmed = prefix.rstrip("/")
-    parts = trimmed.split("/")
-    if len(parts) >= 3 and parts[0] == "" and parts[1] == "mnt":
-        root = f"/{parts[1]}/{parts[2]}"
-    elif len(parts) >= 2 and parts[0] == "":
-        root = "/" + parts[1]
-    else:
-        root = parts[0] if parts else ""
-    return f"{root}/.../DarkTalesResources/_Cooking/{suffix}"
+    _, suffix = path.split(COOKING_MARKER, 1)
+    return f".../_Cooking/{suffix}"
 
 
 def display_game_asset_path(

@@ -26,6 +26,38 @@ When using `/generate-prp` or `/execute-prp`, read `.ai/AGENTS.md` for complete 
 ### Changelog
 When asked to update the changelog, dispatch the Pedro agent (subagent_type=Pedro).
 
+### CLI Design Rules
+Design the command grammar before adding flags. A CLI should have clear nouns,
+verbs, and ownership boundaries; do not grow a flat pile of loosely related
+options.
+
+- Separate discovery from mutation. Use `inspect`, `list`, or equivalent
+  read-only commands to discover valid keys and current state; use `set`,
+  `write`, or equivalent commands for destructive changes.
+- Destructive commands must be explicit. Show the current state before
+  overwrite when practical, and do not hide mutation behind an inspect/list
+  command.
+- Use strict keys when the tool has registry-backed identifiers. Do not silently
+  accept display names, aliases, fuzzy matches, or normalized variants when a
+  command says `key`.
+- Single required value: prefer a positional argument, e.g.
+  `set level <int>` or `set item <key>`.
+- Multiple required values: use named flags, e.g.
+  `set talent --key <key> --slot <int>`.
+- Do not create comma-delimited mini-languages or order-dependent argument
+  grammars. If the operation cannot be expressed cleanly, create a subcommand.
+- Avoid generic flags whose meaning changes by context, such as a top-level
+  `--tier` that only applies to talents. Put scoped options on the relevant
+  leaf command.
+- Do not batch destructive edits inside ordinary `set` commands. If batching is
+  genuinely needed, design a separate transaction/apply command with its own
+  explicit input format and validation.
+- Parent groups should organize commands, not smuggle ambiguous options into
+  children. Repeat common leaf options like `--source`, `--dest`, `--force`,
+  and `--verbose` when that makes the command contract clearer.
+- If a group requires a subcommand, prefer showing help instead of guessing a
+  default action.
+
 ### CRITICAL: SSH Git Commands
 ALWAYS use `./scripts/git-ai.sh` for git commands requiring SSH (commit, push, pull, fetch, clone, remote, ls-remote, submodule). Prevents SSH askpass errors via keychain + adds AI attribution.
 
@@ -40,6 +72,31 @@ ALWAYS ask the user before running `rerw swap savefile` (or any operation that o
 - **Steam Cloud sync overwrites on game quit.** When the user quits Ravenswatch, Steam syncs cloud → local, restoring whatever the cloud copy holds. Local edits made before / during the session get reverted on quit. Persistent edits require disabling Steam Cloud sync for Ravenswatch (Steam → Library → Ravenswatch → Properties → uncheck "Keep games saves in the Steam Cloud") or accepting that swaps are session-scoped only.
 
 Confirm before swapping; do not assume; if the user reports a swap "didn't take" after a play session, the most likely explanation is the cloud-sync-on-quit overwrite.
+
+### Saves are only generated at chapter-boss kills — there is no other save event
+Ravenswatch only writes a new `Profile_1.ob` after a chapter boss is defeated. After the boss-kill animation a dialogue offers to save; if the player chooses yes, a save is generated AND the game exits. There is no autosave, no quicksave, no save-on-quit, no save-on-death. Mid-run state, defeats, score-page values, and HUD changes are NOT captured in any new save file.
+
+Implications for save-edit testing:
+- We cannot do "edit → swap → play → save → re-inspect" round-trips. Mid-run state changes never make it back to disk.
+- Valid observations are limited to (a) HUD values immediately on save load, (b) end-of-run score page after defeat, (c) anything visible during play. None of these produce a new save we can diff against.
+- "Verifying" an edit means visually confirming the loaded HUD/score-page reflects the edited value. There is no automated round-trip check beyond the parse-encode byte-equality test on the file itself.
+- Reaching a new chapter-boss kill to generate fresh save data is a real-time play investment — typically ~20 minutes of focused play per save. Treat existing proof saves as scarce. Proposing a new save run is NOT off the table, but it must be extremely warranted — strong justification (e.g., the test cannot be done any other way and the resulting save unblocks meaningful progress). Don't suggest a fresh-save test casually.
+
+### Ghidra: annotate findings on the spot
+This section governs all Ghidra reverse-engineering work. When you identify what something does — even partially — annotate it in Ghidra immediately. Do not batch annotations at session end. Each annotation makes future decompilation more readable for both you and the user, and prevents losing the identification when context drops. The bar is low: partial understanding is worth annotating. `unknown_serializer_at_this+0xc8` is more useful than `FUN_1403b3da0`.
+
+Annotation kinds and the tool to use:
+
+- **Functions** — rename via `mcp__ghidra__rename_symbol` (target_type=function) or `mcp__ghidra__batch_rename`. Convention: snake_case for free functions, `Class_method` or `Class::Method` for members, `Class_vftable` for vtables.
+- **Data / globals** — rename via `mcp__ghidra__rename_symbol` (target_type=data). Used for vftables, RTTI, string tables, registries.
+- **Function parameters and local variables** — rename via `mcp__ghidra__rename_symbol` (target_type=variable) inside a decoded function. Replace `param_1` with `this` / `stream` / `hero_state`, `local_88` with `count_delta`, `uVar3` with `ingredient_index`.
+- **Struct definitions** — when a class layout is understood, define the struct via `mcp__ghidra__struct` (action=create). Once defined, accesses like `*(int *)(this + 0x08)` auto-render as `this->type_id` everywhere the type is applied.
+- **Equates / enums** for magic constants — `0xAABB1111` → `MARK_START`, schema-version IDs, ingredient class IDs. Use `mcp__ghidra__types` (action=create_enum).
+
+The "why" of a finding belongs in `rw/key-findings/*.md`, not in Ghidra plate/EOL comments. Ghidra annotations are for symbol-level identity (names, types, structures); narrative context lives in the key-findings docs.
+
+### Save-edit lab base rule — never layer on a failed experiment
+New save edits are ALWAYS layered on top of either (a) a golden save, or (b) a proof / verified-success lab save that is a candidate for promotion to golden. NEVER layer a new edit on top of a failed lab variant — that carries dead-end edits forward and confounds the test. If unsure whether a prior lab is a success, ask before using it as the base.
 
 ### Save-load error modal — read the actual outcome, not the modal
 The "Save Loading Error (Error code: N)" modal does NOT always indicate a hard failure. It can appear in two distinct scenarios:

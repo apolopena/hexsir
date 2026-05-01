@@ -153,9 +153,9 @@ The first 16 bytes of the body (offsets 0x00-0x0F) are 4 hash-shaped u32s — li
   - +0x00–0x0F: 16-byte locator GUID (`9e8fb5317efe6f4a95737325675793e6` for the chapter2 example — used by rerw to find the level field).
   - +0x10: 1-byte alignment / type tag (`00`).
   - +0x11: u32 = **in-run hero level** (`5` originally; rerw `--level 1` flips this to `1`). Byte-misaligned 4-byte read.
-  - +0x15: u32 (= 0xa820 = 2690 in chapter2; meaning unknown).
+  - +0x15: u32 = **accumulated XP** (2690 in chapter2 example). Byte-misaligned 4-byte read.
 
-`rerw write savefile --level N` writes 4 bytes at this offset. Confirmed working: edits hero level + downstream HUD values (XP, damage scaling) update correctly.
+`rerw write savefile --level N` writes 4 bytes at +0x11. Confirmed working: edits hero level + downstream HUD values (damage scaling) update correctly. **XP at +0x15 must be zeroed independently** — see "Level reached formula" gotcha below.
 
 ### Records identified but not edited this session
 
@@ -176,7 +176,8 @@ The displayed end-of-run score page values map to file fields as follows:
 | Damage taken | `HeroController` body +0x15 AND `HeroScoreData` group 3[0] | Same dual storage. |
 | Other damage breakdown (1091, 990) | `HeroController` body +0x19 / +0x35d | Per-source counters. |
 | Playtime (e.g. 1409s = 23:29) | `oCDtCurrentRunProfileData` own body +0xe5 | Float in seconds, byte-misaligned. |
-| **Level reached** (cumulative across runs) | NOT YET LOCATED — almost certainly in `oCDtHeroProfileData` (per-hero lifetime stats) | This is APPENDED on each run end, not replaced. Next dig if you want it. |
+| In-run hero level | `GroupLevelPersistentData` body +0x11 | u32, byte-misaligned. `rerw --level N` writes here. |
+| Accumulated XP (drives "Level reached" delta) | `GroupLevelPersistentData` body +0x15 | u32, byte-misaligned. **Must be zeroed alongside hero level** — game derives effective level from `level + XP/threshold`, so leftover XP shifts the cumulative "Level reached" appended on defeat. |
 | Per-category run summaries | `ActivityScore × 6` (nested in `oCDtCurrentRunProfileData`) | Replaceable with 25-byte minimum body. |
 
 ---
@@ -345,6 +346,184 @@ python3 -m lib.cooked …  # custom script using lib.cooked APIs
 
 ---
 
+## Edit recipes (the scripts we keep writing on the fly)
+
+The following recipes are the actual Python scripts we use for repeat tasks. They predate any `rerw` integration and are what every agent ends up running until those tasks are folded back into the tool. Copy/paste these as-is into a Python REPL or a one-off script — the assumed working directory is `/home/ks73/repos/work/ravensmith/tools/rerw-src` so that `from lib import cooked` resolves.
+
+### Recipe — Stars of Fate live count
+
+Edits the live spendable Stars-of-Fate count at `oCDtEntityCpntHeroControllerPersistentData` body+0x29 (u32, byte-misaligned). Verified spendable in-game after edit. **The single most important player-facing hack we've found** — defeats RNG by giving the player rerolls.
+
+```python
+import struct
+from pathlib import Path
+from lib import cooked
+
+src = Path("path/to/Profile_1.ob")
+dst = Path("path/to/output/Profile_1.ob")
+data = bytearray(src.read_bytes())
+cf = cooked.parse_file(bytes(data))
+roots = cooked.parse_object_tree(cf)
+_, node = cooked.find_class_in_tree(cf, roots, "oCDtEntityCpntHeroControllerPersistentData")[0]
+obj_off = len(data) - len(cf.object_section)
+body_abs = obj_off + node.start + 8
+
+# Set Stars of Fate live count to N
+struct.pack_into("<I", data, body_abs + 0x29, 7)  # N=7
+
+# Re-encode (auto-recomputes CRC32)
+cf2 = cooked.parse_file(bytes(data))
+out = cooked.encode_file(cf2)
+dst.write_bytes(out)
+```
+
+The same pattern applies to the adjacent stat counters at body+0x25 (Raven Feathers consumed stat — score-page row) and body+0x2d (unknown stat). These are u32 at byte-misaligned offsets.
+
+### Recipe — full mint chain (zero per-run state, roll chapter back)
+
+Takes a chapter-N proof and produces a chapter-(N-1) starting save with zeroed run state. This is the proven recipe behind `golden/geppetto/chapter1/zero-scores-stars7-ch1/Profile_1.ob`. Has known gaps documented as "What we couldn't zero" in that golden's breakthrough.md.
+
+```python
+import struct, shutil
+from pathlib import Path
+from lib import cooked
+
+src = Path("path/to/proof/Profile_1.ob")
+dst_dir = Path("path/to/output_dir")
+dst_dir.mkdir(exist_ok=True)
+dst = dst_dir / "Profile_1.ob"
+shutil.copy(src, dst)
+
+data = bytearray(dst.read_bytes())
+cf = cooked.parse_file(bytes(data))
+roots = cooked.parse_object_tree(cf)
+section = bytearray(cf.object_section)
+obj_off = len(data) - len(cf.object_section)
+
+# 1. HeroController body — zero damage region (16 bytes from +0x11) + +0x35d float
+_, hc = cooked.find_class_in_tree(cf, roots, "oCDtEntityCpntHeroControllerPersistentData")[0]
+hc_body_abs = obj_off + hc.start + 8
+data[hc_body_abs + 0x11 : hc_body_abs + 0x21] = b"\x00" * 16  # damage_dealt/received/etc
+struct.pack_into("<f", data, hc_body_abs + 0x35d, 0.0)         # additional damage stat / dream-shards-collected
+
+# 2. ActivityScore × 6 → 25-byte minimum body each
+MIN_AS = struct.pack("<I", 0) * 6 + b"\x00"  # 25 bytes
+hits = sorted(cooked.find_class_in_tree(cf, roots, "ActivityScore"), key=lambda h: -h[1].start)
+for _, n in hits:
+    section[n.start + 8 : n.end - 4] = MIN_AS
+
+# 3. HeroScoreData — zero 28 score floats in place (preserve counts + nickname string)
+# (See body wire format in the "Decoded class schemas" section above for the float positions.)
+
+# 4. CurrentRunProfileData own body — zero playtime float at +0xe5 (byte-misaligned)
+_, crp = cooked.find_class_in_tree(cf, roots, "oCDtCurrentRunProfileData")[0]
+crp_body_abs = obj_off + crp.start + 8
+struct.pack_into("<f", data, crp_body_abs + 0xe5, 0.0)
+
+# 5. GroupLevel — set hero level=1 and XP=0
+_, gl = cooked.find_class_in_tree(cf, roots, "oCDtEntityCpntGroupLevelPersistentData")[0]
+gl_body_abs = obj_off + gl.start + 8
+struct.pack_into("<I", data, gl_body_abs + 0x11, 1)  # in-run hero level
+struct.pack_into("<I", data, gl_body_abs + 0x15, 0)  # accumulated XP
+
+# Re-encode (auto-recomputes CRC32 on the body section)
+cf.object_section = bytes(section)
+out = cooked.encode_file(cf)
+dst.write_bytes(out)
+```
+
+After running this, layer the chapter rollback on top via existing rerw tool:
+
+```bash
+./tools/rerw write savefile \
+    --source path/to/output_dir/Profile_1.ob \
+    --dest path/to/final_dir \
+    --chapter 0 -f                          # 0 = chapter 1
+```
+
+**Known gaps in this mint recipe** (per the chapter-1 golden's breakthrough.md):
+- HeroController body+0x25/0x29/0x2d stat counters not zeroed (need to add `struct.pack_into("<I", data, hc_body_abs + 0x25, 0)` etc.)
+- Score-Details achievement records source unmapped — leftover blanks compound on subsequent play-through
+- Held inventory (keys, bean, feathers) source unmapped — not in HeroIngredient vector at HC+0x21 despite that being the obvious-looking location
+
+### Recipe — diff two saves (find what changed)
+
+Given two saves (e.g., proof vs play-through), find which records' bodies differ. Useful when hunting for where a known state delta gets stored.
+
+```python
+from lib import cooked
+from collections import Counter
+
+def parse(path):
+    data = open(path, "rb").read()
+    cf = cooked.parse_file(data)
+    return cf, cooked.parse_object_tree(cf)
+
+p_cf, p_roots = parse("path/to/proof/Profile_1.ob")
+g_cf, g_roots = parse("path/to/golden/Profile_1.ob")
+
+# Compare class instance counts
+def counts(cf, roots):
+    c = Counter()
+    def walk(n):
+        if 0 <= n.class_index < len(cf.classes):
+            c[cf.classes[n.class_index].name] += 1
+        for ch in n.children: walk(ch)
+    for r in roots: walk(r)
+    return c
+
+cp, cg = counts(p_cf, p_roots), counts(g_cf, g_roots)
+for name in sorted(set(cp) | set(cg)):
+    delta = cg[name] - cp[name]
+    if delta != 0:
+        print(f"  {name}: proof={cp[name]} golden={cg[name]} delta={delta:+d}")
+
+# Compare a specific class instance body
+classname = "oCDtCurrentRunProfileData"
+_, p_node = cooked.find_class_in_tree(p_cf, p_roots, classname)[0]
+_, g_node = cooked.find_class_in_tree(g_cf, g_roots, classname)[0]
+p_body = p_cf.object_section[p_node.start+8 : p_node.end-4]
+g_body = g_cf.object_section[g_node.start+8 : g_node.end-4]
+print(f"{classname}: proof_len={len(p_body)} golden_len={len(g_body)}")
+if len(p_body) == len(g_body):
+    diffs = [i for i in range(len(p_body)) if p_body[i] != g_body[i]]
+    print(f"  {len(diffs)} differing offsets")
+```
+
+### Recipe — splice / insert into a body (variable-length record)
+
+When inserting bytes into a body (e.g., adding a record to a vector), the surrounding markers reflow naturally — the `lib.cooked` encoder handles the length recomputation. Splice carefully: get the body, mutate, write back, then re-encode the whole file.
+
+```python
+# Pattern: extend HC.HeroIngredient vector by one record (insertion is variable-length)
+import struct
+from lib import cooked
+
+cf = cooked.parse_file(open("path/to/Profile_1.ob", "rb").read())
+roots = cooked.parse_object_tree(cf)
+section = bytearray(cf.object_section)
+_, hc = cooked.find_class_in_tree(cf, roots, "oCDtEntityCpntHeroControllerPersistentData")[0]
+body_start, body_end = hc.start + 8, hc.end - 4
+body = bytearray(section[body_start:body_end])
+
+# Bump ingredient vector count from 0 to 1
+struct.pack_into("<I", body, 0x21, 1)
+
+# Insert one 8-byte record (u32 type_id + u32 count) at body+0x25, push later bytes forward
+record = struct.pack("<II", 0xCD1AC90C, 5)   # type_id, count
+new_body = body[:0x25] + record + body[0x25:]
+
+# Splice the new (longer) body back into the section and re-encode
+section[body_start:body_end] = new_body
+cf.object_section = bytes(section)
+out = cooked.encode_file(cf)
+open("path/to/output/Profile_1.ob", "wb").write(out)
+```
+
+(Note: the example type_id `0xCD1AC90C` for "Key" is a hypothesis we have not yet calibrated. See the chapter-2 follow-on golden's breakthrough.md for what's known about ingredient type_ids.)
+
+---
+
 ## Critical gotchas — read before doing edits
 
 1. **Save-load error modal can be a false negative.** Already documented in `CLAUDE.md`. Modal saying "Error code: 4" → click OK and watch destination. If routed to Continue/New-Game dialog → save loaded successfully, modal was a warning. If routed to fresh-account hero selection → true failure, quit before next save event clobbers local with fresh defaults.
@@ -359,7 +538,7 @@ python3 -m lib.cooked …  # custom script using lib.cooked APIs
 
 6. **Stats can be duplicated across records.** Damage values appear in *both* `HeroController` (the read-source) and `HeroScoreData` (a cached snapshot). Zeroing only one location won't change displayed values; zero the *primary* location (HeroController for damage). HeroScoreData zeroing is still good practice for consistency.
 
-7. **"Level reached" on the score page is cumulative across runs**, not per-run. Stored separately from in-run hero level. Couldn't locate this session — likely lives in `oCDtHeroProfileData` (per-hero lifetime stats). Edit-and-test approach: pick a target HeroProfileData body field, zero, observe.
+7. **"Level reached" formula:** the value appended to the cumulative end-of-run "Level reached" stat is computed as `effective_level = hero_level + XP / xp_threshold`. Both the level (`GroupLevel +0x11`) AND the accumulated XP (`GroupLevel +0x15`) must be zeroed when rolling back — editing only the level leaves residual XP that shifts the appended delta upward. Empirically verified: chapter2 proof showed 5.54 (level=5, XP=2690); after `--level 1` only, defeat appended 7.73 (= 1 + ~6.73 from XP); after `--level 1` + XP=0, defeat appended the correct ~5 baseline. The "lifetime sum across runs" of these values still lives elsewhere (likely `oCDtHeroProfileData`) — not located yet, but the per-run input to that sum is now controllable.
 
 8. **Class indices are per-file.** Don't hardcode them — always look up `cf.classes[idx].name` against the file you're working with. A class at index 14 in clean might be at index 24 in chapter2.
 
@@ -393,7 +572,7 @@ Data labels also added: `ActivityScore_vftable`, `oCDtPlayerProfileData_vftable`
 
 ## Open work (deferred, not blocking path B's stat-reset use case)
 
-1. **Locate the cumulative "Level reached" stat.** Almost certainly in `oCDtHeroProfileData` (12 top-level instances, one per hero). Approach: dump Geppetto's HeroProfileData body, edit candidate u32/float positions, observe in-game.
+1. **Locate the per-hero cumulative "Level reached" sum.** Per-run input is now controllable (level + XP both editable). The lifetime accumulator that adds each run's effective level into a running total is almost certainly in `oCDtHeroProfileData` (12 top-level instances, one per hero). Approach: dump Geppetto's HeroProfileData body, edit candidate float positions, observe in-game.
 2. **Per-class schemas for cross-save transplant.** Would unlock GUID/index remapping for arbitrary record migration between saves. Each class with `vtable[0xa8]` references needs its Serialize reversed in detail. Substantial effort, only worth it if scenario-crafting requires "import this run state into a clean save."
 3. **Decode `oCEntityCpntCounterPersistentData` semantics** (the 3 top-level counter records). Likely tracks specific things like raven-feathers-consumed but values weren't obviously matchable.
 4. **Map remaining `oCDtPlayerProfileData` field meanings** (4 of 5 fields still unidentified — only `field_at_10` = selected hero is named).

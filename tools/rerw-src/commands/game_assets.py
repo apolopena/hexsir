@@ -107,7 +107,7 @@ def _rewrite_ls_output(
     "-t",
     "--truncate-paths",
     is_flag=True,
-    help="Collapse full install paths to /mnt/d/.../DarkTalesResources/_Cooking/...",
+    help="Collapse full install paths to .../_Cooking/...",
 )
 @click.option("-l", "--long", "long_format", is_flag=True, help="Use long listing format.")
 @click.option("-a", "--all", "all_entries", is_flag=True, help="Include hidden entries.")
