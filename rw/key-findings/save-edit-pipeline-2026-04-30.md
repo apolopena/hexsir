@@ -6,6 +6,16 @@ This document is the canonical reference for what was learned this session. Cros
 
 ---
 
+## ⭐ Want to mint a save? Jump to the recipe.
+
+If you're an agent picking this doc up cold and want to **reproduce the full mint process** (zero per-run state on a chapter-N proof, optionally roll the chapter back, optionally set a Stars-of-Fate baseline) using `lib.cooked`, jump straight to:
+
+→ **[Edit recipes — full mint chain](#recipe--full-mint-chain-zero-per-run-state-roll-chapter-back)** (further down this file)
+
+The recipe is a single self-contained Python script. Run it from `tools/rerw-src/` so `from lib import cooked` resolves. Known gaps in the recipe are listed under it. The shorter Stars-of-Fate-only edit is in **[Edit recipes — Stars of Fate live count](#recipe--stars-of-fate-live-count)** — that's the biggest player-facing hack we have.
+
+---
+
 ## TL;DR
 
 - **Decoder + recursive tree walker live**: `tools/rerw-src/lib/cooked.py`. Round-trip byte-equal on every save tested.
@@ -381,7 +391,9 @@ The same pattern applies to the adjacent stat counters at body+0x25 (Raven Feath
 
 ### Recipe — full mint chain (zero per-run state, roll chapter back)
 
-Takes a chapter-N proof and produces a chapter-(N-1) starting save with zeroed run state. This is the proven recipe behind `golden/geppetto/chapter1/zero-scores-stars7-ch1/Profile_1.ob`. Has known gaps documented as "What we couldn't zero" in that golden's breakthrough.md.
+Takes a chapter-N proof and produces a chapter-(N-1) starting save with zeroed per-run state. This is the proven recipe behind `golden/geppetto/chapter1/zero-scores-stars7-ch1/Profile_1.ob`.
+
+**Important**: all body edits operate on `section` (the `bytearray` of `cf.object_section`). After mutations, write `cf.object_section = bytes(section)` before calling `encode_file`. Editing the raw file bytes outside `section` will be silently overwritten by the re-encode. Offsets within a frame are `frame.start + 8 + body_offset` (the `+8` skips the start marker + class index).
 
 ```python
 import struct, shutil
@@ -394,45 +406,71 @@ dst_dir.mkdir(exist_ok=True)
 dst = dst_dir / "Profile_1.ob"
 shutil.copy(src, dst)
 
-data = bytearray(dst.read_bytes())
-cf = cooked.parse_file(bytes(data))
+data = dst.read_bytes()
+cf = cooked.parse_file(data)
 roots = cooked.parse_object_tree(cf)
 section = bytearray(cf.object_section)
-obj_off = len(data) - len(cf.object_section)
 
-# 1. HeroController body — zero damage region (16 bytes from +0x11) + +0x35d float
+def body_off(frame):
+    """Section-relative absolute byte offset of a frame's body start."""
+    return frame.start + 8
+
+# 1. HeroController body — zero the per-run damage region + accidentally-included
+#    dream-shards-collected float at +0x35d. Floats are byte-misaligned 4-byte reads.
 _, hc = cooked.find_class_in_tree(cf, roots, "oCDtEntityCpntHeroControllerPersistentData")[0]
-hc_body_abs = obj_off + hc.start + 8
-data[hc_body_abs + 0x11 : hc_body_abs + 0x21] = b"\x00" * 16  # damage_dealt/received/etc
-struct.pack_into("<f", data, hc_body_abs + 0x35d, 0.0)         # additional damage stat / dream-shards-collected
+hcb = body_off(hc)
+section[hcb + 0x11 : hcb + 0x21] = b"\x00" * 16   # 4 damage floats: dealt, received, breakdown_a, breakdown_b
+struct.pack_into("<f", section, hcb + 0x35d, 0.0) # was 990.0 in proof — likely dream-shards-collected
+# NOTE — Future mint should ALSO zero the stat counters at +0x25 (Raven Feathers consumed)
+# and +0x2d (unknown). Currently those writes don't take (mirror-cascade behavior).
+# struct.pack_into("<I", section, hcb + 0x25, 0)   # blocked: write doesn't propagate
+# struct.pack_into("<I", section, hcb + 0x2d, 0)   # blocked: write doesn't propagate
 
-# 2. ActivityScore × 6 → 25-byte minimum body each
-MIN_AS = struct.pack("<I", 0) * 6 + b"\x00"  # 25 bytes
+# 2. ActivityScore × 6 → 25-byte minimum body each (replaces the 113-119 byte
+#    full bodies). Iterate from highest start offset first so earlier replacements
+#    don't shift later frames before they're processed.
+MIN_AS = struct.pack("<I", 0) * 6 + b"\x00"   # 25 bytes
 hits = sorted(cooked.find_class_in_tree(cf, roots, "ActivityScore"), key=lambda h: -h[1].start)
 for _, n in hits:
     section[n.start + 8 : n.end - 4] = MIN_AS
 
-# 3. HeroScoreData — zero 28 score floats in place (preserve counts + nickname string)
-# (See body wire format in the "Decoded class schemas" section above for the float positions.)
+# 3. HeroScoreData — zero the 28 score floats in place. Body has 5 groups,
+#    each "u32 count + count × float". Preserve the counts and the trailing
+#    "Quadrotonic" + 4-byte tail; zero only the float regions.
+_, hsd = cooked.find_class_in_tree(cf, roots, "HeroScoreData")[0]
+hsdb = body_off(hsd)
+# Per the body wire format documented above:
+#   +0x00 u32 count1=5  + 5 floats   (zero +0x04..+0x17, 20 bytes)
+#   +0x18 u32 count2=10 + 10 floats  (zero +0x1c..+0x43, 40 bytes)
+#   +0x44 u32 count3=4  + 4 floats   (zero +0x48..+0x57, 16 bytes)
+#   +0x58 u32 count4=3  + 3 floats   (zero +0x5c..+0x67, 12 bytes)
+#   +0x68 u32 count5=6  + 6 floats   (zero +0x6c..+0x83, 24 bytes)
+section[hsdb + 0x04 : hsdb + 0x18] = b"\x00" * 20
+section[hsdb + 0x1c : hsdb + 0x44] = b"\x00" * 40
+section[hsdb + 0x48 : hsdb + 0x58] = b"\x00" * 16
+section[hsdb + 0x5c : hsdb + 0x68] = b"\x00" * 12
+section[hsdb + 0x6c : hsdb + 0x84] = b"\x00" * 24
 
 # 4. CurrentRunProfileData own body — zero playtime float at +0xe5 (byte-misaligned)
 _, crp = cooked.find_class_in_tree(cf, roots, "oCDtCurrentRunProfileData")[0]
-crp_body_abs = obj_off + crp.start + 8
-struct.pack_into("<f", data, crp_body_abs + 0xe5, 0.0)
+crpb = body_off(crp)
+struct.pack_into("<f", section, crpb + 0xe5, 0.0)   # playtime, was 1409s in proof
 
-# 5. GroupLevel — set hero level=1 and XP=0
+# 5. GroupLevel — set in-run hero level=1 and accumulated XP=0
+#    (XP zero is essential — the per-run "Level reached" stat is computed as
+#    effective_level = hero_level + XP / xp_threshold)
 _, gl = cooked.find_class_in_tree(cf, roots, "oCDtEntityCpntGroupLevelPersistentData")[0]
-gl_body_abs = obj_off + gl.start + 8
-struct.pack_into("<I", data, gl_body_abs + 0x11, 1)  # in-run hero level
-struct.pack_into("<I", data, gl_body_abs + 0x15, 0)  # accumulated XP
+glb = body_off(gl)
+struct.pack_into("<I", section, glb + 0x11, 1)
+struct.pack_into("<I", section, glb + 0x15, 0)
 
-# Re-encode (auto-recomputes CRC32 on the body section)
+# Commit edits and re-encode (auto-recomputes CRC32 over the body bytes)
 cf.object_section = bytes(section)
 out = cooked.encode_file(cf)
 dst.write_bytes(out)
 ```
 
-After running this, layer the chapter rollback on top via existing rerw tool:
+After running this, layer the chapter rollback on top via the existing `rerw` tool:
 
 ```bash
 ./tools/rerw write savefile \
@@ -441,10 +479,18 @@ After running this, layer the chapter rollback on top via existing rerw tool:
     --chapter 0 -f                          # 0 = chapter 1
 ```
 
-**Known gaps in this mint recipe** (per the chapter-1 golden's breakthrough.md):
-- HeroController body+0x25/0x29/0x2d stat counters not zeroed (need to add `struct.pack_into("<I", data, hc_body_abs + 0x25, 0)` etc.)
-- Score-Details achievement records source unmapped — leftover blanks compound on subsequent play-through
-- Held inventory (keys, bean, feathers) source unmapped — not in HeroIngredient vector at HC+0x21 despite that being the obvious-looking location
+To also set Stars of Fate baseline (the live-spendable count — the major hack):
+
+```python
+struct.pack_into("<I", section, hcb + 0x29, 7)   # stars of fate live count
+# (do this BEFORE the cf.object_section = bytes(section) commit step above)
+```
+
+**Known gaps in this mint recipe** (carried into derived goldens — see chapter-1 golden's breakthrough.md):
+- **HeroController body+0x25 (Raven Feathers consumed) stat is stuck** — writing 0 doesn't take, mirror-cascade pattern. The score page keeps reading 4 (or whatever was set last). Defer until live-state-mirror-cascade is resolved.
+- **HeroController body+0x2d (unknown stat) is similarly stuck.**
+- **Score-Details achievement records source unmapped** — leftover blanks compound on subsequent play-through.
+- **Held inventory (keys, bean, feathers) source unmapped** — not in HeroIngredient vector at HC+0x21 despite that being the obvious-looking location. Empirically persists across save → restart per user test.
 
 ### Recipe — diff two saves (find what changed)
 
