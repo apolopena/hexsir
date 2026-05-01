@@ -18,6 +18,7 @@ from commands import (
     cipher,
     decipher,
     game_assets,
+    game_assets_inspect,
     mint_savefile,
     read_savefile,
     swap_savefile,
@@ -93,6 +94,18 @@ def mint_():
 
 # Subcommands of `mint`
 mint_.add_command(mint_savefile.mint_savefile_cmd, name="savefile")
+
+
+@click.group(name="inspect")
+def game_assets_inspect_() -> None:
+    """Inspect bundled game-asset registries (heroes, talents, items)."""
+
+
+# Subcommands of `game-assets inspect`
+game_assets_inspect_.add_command(game_assets_inspect.heroes_cmd, name="heroes")
+game_assets_inspect_.add_command(game_assets_inspect.talents_cmd, name="talents")
+game_assets_inspect_.add_command(game_assets_inspect.items_cmd, name="items")
+game_assets.game_assets_group.add_command(game_assets_inspect_, name="inspect")
 
 
 # --- REPL ---

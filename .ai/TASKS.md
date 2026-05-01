@@ -17,6 +17,12 @@
 
 ## Done
 <!-- DONE_START -->
+MAINT-16: Strict-key game registry + `game-assets inspect` discovery surface (2026-05-01)
+  - New `lib/game_registry.py` exposes `heroes()`, `hero_talents(hero_key)`, `magical_items()` with strict-key lookup (no aliases / no fuzzy / no display-name fallback). Validates `schema_version` (major-version match) and `registry_id` per file.
+  - New `rerw game-assets inspect heroes|talents|items` discovery commands. Default: NAME / KEY (+ DESCRIPTION for items/talents). `-n` omits description; `-v` adds developer fields (GUID, EFFECT/CONTROLLER, etc.).
+  - Migrated `rerw write savefile talent --key` from fuzzy `resolve_talent_id` to strict `registry.hero_talents(hero).lookup(key)`. Display names and aliases now error; only canonical keys accepted.
+  - Legacy `rerw write savefile --talent-id` (deprecated parent flag) still errors via the legacy loader's outdated YAML schema expectations — not regressed in this commit; tracked under YAML schema migration.
+
 MAINT-15: Refactor mint + write savefile CLI into per-field subcommands (2026-05-01)
   - Mint becomes a pure transformation; semantic flags removed (`--chapter`/`--stars`/`--level`).
   - New `lib/setters.py` exposes pure setter functions; mint and write savefile share the same library so their behavior can't drift.

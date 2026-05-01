@@ -24,6 +24,8 @@ import click
 
 from display_lib.output import error, info, success
 from lib import cooked
+from lib import game_registry as registry
+from lib.game_registry import RegistryError
 from lib.save_edit import get_crc, recompute_crc, write_field
 from lib.save_fields import load_fields
 from lib.skill_controllers import (
@@ -603,7 +605,8 @@ def xp_cmd(value: int, source: Path, dest: Path, force: bool, verbose: bool) -> 
     required=True,
     type=str,
     metavar="<str>",
-    help="Talent key. Run `rerw inspect game-assets` for valid keys.",
+    help="Strict talent key. Run "
+    "`rerw game-assets inspect talents --for-hero <hero>` for valid keys.",
 )
 @click.option(
     "--tier",
@@ -624,7 +627,13 @@ def talent_cmd(
     force: bool,
     verbose: bool,
 ) -> None:
-    """Set the talent in a slot."""
+    """Set the talent in a slot.
+
+    Resolves --key strictly against the hero's talent registry — exact match
+    on `controllers[].key` only. No alias / display-name / GUID fallback.
+    Run `rerw game-assets inspect talents --for-hero <key>` to discover
+    valid talent keys.
+    """
     if tier is not None and slot == 5:
         error("Slot 5 (ult) has no tier; --tier is invalid for slot 5.")
         raise SystemExit(2)
@@ -645,21 +654,18 @@ def talent_cmd(
         raise SystemExit(1)
     talent_field = fields[TALENT_FIELD]
     try:
-        hero = detect_hero(bytes(data))
+        engine_name = detect_hero(bytes(data))
     except TalentEditError as exc:
         error(str(exc))
         raise SystemExit(1) from exc
-    skills_data_path = (
-        f"{talent_field.extra['skills_data_dir']}/{hero.lower()}.yaml"
-    )
     try:
-        controllers = load_hero_controllers(skills_data_path)
-    except SkillControllerError as exc:
+        hero = registry.heroes().lookup_by_engine_name(engine_name)
+    except RegistryError as exc:
         error(str(exc))
         raise SystemExit(1) from exc
     try:
-        resolved = resolve_talent_id(controllers, key)
-    except SkillControllerError as exc:
+        talent = registry.hero_talents(hero.key).lookup(key)
+    except RegistryError as exc:
         error(str(exc))
         raise SystemExit(1) from exc
     try:
@@ -667,19 +673,19 @@ def talent_cmd(
         picks_start = find_picks_anchor(
             data, record_off, talent_field.extra["sentinel"]
         )
-        old_guid = write_pick(data, picks_start, slot, resolved.guid)
+        old_guid = write_pick(data, picks_start, slot, talent.guid)
     except TalentEditError as exc:
         error(str(exc))
         raise SystemExit(1) from exc
 
     summary = [
         f"talent slot {slot}: "
-        f"{old_guid.hex()} -> {resolved.guid.hex()} ({resolved.name})"
+        f"{old_guid.hex()} -> {talent.guid.hex()} ({talent.key})"
     ]
     if tier is not None:
         try:
             tier_int = parse_tier(tier)
-            old_tier = write_tier(data, resolved.guid, tier_int)
+            old_tier = write_tier(data, talent.guid, tier_int)
         except TalentEditError as exc:
             error(str(exc))
             raise SystemExit(1) from exc
