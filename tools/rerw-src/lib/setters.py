@@ -81,6 +81,59 @@ def set_held_feathers(cf: cooked.CookedFile, count: int) -> int:
     return old
 
 
+# Type IDs for HeroIngredient records (HC body+0x21 vector).
+HERO_INGREDIENT_CLASS = "oSDtHeroIngredient"
+NIGHTMARE_KEY_TYPE_ID = 0xC4CB986E
+
+
+def set_held_keys(cf: cooked.CookedFile, count: int) -> int:
+    """Set held Nightmare Keys count. Returns the old value.
+
+    Held keys live in the HeroIngredient vector at HC body+0x21 as a framed
+    sub-object with type_id 0xC4CB986E and a u32 count. This setter handles
+    the case where a keys record already exists (updates its count u32).
+
+    For the empty-vec case (no HeroIngredient records), `count == 0` is a
+    no-op success; `count > 0` raises NotImplementedError because inserting
+    a new record requires adding `oSDtHeroIngredient` to the class registry.
+    """
+    if count < 0:
+        raise ValueError(f"keys must be >= 0, got {count}")
+    section = bytearray(cf.object_section)
+    roots = cooked.parse_object_tree(cf)
+    hc = _find_unique(cf, roots, HC_CLASS)
+    hcb = hc.start + 8
+
+    # Find HeroIngredient children of HC and look for the Nightmare Key record.
+    keys_node = None
+    for ch in hc.children:
+        cls = cf.classes[ch.class_index].name if 0 <= ch.class_index < len(cf.classes) else ""
+        if cls != HERO_INGREDIENT_CLASS:
+            continue
+        body_start = ch.start + 8
+        type_id = struct.unpack_from("<I", section, body_start)[0]
+        if type_id == NIGHTMARE_KEY_TYPE_ID:
+            keys_node = ch
+            break
+
+    if keys_node is None:
+        if count == 0:
+            return 0  # no-op: empty vec or no keys record, target already 0
+        raise NotImplementedError(
+            "Setting keys > 0 on a save without an existing Nightmare Keys "
+            "record requires inserting a new HeroIngredient record (and, for "
+            "fully-empty vectors, adding oSDtHeroIngredient to the class "
+            "registry). Not yet implemented; use a save with at least one "
+            "existing keys record as the source."
+        )
+
+    count_off = keys_node.start + 8 + 4  # body+0: type_id, body+4: count u32
+    old = struct.unpack_from("<I", section, count_off)[0]
+    struct.pack_into("<I", section, count_off, count)
+    cf.object_section = bytes(section)
+    return old
+
+
 def set_hero_level(cf: cooked.CookedFile, level: int) -> int:
     """Set in-run hero level. Returns the old value."""
     if level < 1:

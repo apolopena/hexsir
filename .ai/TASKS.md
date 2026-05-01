@@ -17,6 +17,11 @@
 
 ## Done
 <!-- DONE_START -->
+MAINT-17: `write savefile keys` + deprecation labels on parent flags (2026-05-01)
+  - Added `rerw write savefile keys <int>` for held Nightmare Keys count. Updates existing keys record's count u32; empty-vec insertion (creating a new record on a save without one) deferred.
+  - `lib/setters.py` gains `set_held_keys`; mint zero-sequence calls it (no-op for empty-vec proofs, zeroes count u32 for saves with an existing record like test3-mint).
+  - Parent-level deprecated flags on `write savefile` now carry `[DEPRECATED]` help labels pointing to their replacement subcommands.
+
 MAINT-16: Strict-key game registry + `game-assets inspect` discovery surface (2026-05-01)
   - New `lib/game_registry.py` exposes `heroes()`, `hero_talents(hero_key)`, `magical_items()` with strict-key lookup (no aliases / no fuzzy / no display-name fallback). Validates `schema_version` (major-version match) and `registry_id` per file.
   - New `rerw game-assets inspect heroes|talents|items` discovery commands. Default: NAME / KEY (+ DESCRIPTION for items/talents). `-n` omits description; `-v` adds developer fields (GUID, EFFECT/CONTROLLER, etc.).

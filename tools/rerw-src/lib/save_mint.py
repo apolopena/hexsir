@@ -70,10 +70,15 @@ def mint_object_section(cf: cooked.CookedFile) -> MintReport:
         MintStep(label="HC stars-of-fate", old=str(old_stars), new="0")
     )
 
-    # 3. CRP held-inventory.
+    # 3. CRP / HC held-inventory.
     old_held = setters.set_held_feathers(cf, 0)
     steps.append(
         MintStep(label="CRP held-feathers", old=str(old_held), new="0")
+    )
+
+    old_keys = setters.set_held_keys(cf, 0)
+    steps.append(
+        MintStep(label="HC held-keys", old=str(old_keys), new="0")
     )
 
     # 4. HSD score floats. Must run BEFORE remove_activity_scores.

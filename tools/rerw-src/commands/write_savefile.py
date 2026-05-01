@@ -215,15 +215,70 @@ def _apply_field_edit(
     invoke_without_command=True,
     context_settings={"help_option_names": ["-h", "--help"]},
 )
-@click.option("--source", default=None, envvar="RERW_SAVEFILE", type=click.Path(path_type=Path))
-@click.option("--dest", default=None, type=click.Path(path_type=Path))
-@click.option("--chapter", "chapter_value", default=None, type=int)
-@click.option("--level", "level_value", default=None, type=int)
-@click.option("--talent-slot", "talent_slot", default=None, type=click.IntRange(1, 5))
-@click.option("--talent-id", "talent_id", default=None, type=str)
-@click.option("--tier", "tier_value", default=None, type=str)
-@click.option("--force", "-f", "force", is_flag=True, default=False)
-@click.option("--verbose", "-v", "verbose", is_flag=True, default=False)
+@click.option(
+    "--source",
+    default=None,
+    envvar="RERW_SAVEFILE",
+    type=click.Path(path_type=Path),
+    help="Source savefile (defaults to $RERW_SAVEFILE).",
+)
+@click.option(
+    "--dest",
+    default=None,
+    type=click.Path(path_type=Path),
+    help="Output directory.",
+)
+@click.option(
+    "--chapter",
+    "chapter_value",
+    default=None,
+    type=int,
+    help="[DEPRECATED] Use `rerw write savefile chapter <int>` instead.",
+)
+@click.option(
+    "--level",
+    "level_value",
+    default=None,
+    type=int,
+    help="[DEPRECATED] Use `rerw write savefile level <int>` instead.",
+)
+@click.option(
+    "--talent-slot",
+    "talent_slot",
+    default=None,
+    type=click.IntRange(1, 5),
+    help="[DEPRECATED] Use `rerw write savefile talent --slot N --key X` instead.",
+)
+@click.option(
+    "--talent-id",
+    "talent_id",
+    default=None,
+    type=str,
+    help="[DEPRECATED] Use `rerw write savefile talent --slot N --key X` instead.",
+)
+@click.option(
+    "--tier",
+    "tier_value",
+    default=None,
+    type=str,
+    help="[DEPRECATED] Use `rerw write savefile tier --slot N --tier T` instead.",
+)
+@click.option(
+    "--force",
+    "-f",
+    "force",
+    is_flag=True,
+    default=False,
+    help="Overwrite existing dest file (used with deprecated flags).",
+)
+@click.option(
+    "--verbose",
+    "-v",
+    "verbose",
+    is_flag=True,
+    default=False,
+    help="Print sub-step detail (used with deprecated flags).",
+)
 @click.pass_context
 def write_savefile_cmd(
     ctx: click.Context,
@@ -519,6 +574,59 @@ def feathers_cmd(count: int, source: Path, dest: Path, force: bool, verbose: boo
         "feathers (held)",
         count,
     )
+
+
+@write_savefile_cmd.command(
+    name="keys",
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
+@click.argument("count", type=click.IntRange(0), metavar="<int>")
+@_common_io_opts
+def keys_cmd(count: int, source: Path, dest: Path, force: bool, verbose: bool) -> None:
+    """Set the held Nightmare Keys count.
+
+    Updates the existing Nightmare Keys record in the HeroIngredient vector.
+    If the source has no keys record, `keys 0` is a no-op success; `keys N`
+    (N > 0) errors because inserting a new record on an empty-vec save
+    requires class-registry manipulation (deferred).
+    """
+    out_path = _check_dest_writable(dest, force)
+    info(f"Source savefile: {source}")
+    try:
+        raw = source.read_bytes()
+    except OSError as exc:
+        error(f"Failed to read source: {exc}")
+        raise SystemExit(1) from exc
+    try:
+        cf = cooked.parse_file(raw)
+    except Exception as exc:
+        error(f"Failed to parse source as a cooked save: {exc}")
+        raise SystemExit(1) from exc
+
+    old_crc = get_crc(raw)
+    if verbose:
+        info(f"  {len(raw)} bytes, CRC=0x{old_crc:08X}, classes={len(cf.classes)}")
+
+    try:
+        old_value = setters.set_held_keys(cf, count)
+    except NotImplementedError as exc:
+        error(str(exc))
+        raise SystemExit(1) from exc
+    except (setters.FieldNotFound, ValueError) as exc:
+        error(str(exc))
+        raise SystemExit(1) from exc
+
+    encoded = cooked.encode_file(cf)
+    new_crc = get_crc(encoded)
+    try:
+        out_path.write_bytes(encoded)
+    except OSError as exc:
+        error(f"Failed to write {out_path}: {exc}")
+        raise SystemExit(1) from exc
+
+    click.echo(f"keys (held): {old_value} -> {count}")
+    click.echo(f"CRC32: 0x{old_crc:08X} -> 0x{new_crc:08X}")
+    success(f"Wrote {out_path}")
 
 
 @write_savefile_cmd.command(
