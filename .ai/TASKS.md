@@ -17,16 +17,16 @@
 
 ## Done
 <!-- DONE_START -->
-MAINT-17: `write savefile keys` + deprecation labels on parent flags (2026-05-01)
+PRP-4: Strict-key game registry + `game-assets inspect` + held-keys write (2026-05-01)
+  - MAINT-15 absorbed ~30% of the original proposal (per-field write subcommand consolidation under `rerw write savefile`); this PRP delivers the still-valid remainder. Original proposal at `.ai/planning/prp/proposals/PRP-4_rerw-strict-key-writes-and-asset-inspection.md`.
+  - New `lib/game_registry.py`: strict-key views over `heroes`, `hero_talents`, `magical_items` with schema validation (major-version match on `schema_version`, exact `registry_id` match). No aliases, no fuzzy, no display-name fallback.
+  - New `rerw game-assets inspect heroes|talents|items` discovery commands. Default: NAME / KEY (+ DESCRIPTION for items/talents). `-n` omits description; `-v` adds developer fields (GUID, EFFECT/CONTROLLER, etc.).
+  - Migrated `rerw write savefile talent --key` from fuzzy `resolve_talent_id` to strict `registry.hero_talents(hero).lookup(key)`. Display names and aliases now error; only canonical keys accepted.
   - Added `rerw write savefile keys <int>` for held Nightmare Keys count. Updates existing keys record's count u32; empty-vec insertion (creating a new record on a save without one) deferred.
   - `lib/setters.py` gains `set_held_keys`; mint zero-sequence calls it (no-op for empty-vec proofs, zeroes count u32 for saves with an existing record like test3-mint).
   - Parent-level deprecated flags on `write savefile` now carry `[DEPRECATED]` help labels pointing to their replacement subcommands.
-
-MAINT-16: Strict-key game registry + `game-assets inspect` discovery surface (2026-05-01)
-  - New `lib/game_registry.py` exposes `heroes()`, `hero_talents(hero_key)`, `magical_items()` with strict-key lookup (no aliases / no fuzzy / no display-name fallback). Validates `schema_version` (major-version match) and `registry_id` per file.
-  - New `rerw game-assets inspect heroes|talents|items` discovery commands. Default: NAME / KEY (+ DESCRIPTION for items/talents). `-n` omits description; `-v` adds developer fields (GUID, EFFECT/CONTROLLER, etc.).
-  - Migrated `rerw write savefile talent --key` from fuzzy `resolve_talent_id` to strict `registry.hero_talents(hero).lookup(key)`. Display names and aliases now error; only canonical keys accepted.
-  - Legacy `rerw write savefile --talent-id` (deprecated parent flag) still errors via the legacy loader's outdated YAML schema expectations — not regressed in this commit; tracked under YAML schema migration.
+  - Legacy `rerw write savefile --talent-id` (deprecated parent flag) still errors via the legacy loader's outdated YAML schema expectations — not regressed; tracked under YAML schema migration.
+  - Implemented across two commits: `e929911` (registry + inspect + strict talent migration; originally labeled MAINT-16) and `f13ca09` (keys subcommand + deprecation labels; originally labeled MAINT-17). Consolidated under PRP-4 in TASKS.md; commit messages on the remote retain the MAINT labels.
 
 MAINT-15: Refactor mint + write savefile CLI into per-field subcommands (2026-05-01)
   - Mint becomes a pure transformation; semantic flags removed (`--chapter`/`--stars`/`--level`).
