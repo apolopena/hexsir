@@ -4,8 +4,8 @@ The fixture discovers every `Profile_1.ob` under `rw/saves/proofs/` and
 parametrizes each test over all of them. New chapter proofs added to that
 directory are picked up automatically -- no per-chapter test functions to
 maintain. Tests that need to read field positions that shift with content
-(post-vector u32s in the HC body) compute offsets at runtime from
-`ingredient_vec_count`, so the same assertions work across chapters.
+(post-vector u32s in the HC body) compute offsets at runtime, so the
+same assertions work across chapters.
 
 Two important regressions guard against past mistakes:
 
@@ -28,13 +28,14 @@ import pytest
 
 from lib import cooked
 from lib.hc_walker import walk_hc_body
-from lib.save_mint import MintConfig, mint_object_section
+from lib.save_mint import mint_object_section
 
 REPO_ROOT = Path(__file__).resolve().parents[3].parent
 PROOFS_ROOT = REPO_ROOT / "rw/saves/proofs"
 
 HC_CLASS = "oCDtEntityCpntHeroControllerPersistentData"
 GL_CLASS = "oCDtEntityCpntGroupLevelPersistentData"
+CRP_CLASS = "oCDtCurrentRunProfileData"
 
 
 def _discover_proofs() -> list[Path]:
@@ -54,12 +55,6 @@ def proof_cf(request) -> cooked.CookedFile:
     if not _DISCOVERED:
         pytest.skip(f"no proofs discovered under {PROOFS_ROOT}")
     cf = cooked.parse_file(Path(request.param).read_bytes())
-    # The mint operates on chapter-boss-kill proofs: must have an active
-    # HeroController instance whose body the walker can resolve (which
-    # requires at least one HeroMOPersistentData frame to anchor the
-    # unframed-region length). Files under proofs/ that don't satisfy
-    # these preconditions (clean / pre-run / unusual debug captures) are
-    # skipped rather than failed.
     roots = cooked.parse_object_tree(cf)
     hc_hits = list(cooked.find_class_in_tree(cf, roots, HC_CLASS))
     if not hc_hits:
@@ -90,8 +85,6 @@ def _hc_body(cf: cooked.CookedFile) -> bytes:
 
 
 def _post_vec_offset(hc_body: bytes) -> int:
-    """Byte offset of the first post-ingredient-vector u32 (Raven Feathers
-    consumed). Stars of Fate sits at +0x04 from this."""
     vec_count = struct.unpack_from("<I", hc_body, 0x21)[0]
     return 0x25 + 20 * vec_count
 
@@ -99,6 +92,9 @@ def _post_vec_offset(hc_body: bytes) -> int:
 def _activity_score_count(cf: cooked.CookedFile) -> int:
     roots = cooked.parse_object_tree(cf)
     return len(list(cooked.find_class_in_tree(cf, roots, "ActivityScore")))
+
+
+# --- Behavioral regressions ----------------------------------------------
 
 
 def test_activity_score_records_removed(proof_cf: cooked.CookedFile) -> None:
@@ -111,7 +107,7 @@ def test_activity_score_records_removed(proof_cf: cooked.CookedFile) -> None:
     before = _activity_score_count(proof_cf)
     assert before > 0, "fixture has no ActivityScore records to remove"
 
-    mint_object_section(proof_cf, MintConfig())
+    mint_object_section(proof_cf)
     after = _activity_score_count(proof_cf)
 
     assert after == 0, f"expected 0 ActivityScore records after mint, got {after}"
@@ -119,18 +115,12 @@ def test_activity_score_records_removed(proof_cf: cooked.CookedFile) -> None:
 
 def test_activity_score_parent_count_zeroed(proof_cf: cooked.CookedFile) -> None:
     """The CRP body's u32 just before the first AS frame is the count read
-    by the deserialize loop. After mint it must be 0 (otherwise the loop
-    tries to read N frames that no longer exist).
+    by the deserialize loop. After mint it must be 0.
     """
-    mint_object_section(proof_cf, MintConfig())
+    mint_object_section(proof_cf)
 
     roots_after = cooked.parse_object_tree(proof_cf)
-    crp_after = cooked.find_class_in_tree(
-        proof_cf, roots_after, "oCDtCurrentRunProfileData"
-    )[0][1]
-    # Locate the count u32 by walking from CRP body start to HSD start.
-    # After AS removal, CRP's last child is HeroScoreData and the AS count
-    # u32 sits at HSD.start - 4.
+    crp_after = cooked.find_class_in_tree(proof_cf, roots_after, CRP_CLASS)[0][1]
     hsd = next(
         ch
         for ch in crp_after.children
@@ -140,38 +130,77 @@ def test_activity_score_parent_count_zeroed(proof_cf: cooked.CookedFile) -> None
     assert count == 0, f"AS parent count u32 should be 0 after mint, got {count}"
 
 
+def test_chapter_banner_zeroed(proof_cf: cooked.CookedFile) -> None:
+    """The CRP body u32 immediately preceding the AS-count u32 (the
+    chapter-progression banner driver) must be 0 after mint.
+    """
+    # Capture the banner u32 location before mint snips AS records.
+    roots_before = cooked.parse_object_tree(proof_cf)
+    crp_before = cooked.find_class_in_tree(proof_cf, roots_before, CRP_CLASS)[0][1]
+    as_children = [
+        ch
+        for ch in crp_before.children
+        if proof_cf.classes[ch.class_index].name == "ActivityScore"
+    ]
+    assert as_children, "fixture's CRP has no AS children"
+    banner_off_in_section = as_children[0].start - 8
+
+    mint_object_section(proof_cf)
+
+    # After AS removal, those bytes shifted out, but the banner u32 was
+    # written to 0 by the setter before the removal step. Locate via the
+    # remaining CRP children: the banner u32 sits at HSD.start - 8.
+    roots_after = cooked.parse_object_tree(proof_cf)
+    crp_after = cooked.find_class_in_tree(proof_cf, roots_after, CRP_CLASS)[0][1]
+    hsd = next(
+        ch
+        for ch in crp_after.children
+        if proof_cf.classes[ch.class_index].name == "HeroScoreData"
+    )
+    banner = struct.unpack_from("<I", proof_cf.object_section, hsd.start - 8)[0]
+    assert banner == 0, f"chapter-banner u32 should be 0 after mint, got {banner}"
+
+
+def test_held_feathers_zeroed(proof_cf: cooked.CookedFile) -> None:
+    """Held Raven Feathers (CRP body+0x15D) must be 0 after mint."""
+    mint_object_section(proof_cf)
+    roots = cooked.parse_object_tree(proof_cf)
+    crp = cooked.find_class_in_tree(proof_cf, roots, CRP_CLASS)[0][1]
+    feathers = struct.unpack_from(
+        "<I", proof_cf.object_section, crp.start + 8 + 0x15D
+    )[0]
+    assert feathers == 0, f"held feathers should be 0 after mint, got {feathers}"
+
+
 def test_mint_zeros_damage_floats(proof_cf: cooked.CookedFile) -> None:
-    mint_object_section(proof_cf, MintConfig())
+    mint_object_section(proof_cf)
     assert _hc_body(proof_cf)[0x11:0x21] == b"\x00" * 16, (
         "HC damage floats not zeroed"
     )
 
 
-def test_mint_sets_stars_of_fate(proof_cf: cooked.CookedFile) -> None:
-    """Stars of Fate sits at HC body+0x04 past the post-vector base
-    (which itself depends on ingredient_vec_count)."""
+def test_mint_zeros_stars(proof_cf: cooked.CookedFile) -> None:
+    """Per the new mint design, Stars of Fate is unconditionally zeroed.
+    Customize via `rerw write savefile stars <n>` after mint.
+    """
     pv = _post_vec_offset(_hc_body(proof_cf))
-
-    mint_object_section(proof_cf, MintConfig(stars_of_fate=42))
-
+    mint_object_section(proof_cf)
     body = _hc_body(proof_cf)
     (stars,) = struct.unpack_from("<I", body, pv + 0x04)
-    assert stars == 42
+    assert stars == 0, f"stars should be 0 after mint, got {stars}"
 
 
-def test_mint_zeros_feathers_consumed(proof_cf: cooked.CookedFile) -> None:
-    """Raven Feathers consumed is the first u32 after the ingredient vector."""
+def test_mint_zeros_feathers_spent(proof_cf: cooked.CookedFile) -> None:
+    """The per-run "Raven Feathers consumed" stat (HC body post-vec+0x00)."""
     pv = _post_vec_offset(_hc_body(proof_cf))
-
-    mint_object_section(proof_cf, MintConfig())
-
+    mint_object_section(proof_cf)
     body = _hc_body(proof_cf)
-    feathers = struct.unpack_from("<I", body, pv)[0]
-    assert feathers == 0, f"feathers_consumed should be 0 after mint, got {feathers}"
+    feathers_spent = struct.unpack_from("<I", body, pv)[0]
+    assert feathers_spent == 0
 
 
-def test_mint_sets_hero_level_and_xp(proof_cf: cooked.CookedFile) -> None:
-    mint_object_section(proof_cf, MintConfig(hero_level=1, hero_xp=0))
+def test_mint_sets_level_and_xp(proof_cf: cooked.CookedFile) -> None:
+    mint_object_section(proof_cf)
     roots = cooked.parse_object_tree(proof_cf)
     _, gl = list(cooked.find_class_in_tree(proof_cf, roots, GL_CLASS))[0]
     body = proof_cf.object_section[gl.start + 8 : gl.end - 4]
@@ -181,22 +210,11 @@ def test_mint_sets_hero_level_and_xp(proof_cf: cooked.CookedFile) -> None:
     assert xp == 0
 
 
-def test_mint_skips_stars_when_none(proof_cf: cooked.CookedFile) -> None:
-    """stars_of_fate=None must not modify the stars u32."""
-    pv = _post_vec_offset(_hc_body(proof_cf))
-    (stars_before,) = struct.unpack_from("<I", _hc_body(proof_cf), pv + 0x04)
-
-    mint_object_section(proof_cf, MintConfig(stars_of_fate=None))
-
-    (stars_after,) = struct.unpack_from("<I", _hc_body(proof_cf), pv + 0x04)
-    assert stars_after == stars_before
-
-
 def test_mint_output_round_trips(proof_cf: cooked.CookedFile) -> None:
     """The minted file must encode + parse cleanly (catches malformed bodies
     that survived the tree walker but corrupt the stream).
     """
-    mint_object_section(proof_cf, MintConfig())
+    mint_object_section(proof_cf)
     out = cooked.encode_file(proof_cf)
     cf2 = cooked.parse_file(out)
     cooked.parse_object_tree(cf2)  # raises on malformed bodies

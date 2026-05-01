@@ -17,6 +17,16 @@
 
 ## Done
 <!-- DONE_START -->
+MAINT-15: Refactor mint + write savefile CLI into per-field subcommands (2026-05-01)
+  - Mint becomes a pure transformation; semantic flags removed (`--chapter`/`--stars`/`--level`).
+  - New `lib/setters.py` exposes pure setter functions; mint and write savefile share the same library so their behavior can't drift.
+  - `rerw write savefile` is a Click group with per-field subcommands: chapter, feathers, level, stars, xp, talent, tier. Single-value edits are positional (e.g. `feathers 6`); multi-value use named flags (`talent --slot 1 --key X`).
+  - Legacy parent flags (`--chapter`/`--level`/`--talent-*`) preserved with a deprecation warning; will be removed in a future release.
+  - `$RERW_SAVEFILE` env var supplies `--source` default for both mint and write savefile.
+  - 1-based user-facing indices (chapter 1..4 where 4=epilogue; talent slot 1..5; tier slot 1..4).
+  - Held Raven Feathers (CRP body+0x15D, identified earlier this session) is now zeroed by mint and editable via `write savefile feathers`.
+  - Subcommands `hero`, `keys`, `shards` deferred (next iteration).
+
 MAINT-14: Sync key-findings + triage docs to BREAKTHROUGH-1 (2026-05-01)
   - `save-silencer-mechanism.md`: noted AS-removal as current production fix, preserve-bodies marked superseded, compounding-blanks hypothesis marked VERIFIED.
   - `save-edit-pipeline-2026-04-30.md`: documented the chapter-progression banner u32 in CRP body; Known-gaps section updated to reflect resolved items.
