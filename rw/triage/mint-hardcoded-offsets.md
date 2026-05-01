@@ -1,6 +1,6 @@
 # Mint command uses hardcoded HC body offsets — fails on non-chapter-2 sources
 
-**Status:** open, in progress.
+**Status:** RESOLVED 2026-05-01 (BREAKTHROUGH-1, commit `52cff33`). Fix option C was implemented: `tools/rerw-src/lib/hc_walker.py` walks the HC body field-by-field and resolves named offsets dynamically. `lib/save_mint.py` now calls the walker for `dream_shards_spent`; the body-size assertion was removed. `rerw mint savefile` is verified clean against ch2 / ch3 / epilogue sources.
 **Created:** 2026-05-01
 
 ## The bug

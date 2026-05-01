@@ -110,6 +110,8 @@ The body uses many helper-function sub-serializers (`FUN_1401c5e30`, `FUN_140670
 
 Confirmed: the **playtime float (1409.92 = 23:29 in seconds)** lives at body offset `+0xe5` (byte-misaligned). Chapter index lives elsewhere in this body (not yet pinpointed exactly; rerw `--chapter` does it).
 
+**Chapter-progression banner u32** (BREAKTHROUGH-1, commit `52cff33`): the u32 immediately preceding the ActivityScore-vector count in CRP body encodes `3 × chapters_completed_before_death` (ch2 proof = 3, ch3 proof = 6, epilogue proof = 9). It drives the chapter-progression banner at the top of the end-of-run / score-details screen (red icons for completed chapters + red-X at the death chapter). The position shifts with CRP preamble content; it is found at `(first_ActivityScore_frame.start - 8)`, i.e., 4 bytes before the AS-vector count u32. Zeroing it suppresses the banner. The production mint zeros this u32 by default. The 4 bytes immediately before it (`first_ActivityScore_frame.start - 12`) hold a constant u32 = 7 (semantics not yet identified; left untouched).
+
 ### ActivityScore (path B's first nested-edit success)
 
 - Class id `0x1b2ed792`, size `0xb8`, schema_v=0.
@@ -528,11 +530,12 @@ struct.pack_into("<I", section, hcb + 0x29, 7)   # stars of fate live count
 # (do this BEFORE the cf.object_section = bytes(section) commit step above)
 ```
 
-**Known gaps in this mint recipe** (carried into derived goldens — see chapter-1 golden's breakthrough.md):
-- **HeroController body+0x25 (Raven Feathers consumed) stat is stuck** — writing 0 doesn't take, mirror-cascade pattern. The score page keeps reading 4 (or whatever was set last). Defer until live-state-mirror-cascade is resolved.
-- **HeroController body+0x2d (unknown stat) is similarly stuck.**
-- **Score-Details achievement records source unmapped** — leftover blanks compound on subsequent play-through.
-- **Held inventory (keys, bean, feathers) source unmapped** — not in HeroIngredient vector at HC+0x21 despite that being the obvious-looking location. Empirically persists across save → restart per user test.
+**Known gaps in this mint recipe** (status as of BREAKTHROUGH-1, commit `52cff33`):
+- ~~HeroController body+0x25 (Raven Feathers consumed) is stuck~~ — RESOLVED. Writes were silently no-op'd by the silencer; with the silencer fix the field zeros normally and the production mint clears it.
+- ~~HeroController body+0x2d (unknown stat) is similarly stuck~~ — RESOLVED, same root cause.
+- ~~Score-Details achievement records source unmapped (compounding-blanks bug)~~ — RESOLVED. The records were the `ActivityScore × N` instances in CRP all along; the production mint removes them and zeroes the parent count u32, so the deserialize loop runs zero iterations and no icons render.
+- ~~Chapter-progression banner carryover~~ — RESOLVED. CRP body u32 at `first_ActivityScore_frame.start - 8` (`3 × chapters_completed`) zeroed by the production mint.
+- **Held inventory beyond keys (feathers/wood/bean/dream-shards-spendable)** — keys schema (`oSDtHeroIngredient` vector at HC body+0x21) is fully decoded and editable; other ingredients appear to live in a different storage location, still unmapped.
 
 ### Recipe — diff two saves (find what changed)
 

@@ -115,35 +115,29 @@ The byte at `+0x19ac` is **NOT loaded from the save file**. It's the IO job's ru
 
 When the deserializer hits an ActivityScore body of only 25 zero bytes, it can't read the expected fields → stream-read fails → returns 0 → cascades up → code 4 → silencer registered.
 
-### Proposed fix (save-only, no EXE / runtime modifications) — UNVERIFIED
+### Fix history — preserve-bodies → AS-removal (current production)
 
-Update the mint recipe in `tools/rerw-src/lib/cooked.py` (or wherever ActivityScore zeroing happens):
+Two fixes have shipped against this mechanism. Both avoid the silencer; they differ in side effects.
 
-- Stop replacing ActivityScore bodies with 25-byte zero stubs
-- Instead, preserve the original body length. Zero only the trailing float (the score value)
-- Keep the string-prefix fields intact (or use same-length placeholder strings)
+**Fix 1 — preserve ActivityScore bodies verbatim (initial fix, EXPERIMENTAL-3, superseded).**
 
-**Predicted outcome (pending empirical verification):** freshly-minted saves load with code 0 (or 2), the silencer subscriber is never registered, save-and-quit at chapter-boss kills writes to disk.
+The original mint recipe replaced each ActivityScore body with a 25-byte zero stub, which caused the deserialize failure described above. The first fix was to preserve all AS bodies at their original size. This avoided the silencer (deserialize completed successfully) but left chapter-N icon paths in each preserved body, producing a separate **activity-icon carryover bug** on the score-details panel (the user's "compounding blanks" symptom).
 
-**Verification path:** apply the recipe change, re-mint a chapter-1 starting save, load it in-game, attempt save-and-quit at chapter-boss kill, confirm the live `_Save/Profile_1.ob` mtime advances.
+Verified across three tests: SaveCompat modal absence on load, score-details cleanup after restart, and a full chapter-boss-kill + save-and-quit run that produced a real disk write at `rw/saves/mints/geppetto/chapter2/test3-silencer-fix-verified/Profile_1.ob` (hash `71f093f11484eae1`, 75977 bytes, mtime advanced).
 
-**Verification status (2026-05-01) — FIX FULLY VERIFIED:**
-- Lab built at `rw/saves/edits/lab/activityscores-restored-ch1/Profile_1.ob` by transplanting the 6 ActivityScore bodies (~115 bytes each) from the chapter-2 proof (`dec9f6f44b0c4fd6...`) into the chapter-1 starting golden, replacing the 25-byte zero-stubs.
-- **Test 1 (load + quit immediately):** PASSED — SaveCompat modal did NOT appear on load. Silencer subscriber not registered.
-- **Test 2 (score-details UI check for compounding blanks):** PASSED — leftover-blanks display resolved.
-- **Test 3 (full playthrough to chapter-boss kill + save-and-quit + verify mtime advance):** **PASSED.** Live save mtime advanced at 00:41:02 UTC-7 with unique hash `71f093f11484eae1...`, size 75977 bytes, +1738 bytes vs the loaded lab. Save event fired and disk write completed. Preserved at `rw/saves/mints/geppetto/chapter2/test3-silencer-fix-verified/Profile_1.ob`.
+**Fix 2 — REMOVE ActivityScore records and zero the parent count u32 (BREAKTHROUGH-1, current production, commit `52cff33`).**
 
-**Conclusion (silencer, narrow):** the silencer mechanism is fully understood and the ActivityScore truncation was its sole cause. The fix (preserve ActivityScore bodies verbatim) is verified across all three tests for the SILENCER specifically. The mint recipe has been folded into `rerw mint savefile` (CLI command, `tools/rerw-src/lib/save_mint.py` + `tools/rerw-src/commands/mint_savefile.py`) with a unit-test regression for the truncation pattern at `tools/rerw-src/tests/unit/test_lib_save_mint.py`.
+The CRP body's u32 immediately preceding the first ActivityScore frame is the count consumed by the deserialize loop. With count = 0 and the AS frames snipped from the body, `ActivityScore_Serialize` (image+0x1da440) is never called. No deserialize → no error code 4 → no silencer registration. Side benefit: no chapter-N icons render on the score-details panel, fixing the activity-icon carryover bug that fix 1 left in place.
 
-**The compounding-blanks display bug is NOT fully resolved by this fix** — see `rw/triage/save-mint-status.md` H1 update. Truncation explained part of the display bug but the test3 mint-derived save's defeat screen (screenshots in the test3 save directory) still shows residual symptoms: extra blank slots appended in the score-details row, a "local sentence text not loaded" localization-key failure at the bottom of the defeat screen, and possibly an incorrect score value. There is at least one additional cause for the display bug beyond ActivityScore truncation, currently unmapped.
+A second carryover bug surfaced and was fixed in the same session — the chapter-progression banner u32 in CRP body at `(first_AS_frame.start - 8)` encodes `3 × chapters_completed_before_death` and drives the end-screen banner display. The production mint zeros this u32. See `rw/key-findings/save-edit-pipeline-2026-04-30.md` for the field documentation.
+
+The production mint at `tools/rerw-src/lib/save_mint.py` applies fix 2; the unit-test regression at `tools/rerw-src/tests/unit/test_lib_save_mint.py` (`test_activity_score_records_removed` + `test_activity_score_parent_count_zeroed`) guards both pieces. Verified in-game on the chapter-3 mint with `mint__from-chapter3-laser_lenses_1-proof/` (chapter-1 golden).
 
 **Bonus finding from test 3 save:** the test3 success save has `HC body+0x21 ingredient_vec_count = 1` — the first save ever observed with a NON-empty HeroIngredient vector. This unblocks the held-inventory location investigation (item 1 of `rw/triage/save-mint-status.md`). The earlier conclusion "held inventory is NOT in HC.HeroIngredient because the vector is always empty" needs revision; revisit with this new anchor.
 
-### Bonus hypothesis: this also explains the compounding-blanks bug — UNVERIFIED
+### Bonus hypothesis: this also explains the compounding-blanks bug — VERIFIED
 
-The "compounding blanks" bug (leftover grey-diamond achievement slots interleaving on the score-details page when chapter-1 → chapter-2 is played from a minted save, see `rw/triage/save-mint-status.md` section 2) is hypothesized to be a downstream symptom of the same ActivityScore truncation. When the deserialize fails partway through, the in-memory achievement state is left with partial new data + stale from prior loads, producing the visible mix.
-
-If the recipe fix above resolves both the silencer AND the compounding-blanks display in a single load test, both bugs share one root cause and one fix. If only the silencer resolves, the compounding-blanks hypothesis needs revision.
+The "compounding blanks" symptom (leftover grey-diamond achievement slots interleaving on the score-details page) was indeed downstream of the AS records, but not via deserialize failure as originally hypothesized. The records' preserved bodies contained chapter-N icon paths and localization strings; the game rendered them on the score-details panel regardless of whether the player completed those activities in the current run. Removing the records (fix 2) makes the panel render empty. The hypothesis is confirmed in spirit: AS records and the silencer share the same root, and AS-removal fixes both.
 
 ### Verification chain
 

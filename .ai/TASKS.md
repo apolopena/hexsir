@@ -17,6 +17,12 @@
 
 ## Done
 <!-- DONE_START -->
+MAINT-14: Sync key-findings + triage docs to BREAKTHROUGH-1 (2026-05-01)
+  - `save-silencer-mechanism.md`: noted AS-removal as current production fix, preserve-bodies marked superseded, compounding-blanks hypothesis marked VERIFIED.
+  - `save-edit-pipeline-2026-04-30.md`: documented the chapter-progression banner u32 in CRP body; Known-gaps section updated to reflect resolved items.
+  - `save-mint-status.md`: activity-icon carryover marked RESOLVED; chapter-2-only mint gate noted as removed.
+  - `mint-hardcoded-offsets.md`: marked RESOLVED (option C implemented via `lib/hc_walker.py`).
+
 BREAKTHROUGH-1: Mint carryover bug fixes; mint goes chapter-agnostic (2026-05-01)
   - Bug fix: chapter-N ActivityScore icons carrying into derived mints' score-details panel.
   - Bug fix: chapter-progression banner carrying source-proof run history into derived mints' end-screen.
