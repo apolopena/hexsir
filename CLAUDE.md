@@ -58,6 +58,18 @@ options.
 - If a group requires a subcommand, prefer showing help instead of guessing a
   default action.
 
+### RERW Python Environment
+`tools/rerw-src` is its own Python project. For scripts that need project
+dependencies such as PyYAML, use the project venv:
+
+```bash
+tools/rerw-src/.venv/bin/python ...
+```
+
+Use `uv run rerw` for normal CLI commands. If `uv run` fails in the agent
+sandbox with a read-only `~/.cache/uv` error, prefix the command with
+`UV_CACHE_DIR=/tmp/uv-cache`.
+
 ### CRITICAL: SSH Git Commands
 ALWAYS use `./scripts/git-ai.sh` for git commands requiring SSH (commit, push, pull, fetch, clone, remote, ls-remote, submodule). Prevents SSH askpass errors via keychain + adds AI attribution.
 
@@ -82,6 +94,12 @@ Implications for save-edit testing:
 - "Verifying" an edit means visually confirming the loaded HUD/score-page reflects the edited value. There is no automated round-trip check beyond the parse-encode byte-equality test on the file itself.
 - Reaching a new chapter-boss kill to generate fresh save data is a real-time play investment — typically ~20 minutes of focused play per save. Treat existing proof saves as scarce. Proposing a new save run is NOT off the table, but it must be extremely warranted — strong justification (e.g., the test cannot be done any other way and the resulting save unblocks meaningful progress). Don't suggest a fresh-save test casually.
 
+### Ghidra: decompilation available on request
+The game's `Ravenswatch.exe` is loaded in Ghidra and reachable via `mcp__ghidra__*` tools. If decompilation would help answer a question, ask the user before digging — don't assume.
+
+### WinDbg: live debugging available on request
+A WinDbg MCP server is registered in `.mcp.json` (port 8000); when running, tools appear under `mcp__windbg__*`. Use only for live-process debugging of the running game (breakpoints, memory inspection, stepping). If the tools aren't loaded, the server isn't up — ask the user to start it. Ask before initiating a debugging session — don't assume.
+
 ### Ghidra: annotate findings on the spot
 This section governs all Ghidra reverse-engineering work. When you identify what something does — even partially — annotate it in Ghidra immediately. Do not batch annotations at session end. Each annotation makes future decompilation more readable for both you and the user, and prevents losing the identification when context drops. The bar is low: partial understanding is worth annotating. `unknown_serializer_at_this+0xc8` is more useful than `FUN_1403b3da0`.
 
@@ -97,6 +115,22 @@ The "why" of a finding belongs in `rw/key-findings/*.md`, not in Ghidra plate/EO
 
 ### Save-edit lab base rule — never layer on a failed experiment
 New save edits are ALWAYS layered on top of either (a) a golden save, or (b) a proof / verified-success lab save that is a candidate for promotion to golden. NEVER layer a new edit on top of a failed lab variant — that carries dead-end edits forward and confounds the test. If unsure whether a prior lab is a success, ask before using it as the base.
+
+### Save-edit lab naming convention
+Lab folder names MUST encode their source/lineage so the layering chain is visible at a glance. Pattern: `<edit-name>__from-<source-name>[__<extra-suffix>]/Profile_1.ob`. The `__from-` separator is a literal double-underscore. Examples:
+
+- `feathers-14__from-test3-mint/` — sets feather field to 14, layered on the test3-silencer-fix-verified mint
+- `keys-count-5__from-test3-mint/` — sets keys count subfield to 5, same source
+- `mint-feathers-consumed-zero__from-laser-lenses_1-proof__chapter1-stars7/` — output of `rerw mint savefile` with the feathers-consumed-zero recipe step, sourced from the laser-lenses_1 chapter-2 proof, set to chapter 1 with Stars of Fate baseline 7
+
+Use the source's directory name (the leaf, not the full path) as the source identifier. Disambiguate proof vs golden vs mint with a suffix when the leaf name alone could be ambiguous.
+
+### Save-file taxonomy
+Three top-level categories under `rw/saves/`:
+
+- `proofs/` — natural unmodified gameplay saves (player reached a chapter-boss kill and saved; no edits applied)
+- `mints/` — saves derived from running the mint chain: a proof was minted into a starting save, that mint was loaded and played forward, the player reached another chapter-boss kill and saved. Mint-derived saves are NOT proofs because the mint influenced their starting state.
+- `edits/lab/` and `edits/golden/` — work-in-progress edits and promoted/verified-success edits respectively. Both follow the lab naming convention above.
 
 ### Save-load error modal — read the actual outcome, not the modal
 The "Save Loading Error (Error code: N)" modal does NOT always indicate a hard failure. It can appear in two distinct scenarios:

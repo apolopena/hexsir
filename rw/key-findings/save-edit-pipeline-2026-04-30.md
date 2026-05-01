@@ -395,6 +395,42 @@ Takes a chapter-N proof and produces a chapter-(N-1) starting save with zeroed p
 
 **Important**: all body edits operate on `section` (the `bytearray` of `cf.object_section`). After mutations, write `cf.object_section = bytes(section)` before calling `encode_file`. Editing the raw file bytes outside `section` will be silently overwritten by the re-encode. Offsets within a frame are `frame.start + 8 + body_offset` (the `+8` skips the start marker + class index).
 
+> **2026-05-01 update — recipe is now folded into `rerw mint savefile`,
+> works across all chapters, removes ActivityScore records.**
+> The verbatim Python script below is preserved for reference and historical
+> context. For day-to-day use, prefer the CLI:
+>
+> ```bash
+> ./tools/rerw mint savefile \
+>     --source path/to/proof/Profile_1.ob \
+>     --dest path/to/output_dir \
+>     --chapter 0 --stars 7 --level 1 -f
+> ```
+>
+> The CLI implementation lives in `tools/rerw-src/lib/save_mint.py`,
+> `tools/rerw-src/lib/hc_walker.py`, and `tools/rerw-src/commands/mint_savefile.py`.
+> Two important departures from the reference script below:
+>
+> 1. **ActivityScore records are REMOVED** (and the parent CRP body's count
+>    u32 zeroed), not truncated and not preserved verbatim. The reference
+>    script's step 2 truncation trips the silencer (Error code 4 -> SaveCompat
+>    modal -> all subsequent saves silently no-op for the rest of the
+>    session); preserving bodies (an earlier fix) avoids the silencer but
+>    leaves chapter-N icons on the score-details panel as carryover. With
+>    AS records removed and count=0, the per-record deserialize loop runs
+>    zero iterations -- no silencer, no carryover.
+>    See `rw/key-findings/save-silencer-mechanism.md` and the chapter-1
+>    golden `as-count-zero__from-dynamic-mint__from-chapter3-laser_lenses_1-proof/breakthrough.md`.
+>
+> 2. **Works across chapters.** The `dream_shards_spent` HC body offset
+>    is resolved dynamically via `lib.hc_walker.walk_hc_body` (it sits at
+>    +0x35d in chapter-2 sources, +0x65d in chapter-3 sources, and other
+>    positions for higher chapters). The earlier hardcoded +0x35d only
+>    worked for chapter-2 shapes. The body-size gate is gone.
+>
+> The reference script below has step 2 marked with a SILENCER WARNING and
+> is for historical context only -- do not run it.
+
 ```python
 import struct, shutil
 from pathlib import Path
@@ -426,13 +462,19 @@ struct.pack_into("<f", section, hcb + 0x35d, 0.0) # was 990.0 in proof — likel
 # struct.pack_into("<I", section, hcb + 0x25, 0)   # blocked: write doesn't propagate
 # struct.pack_into("<I", section, hcb + 0x2d, 0)   # blocked: write doesn't propagate
 
-# 2. ActivityScore × 6 → 25-byte minimum body each (replaces the 113-119 byte
-#    full bodies). Iterate from highest start offset first so earlier replacements
-#    don't shift later frames before they're processed.
-MIN_AS = struct.pack("<I", 0) * 6 + b"\x00"   # 25 bytes
-hits = sorted(cooked.find_class_in_tree(cf, roots, "ActivityScore"), key=lambda h: -h[1].start)
-for _, n in hits:
-    section[n.start + 8 : n.end - 4] = MIN_AS
+# 2. ActivityScore × 6 — ★ SILENCER WARNING ★
+#    The block below TRUNCATES each ActivityScore body to a 25-byte zero stub.
+#    This trips the loader's per-class deserialize, returns Error code 4,
+#    registers the save silencer subscriber, and causes all subsequent saves
+#    to silently no-op for the rest of the session.
+#    ★ DO NOT RUN THIS BLOCK. ★ Preserve ActivityScore bodies verbatim.
+#    The fixed mint logic lives in tools/rerw-src/lib/save_mint.py — the
+#    `rerw mint savefile` CLI command applies the corrected recipe.
+#    Reference (DO NOT EXECUTE):
+# MIN_AS = struct.pack("<I", 0) * 6 + b"\x00"   # 25 bytes
+# hits = sorted(cooked.find_class_in_tree(cf, roots, "ActivityScore"), key=lambda h: -h[1].start)
+# for _, n in hits:
+#     section[n.start + 8 : n.end - 4] = MIN_AS
 
 # 3. HeroScoreData — zero the 28 score floats in place. Body has 5 groups,
 #    each "u32 count + count × float". Preserve the counts and the trailing

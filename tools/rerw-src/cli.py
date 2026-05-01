@@ -18,6 +18,7 @@ from commands import (
     cipher,
     decipher,
     game_assets,
+    mint_savefile,
     read_savefile,
     swap_savefile,
     write_savefile,
@@ -83,6 +84,15 @@ def write_():
 
 # Subcommands of `write`
 write_.add_command(write_savefile.write_savefile_cmd, name="savefile")
+
+
+@click.group(name="mint")
+def mint_():
+    """Transactional mint: produce a clean starting save from a chapter-boss-kill proof."""
+
+
+# Subcommands of `mint`
+mint_.add_command(mint_savefile.mint_savefile_cmd, name="savefile")
 
 
 # --- REPL ---
@@ -247,6 +257,7 @@ def interactive_cmd():
 cli.add_command(swap_, name="swap")
 cli.add_command(read_, name="read")
 cli.add_command(write_, name="write")
+cli.add_command(mint_, name="mint")
 cli.add_command(cipher.cipher_cmd, name="cipher")
 cli.add_command(decipher.decipher_cmd, name="decipher")
 cli.add_command(game_assets.game_assets_group, name="game-assets")

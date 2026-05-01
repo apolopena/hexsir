@@ -34,7 +34,7 @@ Pattern across saves: the in-run held shards count is NOT the persistent profile
 - **2026-04-30 partial finding**: a float = 990 was found at HeroController body+0x35d in the chapter-2 proof. We zeroed it during v4 mint. Suspected to be dream-shards-collected (per-run cumulative). This is *adjacent* to but distinct from the held-shards count puzzle. The held count (the spendable HUD value) is still unmapped.
 - Likely stored differently: packed, in an inventory array, or computed
 
-Cross-reference: `rw/triage/save-mint-unresolved.md` item (1) "held inventory" — possibly the same record as held shards.
+Cross-reference: `rw/triage/save-mint-status.md` item (1) "held inventory" — possibly the same record as held shards.
 
 ### Health (149 → 288 → 439)
 
@@ -52,7 +52,7 @@ Cross-reference: `rw/triage/save-mint-unresolved.md` item (1) "held inventory" �
 
 - No clear storage pattern for items
 - **2026-04-30 update**: held inventory (Nightmare Keys, Raven Feathers, Bean ingredient) is now empirically confirmed to persist across save → restart cycles. Byte location remains unmapped.
-- Cross-reference: `rw/triage/save-mint-unresolved.md` item (1)
+- Cross-reference: `rw/triage/save-mint-status.md` item (1)
 - Abilities not investigated
 
 ## Notes

@@ -1,7 +1,23 @@
-# Save Mint Recipe — Unresolved Questions
+# Save Mint — Status and Known Issues
 
-**Status:** triage
+**Status:** mostly working, follow-ups in progress
 **Created:** 2026-04-30
+**Renamed:** 2026-05-01 (was `save-mint-unresolved.md`)
+
+## Where the mint stands as of 2026-05-01
+
+The mint pipeline works end-to-end and is shipped as `rerw mint savefile`. The major silencer blocker that prevented saves from writing to disk was identified, fixed, and verified across all three predicted symptoms (silencer modal absence, score-details cleanup after restart, save-and-quit producing a real disk write). See `rw/key-findings/save-silencer-mechanism.md`.
+
+Held-inventory editing for keys is now a working primitive (verified end-to-end via in-HUD load test of `keys-count-5__from-test3-mint`).
+
+A dynamic-offset variant of the mint (`.ai/scratch/mint-dynamic-offsets/dynamic_mint.py`) extends the mint to chapter-3+ sources, currently sandboxed pending fold-in to the production tool. Production mint is gated to chapter-2-shaped sources via HC-body-size assertion.
+
+### Known remaining issues (the items below)
+
+1. **Activity-icon carryover** — confirmed for the chapter-3 dynamic mint (11 chapter-3 activity icons appear on the score-details panel of the chapter-1 starting state). Status for the chapter-2 mint is **disputed and pending re-verification**: a single test tonight suggested icons appeared on the chapter-2 mint too, but the user believes that observation was wrong and the chapter-2 mint is actually clean. If chapter-2 mint truly is clean while chapter-3 mint is not, there's a meaningful state difference between them worth investigating (chapter-2 has 6 ActivityScores, chapter-3 has 11). UNTESTED suppression hypothesis exists for the chapter-3 case (zero trailing score float per AS body — lab `dynamic-mint-as-scores-zero__from-chapter3-laser_lenses_1-proof/` built but not loaded).
+2. **Held inventory beyond keys (feathers/wood/bean/dream-shards-spendable)** — schema for the HeroIngredient vector is fully decoded for keys; other items appear to live elsewhere in the save (not in this vector).
+3. **HC body+0x25 mirror cascade** — RESOLVED IN UNDERSTANDING but no behavioral fix needed: this field is "Raven Feathers consumed" (per-run stat), confirmed by edit test. The "stuck at 4" earlier observation was confounded by the silencer; with silencer fixed, the field writes work normally and the new `rerw mint savefile` zeros it as part of the recipe.
+4. **Score-Details achievement records source** — RESOLVED: was the ActivityScore × 6 records all along. The original "we already touched them" conclusion was wrong. See item 1.
 
 ## Sources
 
@@ -59,18 +75,29 @@ Records inspected for byte-level deltas between the chapter-2 proof (no held inv
 ### Ruled out
 
 - HeroController body (exhaustively diffed)
-- HeroIngredient vector at HC+0x21 (empty in all saves checked)
+- ~~HeroIngredient vector at HC+0x21 (empty in all saves checked)~~ ← **RULING OVERTURNED 2026-05-01**: see status update below
 - CounterPersistentData × 3 (unchanged across proof/golden)
 - HeroMOPersistentData × 21 (unchanged)
 - HeroProfileData × 12 (unchanged)
 - HeroScoreData (fully zeroed in golden)
 
-### Next dig
+### Status update 2026-05-01 — KEYS RESOLVED, OTHER INGREDIENTS STILL OPEN
 
-- Diff the `oCEntityPersistentDataContainer × 2` bodies between proof and golden.
-- Diff the `CurrentRunProfileData` parent body bytes BETWEEN child frames (the sections after the ActivityScore frames and after HeroScoreData), not just before the first child.
-- Diff the `oCDtPlayerProfileData` body (we mapped 5 fields but a per-hero "keys earned" field could exist).
-- Trace from the Ghidra side: `hero_ingredient_add_or_remove` (FUN_14038c900) writes to `hero_state+0x1d48->+0x48`. The `hero_state` runtime struct's persistence path must end up in `Profile_1.ob` somewhere. Find what `hero_state+0x1d48` corresponds to in the saved form.
+The test-3 mint-derived save at `rw/saves/mints/geppetto/chapter2/test3-silencer-fix-verified/Profile_1.ob` (75977 bytes, hash `71f093f11484eae1...`) was the breakthrough — first save we've ever observed with a non-empty HeroIngredient vector. Schema decoded and edit verified end-to-end:
+
+- HC body+0x21: u32 `count` = number of distinct ingredient TYPES held
+- Each record: framed `oSDtHeroIngredient` (MARK_START + class_idx + body + MARK_END)
+- Per-record body: `u32 type_id + u32 count`
+- For 2 keys: 1 record with type_id `0xc4cb986e`, count=2
+- New class `oSDtHeroIngredient` enters the registry only when this vector is non-empty (40 classes vs 39 in zero-ingredient saves)
+
+**Edit verification (2026-05-01):** lab `rw/saves/edits/lab/keys-count-5/Profile_1.ob` modified the count subfield from 2 → 5, loaded in-game, HUD displayed **5 keys**. End-to-end ingredient editing for the held vector is working. **Held-inventory editing for KEYS specifically is now a working primitive.**
+
+### Open follow-ups
+
+- **Identify type_ids for feathers, bean, wood, and other ingredients.** User's test3 save had 2 keys + 2 feathers + 5 wood + others, but only 1 record (the keys) appeared in the HC HeroIngredient vector. Either (a) other ingredient types are stored elsewhere (different vector/field), or (b) chapter-2 boss-DEFEAT path strips/discards some ingredient types before the save event. Both are worth investigating. The HUD in `Screenshot 2026-05-01 004454.png` shows "4" with crow icon (possibly held feathers count) which doesn't match user's "2 feathers" recollection — additional discrepancy to map.
+- **Calibrate the type_id hash function.** Type_id `0xc4cb986e` = Nightmare Key is anchored; brute-force candidates against this value with various hash algorithms (standard CRC32, the table-CRC32 with init=0xff documented in `rw/key-findings/save-subsystem.md`, FNV variants, etc.) to identify the input string format. Without the hash, we can SET counts of existing types but not ADD new types from scratch.
+- **Map feathers / wood / bean storage**: if they're not in the HC HeroIngredient vector, find which record holds them. Diff a save with known item counts (the test3 save) against a save with all-zero (the original proof) at the records we haven't fully drilled.
 
 ---
 
@@ -94,9 +121,13 @@ See screenshot: `rw/saves/edits/golden/geppetto/chapter2/2for1-thru-with-invento
 
 ### Hypotheses
 
-- **H1**: the achievement records are stored in `ActivityScore × 6`. We replaced ActivityScores with minimum 25-byte bodies in v4, which would explain the leftover/empty appearance. But ActivityScore's `Serialize` (reverse-engineered) reads only generic float/string fields — no obvious "achievement-id" field. **Discriminating test**: edit a non-trivial ActivityScore body in a controlled save and check if the page changes.
-- **H2**: a record we haven't named yet. The class registry has 39 classes, most accounted for; check the unmapped ones.
-- **H3**: the records are inside `oCEntityPersistentDataContainer × 2` or another container we haven't drilled into.
+- **H1 (PARTIALLY CONFIRMED 2026-05-01, ADDITIONAL OPEN ITEM)**: ActivityScore × 6 truncation was the root cause of the SAVE SILENCER (Error code 4) — fully verified across three tests (silencer fix doc has detail). Truncation also produced SOME of the score-details display issues, but **the activity-icon carryover bug is NOT fully resolved by the truncation fix**. CONFIRMED 2026-05-01 late session that activity records appear in the score-details panel on BOTH the chapter-2 mint output (`mint-feathers-consumed-zero__from-laser-lenses_1-proof__chapter1-stars7/`) AND the chapter-3 dynamic mint output (`dynamic-mint__from-chapter3-laser_lenses_1-proof/`). The mint preserves ActivityScore bodies (necessary to avoid silencer); each preserved body's strings (icon path + text + localization) drive icon rendering regardless of whether the player completed the activity in this run. The score-value-gates-display hypothesis (lab `dynamic-mint-as-scores-zero__from-chapter3...`) was built but not yet tested in-game. Symptoms remaining in the test3 mint-derived save's defeat screen (see screenshots `Screenshot 2026-05-01 004549.png`, `Screenshot 2026-05-01 004616.png`, `Screenshot 2026-05-01 004650.png` in `rw/saves/mints/geppetto/chapter2/test3-silencer-fix-verified/`):
+  - The score-details row still shows extra blank/empty slots being appended after the active icon, even though the fix cleared the previously-stuck blanks. User observation: "they're added, they're cleared out, but they're still being appended."
+  - A "local sentence text not loaded+5%" localization-key failure appears at the bottom of the defeat screen — possibly an unresolved string-lookup against text the engine expects but our restored bodies don't satisfy in the right form for chapter-1 → chapter-2 context.
+  - The displayed Score (442) may itself be incorrect — flagged for verification.
+  - Net interpretation: the silencer cause is identified and fixed (ActivityScore truncation). The score-details display has at least one ADDITIONAL distinct cause beyond truncation, still unmapped. H2/H3 below remain plausible candidates for the residual display issue.
+- **H2**: a record we haven't named yet. The class registry has 39 classes, most accounted for; check the unmapped ones. (Less likely now given H1, but not ruled out — H1 only fully holds if both symptoms resolve together.)
+- **H3**: the records are inside `oCEntityPersistentDataContainer × 2` or another container we haven't drilled into. (Same caveat as H2.)
 
 ### Ruled out
 
