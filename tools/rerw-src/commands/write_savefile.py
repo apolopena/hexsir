@@ -48,6 +48,7 @@ from lib.talent_edit import (
     find_talent_record,
     parse_tier,
     read_picks,
+    write_all_slot_tiers,
     write_all_tier_bytes,
     write_pick,
     write_tier,
@@ -1233,15 +1234,17 @@ def all_talent_rarities_cmd(
 ) -> None:
     """Bulk-set every talent's stored rarity in the hero's pool.
 
-    Writes the tier byte on every tag=0x10 controller record found in the
-    save (typically 28 per hero). Records currently set to the ult-marker
-    sentinel (tier=4) are left untouched so ultimate slots aren't
-    misclassified as a regular rarity.
+    Writes BOTH storage locations in one pass:
+    1. The tier byte on every tag=0x10 controller record (typically 28 per
+       hero) — used by the picker when a slot has a valid loaded talent.
+    2. The 10 per-slot u32 tiers in the tag=0x12 talent record's persistent
+       block — used by the picker when a slot's talent pointer is null
+       (e.g. after a hero swap that invalidated the saved IDs).
 
-    At runtime, the talent picker stamps a slot's rarity from the picked
-    talent's stored tier byte. Setting every talent to the same rarity here
-    means every picker proposal in the run will display that rarity,
-    regardless of which talent the seed selects.
+    Records / slots currently at the ult-marker sentinel (tier=4) are left
+    untouched in both passes. Picker outcome: every proposal in the run
+    displays the chosen rarity regardless of which talent gets stamped or
+    whether the slot's saved talent is compatible with the active hero.
     """
     out_path = _check_dest_writable(dest, force)
     info(f"Source savefile: {source}")
@@ -1251,15 +1254,27 @@ def all_talent_rarities_cmd(
         error(f"Failed to read source: {exc}")
         raise SystemExit(1) from exc
     try:
+        fields = load_fields()
+    except Exception as exc:
+        error(f"Failed to load save-field registry: {exc}")
+        raise SystemExit(1) from exc
+    if TALENT_FIELD not in fields:
+        error(f"Talent field {TALENT_FIELD!r} is not in the registry.")
+        raise SystemExit(1)
+    talent_field = fields[TALENT_FIELD]
+    try:
         tier_int = parse_tier(rarity)
-        modified = write_all_tier_bytes(data, tier_int)
+        controllers_modified = write_all_tier_bytes(data, tier_int)
+        slots_modified = write_all_slot_tiers(
+            data, tier_int, talent_field.extra["record_guid"]
+        )
     except TalentEditError as exc:
         error(str(exc))
         raise SystemExit(1) from exc
-    if modified == 0:
+    if controllers_modified == 0 and slots_modified == 0:
         error(
-            "No tag=0x10 records modified "
-            "(save has none, or all are ult-marker)."
+            "No records modified "
+            "(save has no tag=0x10 records or all entries are ult-marker)."
         )
         raise SystemExit(1)
 
@@ -1269,9 +1284,10 @@ def all_talent_rarities_cmd(
     except OSError as exc:
         error(f"Failed to write {out_path}: {exc}")
         raise SystemExit(1) from exc
+    rarity_name = TIER_VALUE_TO_NAME.get(tier_int, tier_int)
     click.echo(
-        f"all-talent-rarities: {modified} talent(s) set to "
-        f"{TIER_VALUE_TO_NAME.get(tier_int, tier_int)}"
+        f"all-talent-rarities: {controllers_modified} controller tier byte(s) "
+        f"+ {slots_modified} per-slot tier(s) set to {rarity_name}"
     )
     click.echo(f"CRC32: 0x{new_crc:08X}")
     success(f"Wrote {out_path}")

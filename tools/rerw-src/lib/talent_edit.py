@@ -26,6 +26,14 @@ TIER_OFFSET_FROM_GUID = 17  # 16 bytes of GUID + 1 byte of `0x01` flag
 TAG10_PRE_PATTERN = b"\x11\x11\xbb\xaa\x10\x00\x00\x00"  # start marker + tag 0x10
 HERO_PATH_RE = re.compile(rb"Heroes\\([A-Za-z_][A-Za-z_0-9]*)\.herodef\.ot")
 
+# Offset of the 10-u32 per-slot tier array from the tag=0x12 talent record's
+# tag byte (`12 00 00 00`). Verified empirically stable across chapter2,
+# chapter3, and epilogue proofs (CRC-distinct saves of the same lineage).
+# Each entry is a u32 in [0..4]: 0=Common, 1=Rare, 2=Epic, 3=Legendary,
+# 4=ult-marker / uninitialized sentinel.
+SLOT_TIERS_OFFSET_FROM_RECORD = 0x35
+SLOT_TIERS_COUNT = 10
+
 TIER_NAMES = {
     "common": 0,
     "rare": 1,
@@ -168,6 +176,47 @@ def parse_tier(value: str | int) -> int:
         f"Unknown tier {value!r}; expected one of "
         f"{sorted(set(TIER_NAMES.keys()))} or 0..3 numeric"
     )
+
+
+def write_all_slot_tiers(
+    data: bytearray,
+    tier: int,
+    record_guid_15: bytes,
+    skip_ult_marker: bool = True,
+) -> int:
+    """Bulk-set the per-slot tier u32 array inside the tag=0x12 talent record.
+
+    The array holds 10 u32 slot tiers at offset +0x35 from the record's tag
+    byte. Each value in [0..4]: 0=Common, 1=Rare, 2=Epic, 3=Legendary,
+    4=ult-marker (or uninitialized sentinel for slots not yet picked).
+
+    The picker reads slot.tier from this saved block when the loaded slot
+    has no valid talent pointer (e.g., after a hero swap that invalidated
+    the saved talent IDs). Setting these values directly forces the picker
+    to stamp the chosen rarity for every empty slot regardless of which
+    talent gets selected.
+
+    When `skip_ult_marker=True` (default), entries currently set to 4 are
+    left alone — these are the engine's ult-slot / unfilled-slot sentinels;
+    rewriting them to a regular rarity could route the picker into the
+    stamp path for an ult slot, which is undefined territory.
+
+    Returns the count of slot tiers modified.
+    """
+    if not 0 <= tier <= 255:
+        raise TalentEditError(f"tier must be a u8 (0..255), got {tier}")
+    record_off = find_talent_record(data, record_guid_15)
+    array_off = record_off + SLOT_TIERS_OFFSET_FROM_RECORD
+    new_bytes = tier.to_bytes(4, "little")
+    count = 0
+    for i in range(SLOT_TIERS_COUNT):
+        slot_off = array_off + i * 4
+        cur = int.from_bytes(data[slot_off : slot_off + 4], "little")
+        if skip_ult_marker and cur == 4:
+            continue
+        data[slot_off : slot_off + 4] = new_bytes
+        count += 1
+    return count
 
 
 def write_all_tier_bytes(

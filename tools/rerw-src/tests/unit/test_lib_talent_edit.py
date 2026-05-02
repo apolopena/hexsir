@@ -19,11 +19,21 @@ from pathlib import Path
 import pytest
 
 from lib.talent_edit import (
+    SLOT_TIERS_COUNT,
+    SLOT_TIERS_OFFSET_FROM_RECORD,
     TAG10_PRE_PATTERN,
     TIER_OFFSET_FROM_GUID,
     TalentEditError,
+    find_talent_record,
     parse_tier,
+    write_all_slot_tiers,
     write_all_tier_bytes,
+)
+
+# 15-byte talent record GUID — same across all Geppetto saves observed,
+# presumed hero-independent per `rw/key-findings/talent-records.md`.
+TALENT_RECORD_GUID_15 = bytes.fromhex(
+    "bfe7f6604385cb4887f6b4b79f6812"
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[3].parent
@@ -142,3 +152,92 @@ def test_parse_tier_case_insensitive() -> None:
 def test_parse_tier_rejects_unknown() -> None:
     with pytest.raises(TalentEditError, match="Unknown tier"):
         parse_tier("mythic")
+
+
+def _read_slot_tiers(data: bytes) -> list[int]:
+    """Helper: read the 10-u32 slot.tier array from the talent record."""
+    rec_off = find_talent_record(data, TALENT_RECORD_GUID_15)
+    arr_off = rec_off + SLOT_TIERS_OFFSET_FROM_RECORD
+    return [
+        int.from_bytes(data[arr_off + i * 4 : arr_off + (i + 1) * 4], "little")
+        for i in range(SLOT_TIERS_COUNT)
+    ]
+
+
+def test_slot_tiers_recovered_from_epilogue_proof(
+    epilogue_bytes: bytes,
+) -> None:
+    """The on-disk slot.tier array shape: 10 entries each in [0..4]."""
+    vals = _read_slot_tiers(epilogue_bytes)
+    assert len(vals) == 10
+    assert all(0 <= v <= 4 for v in vals)
+    # Empirically verified for the laser-lenses_1 epilogue lineage.
+    assert vals == [0, 3, 3, 0, 4, 3, 0, 1, 3, 3]
+
+
+def test_write_all_slot_tiers_skips_ult_markers(
+    epilogue_bytes: bytes,
+) -> None:
+    """Bulk-set to legendary preserves entries currently at ult-marker (4)."""
+    data = bytearray(epilogue_bytes)
+    src_vals = _read_slot_tiers(epilogue_bytes)
+    ult_count = sum(1 for v in src_vals if v == 4)
+
+    modified = write_all_slot_tiers(data, tier=3, record_guid_15=TALENT_RECORD_GUID_15)
+    assert modified == 10 - ult_count
+
+    out_vals = _read_slot_tiers(bytes(data))
+    # Entries that were 4 stay at 4; everything else becomes 3.
+    for src_v, out_v in zip(src_vals, out_vals):
+        if src_v == 4:
+            assert out_v == 4
+        else:
+            assert out_v == 3
+
+
+def test_write_all_slot_tiers_no_skip_overrides_ult(
+    epilogue_bytes: bytes,
+) -> None:
+    """With skip_ult_marker=False, all 10 slot tiers get rewritten."""
+    data = bytearray(epilogue_bytes)
+    modified = write_all_slot_tiers(
+        data,
+        tier=3,
+        record_guid_15=TALENT_RECORD_GUID_15,
+        skip_ult_marker=False,
+    )
+    assert modified == 10
+    assert _read_slot_tiers(bytes(data)) == [3] * 10
+
+
+def test_write_all_slot_tiers_each_value(epilogue_bytes: bytes) -> None:
+    """Every rarity value writes correctly; original ult-markers preserved."""
+    src_vals = _read_slot_tiers(epilogue_bytes)
+    ult_indices = [i for i, v in enumerate(src_vals) if v == 4]
+    for tier_int in (0, 1, 2, 3):
+        data = bytearray(epilogue_bytes)
+        write_all_slot_tiers(
+            data, tier=tier_int, record_guid_15=TALENT_RECORD_GUID_15
+        )
+        out = _read_slot_tiers(bytes(data))
+        for i in range(SLOT_TIERS_COUNT):
+            if i in ult_indices:
+                assert out[i] == 4
+            else:
+                assert out[i] == tier_int
+
+
+def test_write_all_slot_tiers_rejects_out_of_range() -> None:
+    data = bytearray(b"\x00" * 1024)
+    with pytest.raises(TalentEditError, match="must be a u8"):
+        write_all_slot_tiers(
+            data, tier=-1, record_guid_15=TALENT_RECORD_GUID_15
+        )
+
+
+def test_write_all_slot_tiers_raises_when_record_missing() -> None:
+    data = bytearray(b"\x00" * 1024)
+    with pytest.raises(TalentEditError, match="not found"):
+        write_all_slot_tiers(
+            data, tier=3, record_guid_15=TALENT_RECORD_GUID_15
+        )
