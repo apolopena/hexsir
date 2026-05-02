@@ -17,6 +17,12 @@
 
 ## Done
 <!-- DONE_START -->
+MAINT-20: Save-edit capabilities reference doc (2026-05-01)
+  - New `rw/docs/save-edit-capabilities.md` cataloguing every save modification the project can perform today, in three categories: CLI one-liners (`rerw write savefile <field>`, `mint`, `swap`), proven edits without a CLI (hero swap, magical-object add/swap/remove, zero-keys insertion — each cross-linked to the key-finding doc and any verified-working golden), and genuinely unmapped fields (random seed, HC+0x11/+0x15 unidentified damage floats, held wood/bean, lifetime cumulative stats).
+  - Also documents the run-state cleanup that mint applies automatically (score floats, ActivityScore records, chapter-progression banner, playtime, dream-shards earned/spent, held inventory, level/XP).
+  - Real-world gotchas section folds in the chapter-boss-kill-only save constraint, Steam Cloud + swap-while-running clobber hazards, and the false-negative save-load error modal.
+  - Cross-references the canonical pipeline (`save-edit-pipeline-2026-04-30.md`), held-dream-shards reference, hero-swaps recipe, magical-objects format, and the rerw-src libraries (setters, save_mint, hc_walker, game_registry).
+
 MAINT-19: `rw-context-handoff` slash command — add delta mode (2026-05-01)
   - Same-day re-invocations now produce a short delta document (Prior handoff / Deltas since prior / Next steps) referencing the most recent prior handoff for unchanged context, rather than re-emitting a full snapshot.
   - Mode selection: explicit `--full` overrides; otherwise if a `rw-context-handoff-<YYYYMMDD>-*.md` already exists for today, delta mode is used; otherwise full mode.
