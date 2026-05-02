@@ -48,6 +48,7 @@ from lib.talent_edit import (
     find_talent_record,
     parse_tier,
     read_picks,
+    write_all_tier_bytes,
     write_pick,
     write_tier,
 )
@@ -1207,6 +1208,69 @@ def tier_cmd(
     click.echo(
         f"tier slot {slot}: "
         f"{TIER_VALUE_TO_NAME.get(old_tier, old_tier)} -> "
+        f"{TIER_VALUE_TO_NAME.get(tier_int, tier_int)}"
+    )
+    click.echo(f"CRC32: 0x{new_crc:08X}")
+    success(f"Wrote {out_path}")
+
+
+@write_savefile_cmd.command(
+    name="all-talent-rarities",
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
+@click.argument(
+    "rarity",
+    type=str,
+    metavar="<0-3|common|rare|epic|legendary>",
+)
+@_common_io_opts
+def all_talent_rarities_cmd(
+    rarity: str,
+    source: Path,
+    dest: Path,
+    force: bool,
+    verbose: bool,
+) -> None:
+    """Bulk-set every talent's stored rarity in the hero's pool.
+
+    Writes the tier byte on every tag=0x10 controller record found in the
+    save (typically 28 per hero). Records currently set to the ult-marker
+    sentinel (tier=4) are left untouched so ultimate slots aren't
+    misclassified as a regular rarity.
+
+    At runtime, the talent picker stamps a slot's rarity from the picked
+    talent's stored tier byte. Setting every talent to the same rarity here
+    means every picker proposal in the run will display that rarity,
+    regardless of which talent the seed selects.
+    """
+    out_path = _check_dest_writable(dest, force)
+    info(f"Source savefile: {source}")
+    try:
+        data = bytearray(source.read_bytes())
+    except OSError as exc:
+        error(f"Failed to read source: {exc}")
+        raise SystemExit(1) from exc
+    try:
+        tier_int = parse_tier(rarity)
+        modified = write_all_tier_bytes(data, tier_int)
+    except TalentEditError as exc:
+        error(str(exc))
+        raise SystemExit(1) from exc
+    if modified == 0:
+        error(
+            "No tag=0x10 records modified "
+            "(save has none, or all are ult-marker)."
+        )
+        raise SystemExit(1)
+
+    new_crc = recompute_crc(data)
+    try:
+        out_path.write_bytes(bytes(data))
+    except OSError as exc:
+        error(f"Failed to write {out_path}: {exc}")
+        raise SystemExit(1) from exc
+    click.echo(
+        f"all-talent-rarities: {modified} talent(s) set to "
         f"{TIER_VALUE_TO_NAME.get(tier_int, tier_int)}"
     )
     click.echo(f"CRC32: 0x{new_crc:08X}")

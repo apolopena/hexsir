@@ -15,6 +15,12 @@
 
 
 
+## Backlog
+
+- **CLI shape: `tier` subcommand is ambiguously scoped.** `rerw write savefile tier --slot N --tier T` is currently a top-level field, but tier applies to BOTH talents and items. Needs scoping under the relevant noun (e.g. `rerw write savefile talent tier --slot N --tier T` and a parallel `item tier`), or the existing `tier` subcommand needs explicit talent/item disambiguation. Holding off until the runtime tier-roller (Frida path B) is solved, since findings there may inform what other tier-related save edits we want to expose.
+
+
+
 ## Done
 <!-- DONE_START -->
 MAINT-23: `rerw write savefile item swap|add|remove` CLI subcommands (2026-05-01)

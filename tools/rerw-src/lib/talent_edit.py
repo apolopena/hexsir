@@ -168,3 +168,40 @@ def parse_tier(value: str | int) -> int:
         f"Unknown tier {value!r}; expected one of "
         f"{sorted(set(TIER_NAMES.keys()))} or 0..3 numeric"
     )
+
+
+def write_all_tier_bytes(
+    data: bytearray, tier: int, skip_ult_marker: bool = True
+) -> int:
+    """Bulk-set the tier byte on every tag=0x10 record in the save.
+
+    Iterates `[start_marker][tag=0x10][16-byte GUID][flag][tier byte]` records
+    and overwrites the tier byte at GUID+17 to `tier`.
+
+    When `skip_ult_marker=True` (default), records whose current tier byte is
+    `4` (the ult-marker sentinel) are left untouched. The engine reads tier=4
+    as "ult, no rarity" and routes the picker through a roll path; rewriting
+    those bytes to a real rarity could glitch ultimate display. Pass
+    `skip_ult_marker=False` to override every record regardless.
+
+    Returns the count of records modified.
+    """
+    if not 0 <= tier <= 255:
+        raise TalentEditError(f"tier must be a u8 (0..255), got {tier}")
+    pre = TAG10_PRE_PATTERN
+    pre_len = len(pre)
+    count = 0
+    pos = 0
+    while True:
+        pos = data.find(pre, pos)
+        if pos < 0:
+            break
+        guid_off = pos + pre_len
+        tier_off = guid_off + TIER_OFFSET_FROM_GUID
+        if skip_ult_marker and data[tier_off] == 4:
+            pos += 1
+            continue
+        data[tier_off] = tier
+        count += 1
+        pos += 1
+    return count

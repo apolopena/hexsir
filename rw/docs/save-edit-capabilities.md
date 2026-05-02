@@ -23,7 +23,8 @@ Two real-world gotchas at the bottom apply to every category.
 | In-run hero level | `rerw write savefile level <number>` |
 | Accumulated XP | `rerw write savefile xp <number>` |
 | Talent in slot 1–5 | `rerw write savefile talent --slot N --key <TalentKey>` |
-| Talent tier (`common` / `rare` / `epic` / `legendary`) | `rerw write savefile tier --slot N --tier <name>` |
+| Talent tier of one slot (1..4; ult is rarity-less) | `rerw write savefile tier --slot N --tier <name>` |
+| Bulk-set all talents in the hero's pool to one rarity (skips ult-marker controllers) | `rerw write savefile all-talent-rarities <name>` |
 | Chapter (1, 2, 3, 4=epilogue) | `rerw write savefile chapter <1-4>` |
 | Playable hero² | `rerw write savefile hero --key <HeroKey>` |
 | Magical-object record — replace one slot's GUID³ | `rerw write savefile item swap --slot N --key <ItemKey>` |
