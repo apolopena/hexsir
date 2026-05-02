@@ -1,6 +1,6 @@
 # Random seed system — locate and edit
 
-Status: backlog. Queued behind held-inventory hunt.
+Status: backlog. The held-inventory hunt is mostly resolved as of 2026-05-01 (keys, Raven Feathers, Dream Shards all mapped — see `rw/triage/save-mint-status.md` item 2 and `rw/triage/geppetto-save-analysis.md`). Only held wood/bean and other minor ingredient-type resources remain. This item moves up the queue once those finish or are deferred.
 
 ## Observation
 Run randomization is **partially** deterministic per-seed. Replaying the same chapter, some elements repeat exactly while others differ — hard to perceive which is which. The game also exposes a "replay this exact run" capability, which is strong evidence the seed (or seed set) is persisted somewhere accessible. The game UI displays a seed number on screen during play — exact location TBD (note when next visible).

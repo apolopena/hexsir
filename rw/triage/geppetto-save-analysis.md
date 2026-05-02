@@ -2,7 +2,7 @@
 
 **Status:** triage
 **Created:** 2026-04-25
-**Last audited:** 2026-04-30
+**Last audited:** 2026-05-01
 
 ## Sources
 
@@ -22,19 +22,11 @@ The following items, originally documented here as findings, have been confirmed
 - **Chapter counter GUIDs (`13fa8e2c…` and `6661756c74…`)** → pipeline doc; written by `rerw write savefile --chapter N`
 - **Damage is derived from level (multiplier-based)** → pipeline doc gotchas
 - **Stars of Fate** — was listed unresolved here. **Conquered 2026-04-30**: lives at `oCDtEntityCpntHeroControllerPersistentData` body+0x29 (u32). See pipeline doc → "Edit recipes → Stars of Fate live count". Verified spendable in-game.
+- **In-Run Dream Shards (held)** — was listed unresolved here. **Conquered 2026-05-01 (BREAKTHROUGH-2)**: lives at `oCDtEntityCpntHeroControllerPersistentData` body+0x1D as **float32** (byte-misaligned), front-anchored across all chapters. The HUD reads this byte range verbatim — no recompute from earned − spent. Verified end-to-end via lab `held-shards-99__from-mint__from-chapter3-laser_lenses_1-proof` (golden); HUD shows 99 on load with earned=0/spent=0. The 2026-04-30 "990 at HC+0x35d" partial finding was the SPENT-at-dream-tree counter (also float32; lives at a chapter-shifting offset resolved by `lib/hc_walker.py`), not held. Adjacent +0x19 holds total earned-this-run (= held + spent). Reference: `rw/key-findings/held-dream-shards.md`. Edit via `rerw write savefile shards <number>`.
+- **Held Raven Feathers** — was listed unresolved as "held inventory". **Conquered earlier this session**: lives at `oCDtCurrentRunProfileData` body+0x15D (u32). Verified end-to-end via held-feathers-14 lab. Edit via `rerw write savefile feathers <number>`.
+- **Held Nightmare Keys** — was listed unresolved as "held inventory". **Conquered 2026-04-30 / -05-01**: HeroIngredient vector at HC body+0x21; per-record format `u32 type_id + u32 count`; type_id `0xc4cb986e` = Nightmare Key. Edit via `rerw write savefile keys <number>` (existing-record case).
 
 ## Still unresolved
-
-### In-Run Dream Shards (101 → 21 → 29)
-
-Pattern across saves: the in-run held shards count is NOT the persistent profile shards (which sits at 101 in every save).
-
-- NOT found as int32 with any consistent GUID/pattern (confirmed 2026-04-25)
-- Exhaustive GUID-based search returned zero matches
-- **2026-04-30 partial finding**: a float = 990 was found at HeroController body+0x35d in the chapter-2 proof. We zeroed it during v4 mint. Suspected to be dream-shards-collected (per-run cumulative). This is *adjacent* to but distinct from the held-shards count puzzle. The held count (the spendable HUD value) is still unmapped.
-- Likely stored differently: packed, in an inventory array, or computed
-
-Cross-reference: `rw/triage/save-mint-status.md` item (1) "held inventory" — possibly the same record as held shards.
 
 ### Health (149 → 288 → 439)
 
@@ -50,8 +42,7 @@ Cross-reference: `rw/triage/save-mint-status.md` item (1) "held inventory" — p
 
 ### Item Counts and Abilities
 
-- No clear storage pattern for items
-- **2026-04-30 update**: held inventory (Nightmare Keys, Raven Feathers, Bean ingredient) is now empirically confirmed to persist across save → restart cycles. Byte location remains unmapped.
+- **2026-05-01 update**: held inventory partially mapped. Conquered: Nightmare Keys (HeroIngredient vec at HC+0x21, per-record `u32 type_id + u32 count`), Raven Feathers (CRP body+0x15D, u32), Dream Shards (HC body+0x1D, float32). Still unmapped: held wood, held bean, and any other ingredient-type held resources beyond the three conquered. Magical objects (the 68 Dragon's Hide / Vorpal Blade etc. items) are decoded; add/swap/remove mechanism documented in `rw/key-findings/magical-objects.md` (1 verified golden, no CLI subcommand yet).
 - Cross-reference: `rw/triage/save-mint-status.md` item (1)
 - Abilities not investigated
 

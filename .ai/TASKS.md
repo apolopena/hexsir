@@ -17,6 +17,11 @@
 
 ## Done
 <!-- DONE_START -->
+MAINT-21: Sync triage docs to BREAKTHROUGH-2 (2026-05-01)
+  - `rw/triage/geppetto-save-analysis.md`: moved In-Run Dream Shards, Held Raven Feathers, and Held Nightmare Keys from "Still unresolved" to "Conquered" with bytefield offsets and CLI refs. Expanded "Item Counts" to note the three held-inventory currencies live in three DIFFERENT records (HeroIngredient vec at HC+0x21 for keys, CRP+0x15D for feathers, HC+0x1D for shards) and that magical-objects add/swap/remove is mechanism-decoded with one golden but no CLI yet.
+  - `rw/triage/save-mint-status.md`: item (1) Open follow-ups updated to flag shards + feathers RESOLVED with their actual byte locations, narrowing the open hunt to wood / bean / other ingredient-type held resources. Item (2) main bullet updated similarly.
+  - `rw/triage/random-seed-system.md`: status note rewritten — the held-inventory hunt is mostly resolved, so this item moves up the queue once wood/bean finish or are deferred.
+
 MAINT-20: Save-edit capabilities reference doc (2026-05-01)
   - New `rw/docs/save-edit-capabilities.md` cataloguing every save modification the project can perform today, in three categories: CLI one-liners (`rerw write savefile <field>`, `mint`, `swap`), proven edits without a CLI (hero swap, magical-object add/swap/remove, zero-keys insertion — each cross-linked to the key-finding doc and any verified-working golden), and genuinely unmapped fields (random seed, HC+0x11/+0x15 unidentified damage floats, held wood/bean, lifetime cumulative stats).
   - Also documents the run-state cleanup that mint applies automatically (score floats, ActivityScore records, chapter-progression banner, playtime, dream-shards earned/spent, held inventory, level/XP).
