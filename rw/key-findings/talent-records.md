@@ -1,5 +1,21 @@
 # Save: talent records
 
+## What this doc is — for non-experts
+
+**Plain-English summary.** When you pick talents during a Ravenswatch run, the game records two different things in the save: WHICH talent goes in each slot (a 16-byte ID per slot) and WHAT RARITY each talent has (a 1-byte tier value per controller, plus 10 u32 per-slot tier values). The CLI exposes editing both for chapter-2 boss-kill saves; epilogue saves use a different storage layout that we haven't yet decoded.
+
+**Rules of thumb when working with this finding:**
+
+1. **Talent CLI only works on saves with exactly 5 picks.** `rerw write savefile talent --slot N --key K` searches for the `count=5` sentinel and fails on any save with fewer or more picks (e.g. epilogue with 10 picks). For now, all per-slot talent edits must be sourced from a chapter-2 (or other 5-pick) proof.
+2. **Tier is stored in TWO places.** The per-controller tier byte (in tag=0x10 records) drives the HUD display and the picker stamp when the slot's loaded talent is valid. The per-slot u32 array at talent-record `+0x35` (10 entries) drives the picker stamp when the slot's loaded talent is null/incompatible. Edit both via `rerw write savefile all-talent-rarities <rarity>`.
+3. **Slot 5 is the ult slot. Slot 10 is the ult-upgrade.** Slot 5's tier byte is always `0x04` (ult-marker). Slot 10 has rarity per the user's gameplay observation, contrary to what an earlier version of this doc claimed.
+4. **Mint does NOT clear talent picks.** It zeroes per-run currencies, level, xp, scores, and a few other fields, but the talent records (tag=0x12 picks block + tag=0x10 tier bytes + slot.tier u32s) are passed through verbatim from the source proof.
+5. **Hero-swap creates a hybrid state.** The save still has the old hero's talent GUIDs but the new hero's controller pool; the engine "translates" old GUIDs to new-hero equivalents. Side effect: if you hero-swap an epilogue save to a different hero, the engine may put the new hero's ult into engine-slot 0 (HUD slot 1) at runtime, distorting the level 5 picker behavior.
+
+**Skip to the deeper sections for the byte layouts and editing primitives.**
+
+---
+
 Talent picks and tier values are encoded in the save body as references to skill-controller GUIDs defined in each hero's `herodef.ot` binary. Two distinct record types carry the data:
 
 - A **tag=0x12 talent record** holds the player's talent picks for the run, stored as N × 16-byte skill-controller GUIDs back-to-back near the end of the record (N = number of slots picked so far).
@@ -72,12 +88,11 @@ In the chapter2 Geppetto proofs, the 5-pick block sits at:
 
 The edit is constant-size — the talent-pick block is fixed 80 bytes regardless of which talents are slotted. No body shift required.
 
-### Other fields in the talent record (not yet edit-verified)
+### Other fields in the talent record (clarified 2026-05-02)
 
 Beyond the 5-pick block, the record also contains:
 - A header with timing/state floats (purpose unconfirmed).
-- 4 u32 LE values at body+0x35..+0x44 that statistically perfectly match the player's tier distribution (A = `[0, 2, 1, 0]` matching A's Common/Epic/Rare/Common picks; B = `[3, 3, 3, 3]` matching B's all-Legendary picks). However, **editing these does NOT change the displayed tier in-game** — they are a parallel encoding the engine doesn't read for HUD tier. See `rw/dumps/geppetto/talent-record-decoded.txt` for the falsifying lab test record.
-- Six consecutive u32(4) values at body+0x45..+0x5c (purpose unknown, same in both proofs).
+- **10 u32 LE values at body+0x35..+0x5c — the per-slot tier array.** Each value `[0..4]` is one slot's tier (0=Common, 1=Rare, 2=Epic, 3=Legendary, 4=ult-marker / uninitialized). Earlier this doc claimed this region was a "parallel encoding the engine doesn't read for HUD tier" — that was correct for HUD display but missed that the **picker** does read it: when a slot's loaded talent is null (e.g., after hero-swap incompatibility), the picker stamps the picked talent's rarity from this array rather than from the tag=0x10 byte. Empirically verified 2026-05-02 by editing all 10 entries to `3` and observing every picker proposal display Legendary regardless of which talent was selected. CLI: `rerw write savefile all-talent-rarities <rarity>` writes BOTH this array and the 28 tag=0x10 tier bytes in one pass.
 - A nested-record list of tag=0x1a records (21 in Save A, 11 in Save B). Each is 32 bytes (`marker + tag + 16-byte runtime GUID + u32 sequence counter + close`). **Identified 2026-04-29 as item pickup records, not talent-offer history.** Each record represents one item the player collected during the run; the 16-byte GUID matches a magical-object entity-component instance. See `magical-objects.md` for the full record format and verified SWAP edit primitive.
 
 ## Tier record (tag=0x10, first-occurrence)

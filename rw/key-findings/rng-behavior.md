@@ -1,5 +1,19 @@
 # RNG behavior — Ravenswatch per-event RNG
 
+## What this doc is — for non-experts
+
+**Plain-English summary.** Ravenswatch picks talents, rarities, and other "random" outcomes from one shared random stream (a single 32-bit number that gets stepped each time something rolls). We located that number in memory, learned how to overwrite it with Frida, and verified that doing so makes the talent picker pick the same talents and rarities every time you trigger it.
+
+**Rules of thumb when working with this finding:**
+
+1. **There is one seed.** No per-talent seeds, no per-rarity seeds. Every roll comes from the same chain. Force it once at the right moment and the entire downstream cascade is deterministic.
+2. **The talent picker writes rarity into TWO places.** A per-controller "tier byte" (one per controller in the hero's pool) AND a per-slot u32 (10 entries inside the talent-record body at offset `+0x35`). The picker stamps from one or the other depending on whether the slot's loaded talent is valid for the active hero — both must be set if you want consistent rarity across all picker fires (see `talent-records.md`).
+3. **Hooking the leaf PCG function is the WRONG hook point.** The actual gameplay rolls inline the PCG step, they don't call the leaf. Hook at the per-feature picker function's entry instead.
+4. **GS-relative TLS access from Frida shims is unreliable.** Use `NtQueryInformationThread` syscall to get the TEB, or read R9 from the function's own context after the function has resolved TLS itself. Don't trust your shim's `mov rax, gs:[0x58]`.
+5. **Anything that touches the TLS slot between picker fires shifts the chain.** Combat entity spawns, AI, particle effects all step the seed. So "force the seed at picker entry" works because we always overwrite right before the picker's first read; you can't pre-seed once and expect determinism for picker calls minutes later.
+
+**Skip to the deeper sections if you're implementing or extending forcing.**
+
 ## Single TLS-backed PCG stream drives everything
 
 Per-event gameplay RNG (talent picker, item picker, chest rewards, shop offers, almost certainly tier/rarity rolls and similar gameplay decisions) all read and step a **single 32-bit seed** stored in thread-local storage at offset `0xff3c` of the main module's static TLS data block.
@@ -84,6 +98,19 @@ This means the seed in TLS drifts continuously during play. Forcing the seed in 
 - The seed slot belongs to dynamic TLS (the function calls `__dyn_tls_on_demand_init` on the very first per-thread access). On the first call ever on a thread, the TLS data block may be too small to access offset `0xff3c` — reads/writes from outside (e.g., Frida) will fault. After that first init, subsequent calls work. In practice the talent picker is reached well after first init, so the harness sees a usable slot every time.
 - User-mode GS register access from a Frida `NativeFunction`-allocated shim does NOT preserve the calling thread's GS base. Even `mov rax, gs:[0x30]` faults in that context. The TEB must be obtained via a kernel-thunked syscall (`NtQueryInformationThread`) or via the function's own context (e.g., reading R9 inside an Interceptor at an instruction where the function has already loaded the TLS pointer).
 - Hooking inside the picker's tight inline-PCG loop (e.g., at the `IMUL` instruction at `image+0x39c774`) crashed the game during testing — Frida's relocator did not handle the IMUL with `[R12 + R9*1 + 4]` SIB addressing inside that loop. Hook at function entry only.
+
+## Dual-storage tier model (verified 2026-05-02)
+
+Talent-pick rarity is stored TWICE in the save and the picker reads either one depending on context:
+
+1. **Per-controller tier byte** in tag=0x10 records (28 entries per hero, one per controller in the hero's pool). Offset: `[GUID_offset + 17]` per `talent-records.md`. The picker reads this when the slot has a valid loaded talent (the runtime sync function `SkillController_sync_slot_tiers_from_talents` at `image+0x39bc80` copies talent.tier → slot.tier when slot's pointer is non-null).
+2. **Per-slot u32 tier array** in the tag=0x12 talent record body, at offset `+0x35`. Ten u32 entries `[0..4]` (0=Common, 1=Rare, 2=Epic, 3=Legendary, 4=ult-marker / uninitialized). The picker reads this when the slot's loaded talent is null (e.g., after a hero swap where the saved talent IDs don't match the active hero's pool).
+
+**Empirical confirmation:** With only the tag=0x10 bytes set to legendary, level 1 and 2 pickers showed legendary (slots had valid sync'd talents), but level 4 picker showed common (slot had no valid loaded talent → picker fell back to the per-slot u32 array which still held the original Geppetto run's common value). After also setting all 10 per-slot u32s to legendary via `rerw write savefile all-talent-rarities legendary`, every picker showed legendary.
+
+**Sync function decompile:** `image+0x39bc80` iterates 10 slots at `param_1+0xff0..+0x1110` (stride `0x20`); for each non-null talent pointer, reads talent's tier byte at `+0x68` of the talent record, writes to `*(param_1+0x1d48) + 0x18 + slot*4` (the runtime slot.tier array, mirrored to the on-disk u32 array at talent-record `+0x35`).
+
+**Tier-roll function** (`talent_roll_tier_weighted` at `image+0x2e7b80`) is invoked only when slot.tier == 4 at picker time — the engine treats 4 as the "uninitialized, roll fresh" sentinel. The roll calls `uniform_float_in_range_pcg` (`image+0x4ffce0`), which inlines the same TLS+0xff3c PCG. Weights are biased by the "Skill better quality chance" modifier (hash `0x1709d22b`, read 3 times in a loop in the picker).
 
 ## References
 
