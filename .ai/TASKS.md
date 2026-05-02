@@ -17,6 +17,12 @@
 
 ## Done
 <!-- DONE_START -->
+MAINT-18: Align hero + magical-item YAMLs to strict-key registry schema (2026-05-01)
+  - 12 hero YAMLs add `schema_version: "1.0.0"`, `registry_id: hero_talents`, and a `hero:` block with `key` + `engine_name`. Closes the data side of the strict-key migration shipped in PRP-4 (`lib/game_registry.py`).
+  - `magical-items.yaml` adds `schema_version: "1.0.0"` and `registry_id: magical_items`. Header comment dropped the obsolete reference to fuzzy normalization (case/whitespace/dashes/underscores) since the resolver is now strict-key only.
+  - Per-controller / per-item bodies are unchanged structurally; only the file-level metadata block is new.
+  - The legacy `lib/skill_controllers.py` loader (used by deprecated `--talent-id` flag) still expects the pre-migration schema. Acceptable per the deprecation plan; not regressed.
+
 BREAKTHROUGH-2: Held Dream Shards bytefield mapped + `write savefile shards` (2026-05-01)
   - Located held Dream Shards at `oCDtEntityCpntHeroControllerPersistentData` body+0x1D as float32 LE (byte-misaligned). Same offset across all chapters (front-anchored in the static prefix).
   - Verified authoritative direct-read: lab `held-shards-99__from-mint__from-chapter3-laser_lenses_1-proof` patches HC+0x1D from 0.0 → 99.0 on a mint golden where earned (HC+0x19) and spent (dynamic offset) are both 0.0; HUD shows 99 on load. Game does NOT recompute held = earned − spent.

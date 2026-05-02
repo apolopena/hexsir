@@ -6,10 +6,14 @@
 # GUID in the slot. Tier is stored in a separate tag=0x10 record near the
 # hero record (see save-fields.yaml/talent_record + key-findings/talent-records.md).
 #
-# `aliases` are player-facing talent names. ONE entry is enough — the resolver
-# normalizes case, whitespace, dashes, underscores, and the "Skill Controller "
-# prefix automatically. So `aliases: ["Twin Dummies"]` accepts user input
-# "twin dummies", "Twin_Dummies", "TwinDummies", "TWIN-DUMMIES", etc.
+# `key` is the strict CLI value for talent lookup. Display names and controller
+# names are metadata only; commands do not fuzzy-match them.
+
+schema_version: "1.0.0"
+registry_id: hero_talents
+hero:
+  key: geppetto
+  engine_name: "Geppetto"
 
 controllers:
   - display_name: "Rocket Science"

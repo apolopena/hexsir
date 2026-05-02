@@ -1,8 +1,14 @@
 # Merlin skill controllers — extracted from the herodef binary.
 #
 # Source: Heroes/Merlin.herodef.ot.DtHeroDefinition.gen
-# Auto-generated. Aliases will be added as gameplay verifies
-# the in-game name for each controller.
+# `key` is the strict CLI value for talent lookup. Display names and controller
+# names are metadata only; commands do not fuzzy-match them.
+
+schema_version: "1.0.0"
+registry_id: hero_talents
+hero:
+  key: merlin
+  engine_name: "Merlin"
 
 controllers:
   - display_name: "Runic Might"

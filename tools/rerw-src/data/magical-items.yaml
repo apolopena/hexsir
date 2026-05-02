@@ -4,9 +4,8 @@
 # Each entry maps an effect filename to its 16-byte runtime GUID (used in
 # tag=0x1a active-item records inside the run-state record).
 #
-# `display_name` is the player-facing item name. ONE entry is enough — the resolver
-# normalizes case, whitespace, dashes, underscores. So `display_name: "Vorpal Blade"`
-# accepts user input "vorpal blade", "Vorpal_Blade", "VorpalBlade", "VORPAL-BLADE", etc.
+# `key` is the strict CLI value for item lookup. `display_name` is player-facing
+# metadata only; commands do not fuzzy-match it.
 #
 # Entries with `displays_as` are GHOSTS — deprecated catalog entities still
 # resolvable in the save's active-item record but rerouted to display as a
@@ -17,6 +16,9 @@
 #   - inherits_from: <live entity's effect filename>
 #   - meta_notes: combined-effect description (verbatim wiki text where available)
 # See `rw/key-findings/item-table.md` for full per-item details (icons, name keys, catalog GUIDs).
+
+schema_version: "1.0.0"
+registry_id: magical_items
 
 items:
   - display_name: "Green Armor"
