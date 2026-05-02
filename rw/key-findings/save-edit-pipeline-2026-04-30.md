@@ -144,17 +144,17 @@ To zero stats while keeping load-valid: preserve the count values and trailing s
 ### oCDtEntityCpntHeroControllerPersistentData
 
 - Top-level instance, class id from the chapter2 registry (1 per active hero). Body is 873 bytes in chapter2 example.
-- Per-run **damage stats** stored at body offsets starting at `+0x11` (byte-misaligned reads, NOT 4-aligned):
+- Per-run **float block** at body offsets starting at `+0x11` (byte-misaligned reads, NOT 4-aligned):
 
-| Body offset | Float | Meaning |
+| Body offset | Float (ch2 / ch3) | Meaning |
 |---|---|---|
-| +0x11 | 77001.3 | Damage dealt total |
-| +0x15 | 745.8 | Damage taken |
-| +0x19 | 1091 | Damage breakdown |
-| +0x1d | 101 | Damage breakdown |
-| +0x35d | 990 | Additional damage stat |
+| +0x11 | 77001.3 / 235740.0 | Per-run damage stat (likely damage dealt; not yet rigorously confirmed) |
+| +0x15 | 745.8 / 1395.5 | Per-run damage stat (likely damage taken; not yet rigorously confirmed) |
+| +0x19 | 1091 / 2041 | **Total Dream Shards earned this run** (= held + dream_shards_spent) |
+| +0x1d | 101 / 21 | **Held Dream Shards** — HUD-displayed spendable count. Authoritative direct-read field; verified in `held-shards-99__from-mint__from-chapter3-laser_lenses_1-proof` lab (HUD shows the patched value verbatim, does NOT recompute from earned − spent). |
+| (dynamic) | 990 / 2020 | **Dream Shards spent at the dream tree** this run. Float32 at a chapter-shifting offset (+0x35d ch2, +0x65d ch3, +0x79d epilogue) past the HeroIngredient vec, HMO vec, and three guid16 vecs; resolved at runtime by `lib/hc_walker.py` as `dream_shards_spent`. |
 
-Zeroing these (16 bytes at +0x11, plus 4 bytes at +0x35d) **resets the displayed run-summary damage values** correctly. This is what we hit in the v2 zeroing test.
+Cross-check: `held = earned − spent` for ch2 (101 = 1091 − 990) and ch3 (21 = 2041 − 2020). The relationship holds in observed saves but is **not** an invariant the game enforces on load — HUD reads `+0x1D` directly. Zeroing the 16-byte block at `+0x11` (which mint does) clears earned + held atomically; spent is zeroed separately via the dynamic walker. See `held-dream-shards.md` for the standalone field reference.
 
 The first 16 bytes of the body (offsets 0x00-0x0F) are 4 hash-shaped u32s — likely the hero's identity (4-part GUID-like locator). Don't touch these.
 
@@ -186,7 +186,9 @@ The displayed end-of-run score page values map to file fields as follows:
 |---|---|---|
 | Damage dealt | `HeroController` body +0x11 (primary) AND mirrored in `HeroScoreData` group 1[0] | Game reads from HeroController; HeroScoreData is a cached snapshot. |
 | Damage taken | `HeroController` body +0x15 AND `HeroScoreData` group 3[0] | Same dual storage. |
-| Other damage breakdown (1091, 990) | `HeroController` body +0x19 / +0x35d | Per-source counters. |
+| Held Dream Shards (HUD spendable) | `HeroController` body +0x1d (float32) | Direct-read; not derived from earned − spent. See `held-dream-shards.md`. |
+| Dream Shards earned this run | `HeroController` body +0x19 (float32) | = held + dream_shards_spent. |
+| Dream Shards spent at dream tree | `HeroController` body, dynamic offset (+0x35d ch2 / +0x65d ch3 / +0x79d epi) (float32) | Resolved at runtime by `lib/hc_walker.py`. |
 | Playtime (e.g. 1409s = 23:29) | `oCDtCurrentRunProfileData` own body +0xe5 | Float in seconds, byte-misaligned. |
 | In-run hero level | `GroupLevelPersistentData` body +0x11 | u32, byte-misaligned. `rerw --level N` writes here. |
 | Accumulated XP (drives "Level reached" delta) | `GroupLevelPersistentData` body +0x15 | u32, byte-misaligned. **Must be zeroed alongside hero level** — game derives effective level from `level + XP/threshold`, so leftover XP shifts the cumulative "Level reached" appended on defeat. |
@@ -535,7 +537,7 @@ struct.pack_into("<I", section, hcb + 0x29, 7)   # stars of fate live count
 - ~~HeroController body+0x2d (unknown stat) is similarly stuck~~ — RESOLVED, same root cause.
 - ~~Score-Details achievement records source unmapped (compounding-blanks bug)~~ — RESOLVED. The records were the `ActivityScore × N` instances in CRP all along; the production mint removes them and zeroes the parent count u32, so the deserialize loop runs zero iterations and no icons render.
 - ~~Chapter-progression banner carryover~~ — RESOLVED. CRP body u32 at `first_ActivityScore_frame.start - 8` (`3 × chapters_completed`) zeroed by the production mint.
-- **Held inventory beyond keys (feathers/wood/bean/dream-shards-spendable)** — keys schema (`oSDtHeroIngredient` vector at HC body+0x21) is fully decoded and editable; other ingredients appear to live in a different storage location, still unmapped.
+- **Held inventory partially mapped.** Decoded so far: keys (`oSDtHeroIngredient` vector at HC body+0x21), held Raven Feathers (CRP body+0x15D, u32), held Dream Shards (HC body+0x1D, float32 — see `held-dream-shards.md`). Still unmapped: held wood, held bean, and any other run-side ingredients not surfaced by the HUD.
 
 ### Recipe — diff two saves (find what changed)
 

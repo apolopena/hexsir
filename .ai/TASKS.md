@@ -17,6 +17,16 @@
 
 ## Done
 <!-- DONE_START -->
+BREAKTHROUGH-2: Held Dream Shards bytefield mapped + `write savefile shards` (2026-05-01)
+  - Located held Dream Shards at `oCDtEntityCpntHeroControllerPersistentData` body+0x1D as float32 LE (byte-misaligned). Same offset across all chapters (front-anchored in the static prefix).
+  - Verified authoritative direct-read: lab `held-shards-99__from-mint__from-chapter3-laser_lenses_1-proof` patches HC+0x1D from 0.0 → 99.0 on a mint golden where earned (HC+0x19) and spent (dynamic offset) are both 0.0; HUD shows 99 on load. Game does NOT recompute held = earned − spent.
+  - `lib/hc_walker.py`: renamed `damage_float_3` → `dream_shards_earned`, `damage_float_4` → `held_dream_shards`. Comments tag the still-unidentified `damage_float_1`/`_2` at HC+0x11/+0x15.
+  - `lib/setters.py`: added `set_held_dream_shards` (float32). `zero_per_run_damage` docstring updated to reflect the now-known meaning of the +0x19/+0x1D pair (it already zeros the whole 16-byte block; mint behavior unchanged).
+  - `rerw write savefile shards <float>` subcommand wired through `_apply_setter_edit`. CLI smoke-tested: 0.0 → 50.0 round-trips through encode + parse.
+  - New key-finding `rw/key-findings/held-dream-shards.md`: standalone bytefield reference with cross-checks for ch2/ch3 (held = earned − spent invariant holds in observed natural saves but is not enforced on load).
+  - Updated `rw/key-findings/save-edit-pipeline-2026-04-30.md` HC body section + stat-source mapping + known-gaps to reflect the dream-shards mapping.
+  - Promoted lab → golden: `rw/saves/edits/golden/geppetto/chapter1/held-shards-99__from-mint__from-chapter3-laser_lenses_1-proof/` with breakthrough.md.
+
 PRP-4: Strict-key game registry + `game-assets inspect` + held-keys write (2026-05-01)
   - MAINT-15 absorbed ~30% of the original proposal (per-field write subcommand consolidation under `rerw write savefile`); this PRP delivers the still-valid remainder. Original proposal at `.ai/planning/prp/proposals/PRP-4_rerw-strict-key-writes-and-asset-inspection.md`.
   - New `lib/game_registry.py`: strict-key views over `heroes`, `hero_talents`, `magical_items` with schema validation (major-version match on `schema_version`, exact `registry_id` match). No aliases, no fuzzy, no display-name fallback.

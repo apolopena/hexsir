@@ -81,6 +81,24 @@ def set_held_feathers(cf: cooked.CookedFile, count: int) -> int:
     return old
 
 
+def set_held_dream_shards(cf: cooked.CookedFile, count: float) -> float:
+    """Set held Dream Shards (HC body+0x1D, float32). Returns the old value.
+
+    Authoritative direct-read field — HUD shows this value verbatim and does
+    not recompute it from earned − spent. Edits stick directly.
+    """
+    if count < 0:
+        raise ValueError(f"shards must be >= 0, got {count}")
+    section = bytearray(cf.object_section)
+    roots = cooked.parse_object_tree(cf)
+    hc = _find_unique(cf, roots, HC_CLASS)
+    off = hc.start + 8 + 0x1D
+    old = struct.unpack_from("<f", section, off)[0]
+    struct.pack_into("<f", section, off, float(count))
+    cf.object_section = bytes(section)
+    return old
+
+
 # Type IDs for HeroIngredient records (HC body+0x21 vector).
 HERO_INGREDIENT_CLASS = "oSDtHeroIngredient"
 NIGHTMARE_KEY_TYPE_ID = 0xC4CB986E
@@ -184,8 +202,13 @@ def set_feathers_spent(cf: cooked.CookedFile, count: int) -> int:
 
 
 def zero_per_run_damage(cf: cooked.CookedFile) -> tuple[float, float, float, float]:
-    """Zero the 4 damage floats at HC body+0x11..+0x21. Returns the old
-    values as a 4-tuple."""
+    """Zero the 4 per-run floats at HC body+0x11..+0x21. Returns the old
+    values as a 4-tuple `(damage_float_1, damage_float_2,
+    dream_shards_earned, held_dream_shards)`.
+
+    +0x11/+0x15 are still-unidentified (likely damage-related) per-run stats.
+    +0x19 is total Dream Shards earned this run; +0x1D is held Dream Shards.
+    """
     section = bytearray(cf.object_section)
     roots = cooked.parse_object_tree(cf)
     hc = _find_unique(cf, roots, HC_CLASS)

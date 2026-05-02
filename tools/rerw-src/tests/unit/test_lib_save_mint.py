@@ -172,11 +172,21 @@ def test_held_feathers_zeroed(proof_cf: cooked.CookedFile) -> None:
     assert feathers == 0, f"held feathers should be 0 after mint, got {feathers}"
 
 
-def test_mint_zeros_damage_floats(proof_cf: cooked.CookedFile) -> None:
+def test_mint_zeros_per_run_float_block(proof_cf: cooked.CookedFile) -> None:
+    """HC body+0x11..+0x21 covers two unidentified floats followed by
+    dream_shards_earned (+0x19) and held_dream_shards (+0x1D). Mint zeros
+    the whole 16-byte block."""
     mint_object_section(proof_cf)
     assert _hc_body(proof_cf)[0x11:0x21] == b"\x00" * 16, (
-        "HC damage floats not zeroed"
+        "HC per-run float block not zeroed"
     )
+
+
+def test_mint_zeros_held_dream_shards(proof_cf: cooked.CookedFile) -> None:
+    """Held Dream Shards (HC body+0x1D, float32) must be 0.0 after mint."""
+    mint_object_section(proof_cf)
+    held = struct.unpack_from("<f", _hc_body(proof_cf), 0x1D)[0]
+    assert held == 0.0, f"held dream shards should be 0 after mint, got {held}"
 
 
 def test_mint_zeros_stars(proof_cf: cooked.CookedFile) -> None:

@@ -40,11 +40,13 @@ def mint_object_section(cf: cooked.CookedFile) -> MintReport:
     """
     steps: list[MintStep] = []
 
-    # 1. HC per-run damage stats and dream-shards-spent.
+    # 1. HC per-run float block (+0x11..+0x21):
+    #    [+0x11/+0x15 = unidentified damage-ish floats; +0x19 = dream shards
+    #    earned this run; +0x1D = held Dream Shards]. All zeroed wholesale.
     old_dmg = setters.zero_per_run_damage(cf)
     steps.append(
         MintStep(
-            label="HC per-run damage floats",
+            label="HC per-run float block (incl. earned + held dream shards)",
             old=", ".join(f"{v:g}" for v in old_dmg),
             new="0, 0, 0, 0",
         )

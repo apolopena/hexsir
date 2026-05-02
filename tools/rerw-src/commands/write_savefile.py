@@ -106,9 +106,9 @@ def _apply_setter_edit(
     dest: Path,
     force: bool,
     verbose: bool,
-    setter_fn: Callable[[cooked.CookedFile], int],
+    setter_fn: Callable[[cooked.CookedFile], int | float],
     field_label: str,
-    new_value: int,
+    new_value: int | float,
 ) -> None:
     """Common flow for object-section setter edits (feathers/stars/level/xp).
 
@@ -650,6 +650,30 @@ def level_cmd(value: int, source: Path, dest: Path, force: bool, verbose: bool) 
         lambda cf: setters.set_hero_level(cf, value),
         "level",
         value,
+    )
+
+
+@write_savefile_cmd.command(
+    name="shards",
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
+@click.argument("count", type=click.FloatRange(0), metavar="<float>")
+@_common_io_opts
+def shards_cmd(count: float, source: Path, dest: Path, force: bool, verbose: bool) -> None:
+    """Set the held Dream Shards count (HUD spendable currency).
+
+    Stored as float32 at HC body+0x1D. Authoritative direct-read field —
+    HUD shows this value verbatim and does not recompute it from
+    earned − spent.
+    """
+    _apply_setter_edit(
+        source,
+        dest,
+        force,
+        verbose,
+        lambda cf: setters.set_held_dream_shards(cf, count),
+        "shards (held)",
+        count,
     )
 
 

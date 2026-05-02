@@ -8,8 +8,9 @@ past framed sub-objects (using the cooked tree's child list) to compute
 the actual byte position of each named field at runtime.
 
 Returns a `dict[str, (offset, length)]` keyed by field name. Useful keys
-for mint operations: `dream_shards_spent`, `raven_feathers_consumed`,
-`stars_of_fate`, `ingredient_vec_count`, `hmo_vec_count`.
+for mint operations: `held_dream_shards`, `dream_shards_earned`,
+`dream_shards_spent`, `raven_feathers_consumed`, `stars_of_fate`,
+`ingredient_vec_count`, `hmo_vec_count`.
 """
 
 from __future__ import annotations
@@ -52,8 +53,11 @@ def walk_hc_body(
     record("flag_byte", 1)
     record("damage_float_1", 4)
     record("damage_float_2", 4)
-    record("damage_float_3", 4)
-    record("damage_float_4", 4)
+    # +0x19: total Dream Shards earned this run (held + dream_shards_spent).
+    record("dream_shards_earned", 4)
+    # +0x1d: held Dream Shards — HUD-displayed spendable count.
+    # Authoritative direct-read field; HUD does NOT recompute earned − spent.
+    record("held_dream_shards", 4)
 
     (ing_count,) = struct.unpack_from("<I", body, pos)
     record("ingredient_vec_count", 4)
