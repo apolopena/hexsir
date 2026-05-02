@@ -117,6 +117,22 @@ if (mod === null) {
                 return;
             }
 
+            // Diagnostic dump: read the SkillController's persistent slot.tier
+            // array. param_1 (the SkillController) is in RCX (Win64 ABI).
+            // *(rcx+0x1d48) -> persistent block; +0x18 -> 10 × u32 slot tiers.
+            let slotTiersHex = '?';
+            try {
+                const skillCtrl = this.context.rcx;
+                const persistent = skillCtrl.add(0x1d48).readPointer();
+                const tiersAddr = persistent.add(0x18);
+                const buf = tiersAddr.readByteArray(40);  // 10 × 4 bytes
+                slotTiersHex = Array.from(new Uint8Array(buf))
+                    .map(b => b.toString(16).padStart(2, '0'))
+                    .join('');
+            } catch (e) {
+                slotTiersHex = 'ERR:' + e.message;
+            }
+
             if (forceEnabled) {
                 let writeStatus = 'OK';
                 try { seedAddr.writeU32(forceSeed >>> 0); }
@@ -131,11 +147,13 @@ if (mod === null) {
                         ' tlsData=' + tlsData + ' addr=' + seedAddr +
                         ' was=' + oldSeed +
                         ' wrote=0x' + (forceSeed >>> 0).toString(16).padStart(8, '0') +
-                        ' write=' + writeStatus + nulledPrev);
+                        ' write=' + writeStatus + nulledPrev +
+                        ' slotTiers=' + slotTiersHex);
             } else {
                 logLine(ts() + ' [#' + entryCount + '] entry  tid=' + this.threadId +
                         ' tlsData=' + tlsData + ' addr=' + seedAddr +
-                        ' seed=' + oldSeed);
+                        ' seed=' + oldSeed +
+                        ' slotTiers=' + slotTiersHex);
             }
         }
     });
