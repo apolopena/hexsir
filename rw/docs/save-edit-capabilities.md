@@ -25,10 +25,13 @@ Two real-world gotchas at the bottom apply to every category.
 | Talent in slot 1–5 | `rerw write savefile talent --slot N --key <TalentKey>` |
 | Talent tier (`common` / `rare` / `epic` / `legendary`) | `rerw write savefile tier --slot N --tier <name>` |
 | Chapter (1, 2, 3, 4=epilogue) | `rerw write savefile chapter <1-4>` |
+| Playable hero² | `rerw write savefile hero --key <HeroKey>` |
 | Mint a clean chapter-1 starter from a chapter-boss save | `rerw mint savefile --source X --dest Y` |
 | Swap a save into the live game slot | `rerw swap savefile --source X` |
 
 ¹ The `keys` subcommand updates an existing Nightmare Keys record's count. On a save with **zero** existing keys (no record present), `keys 0` is a no-op success but `keys N>0` errors — inserting a new record is in the deferred category below.
+
+² Hero swap rewrites the length-prefixed `Heroes\<EngineName>.herodef.ot` reference in the save body. Same-length swaps (Geppetto ↔ Carmilla, Geppetto ↔ Melusine — all 8 chars) are byte-for-byte drop-ins with no body shift; different-length swaps shift bytes after the hero record by the name-length delta. Engine tolerance verified across `−5` to `+2` bytes (Red shrink and Snow_Queen grow respectively). On load, slot 1 auto-populates with the new hero's L5 ultimate; slots 2/3/4/5 are cleared. Run state, level, XP, currencies, and chapter position carry over from the source.
 
 ### Discovery commands
 
@@ -62,16 +65,6 @@ After mint, any of the CLI one-liners above can be applied to set per-field base
 ## 2. Proven save edits without a CLI
 
 These have at least one verified-working golden save in `rw/saves/edits/golden/`. The byte-level recipe is documented in the cross-referenced key-finding doc; reproducing the edit today requires adapting the one-off script that produced the golden.
-
-### Hero swap
-
-Replace the playable hero in a save (e.g. swap a Geppetto run for a Carmilla, Aladdin, Snow Queen, or Red run).
-
-- **Status:** verified end-to-end across 4 swaps from a chapter-2 Geppetto proof. All 12 heroes are reachable; the engine tolerates body shifts across `−5` to `+2` bytes induced by name-length differences. Same-length names (Carmilla, Melusine vs Geppetto = 26 chars) are byte-for-byte drop-ins with no shift.
-- **On-load behavior:** slot 1 auto-populates with the new hero's L5 ultimate; slots 2/3/4/5 are cleared. Health, run state, and chapter position carry over from the source.
-- **Recipe:** `rw/key-findings/hero-swaps.md` (length-prefixed splice into the `Heroes\<Name>.herodef.ot` reference) + `rw/key-findings/hero-table.md` (per-hero name length + shift offset).
-- **Goldens:** `rw/saves/edits/golden/geppetto/chapter2/laser-lenses_1/hero-swap-to-{aladdin,carmilla,red,snow_queen}/`.
-- **Ledger entry:** MAINT-8.
 
 ### Magical object — add
 

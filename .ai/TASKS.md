@@ -17,6 +17,12 @@
 
 ## Done
 <!-- DONE_START -->
+MAINT-22: `rerw write savefile hero` CLI subcommand (2026-05-01)
+  - New `tools/rerw-src/lib/hero_edit.py` exposes `find_hero_record(data)` and `swap_hero(data, save_ref)` — pure-logic primitives that splice the length-prefixed `Heroes\<EngineName>.herodef.ot` reference. Custom `HeroEditError` for precondition failures (missing pattern, multiple matches, bad prefix length). Reuses `HERO_PATH_RE` from `lib/talent_edit.py`.
+  - New `rerw write savefile hero --key <HeroKey>` subcommand. Resolves the strict key via `lib.game_registry.heroes().lookup(key)` to obtain `save_ref`; mutates raw bytes via `swap_hero`; recomputes CRC via `lib.save_edit.recompute_crc`. Same-length / shrink / grow all handled by `bytearray` slice assignment (file size shifts naturally).
+  - Tests at `tools/rerw-src/tests/unit/test_lib_hero_edit.py` (9 cases, all passing): find/error paths plus byte-equality validation against all 4 verified-working goldens (`hero-swap-to-{carmilla,aladdin,snow_queen,red}`) covering the no-shift / -1 / +2 / -5 byte cases. Round-trip Geppetto -> Carmilla -> Geppetto returns to source bytes verbatim. CLI smoke-tested end-to-end against the same 4 goldens — every output is byte-identical to the verified golden.
+  - Updated `rw/docs/save-edit-capabilities.md`: hero swap moved from "proven save edits without a CLI" up to "CLI one-liners" with a footnote covering name-length shifts and on-load slot behavior.
+
 MAINT-21: Sync triage docs to BREAKTHROUGH-2 (2026-05-01)
   - `rw/triage/geppetto-save-analysis.md`: moved In-Run Dream Shards, Held Raven Feathers, and Held Nightmare Keys from "Still unresolved" to "Conquered" with bytefield offsets and CLI refs. Expanded "Item Counts" to note the three held-inventory currencies live in three DIFFERENT records (HeroIngredient vec at HC+0x21 for keys, CRP+0x15D for feathers, HC+0x1D for shards) and that magical-objects add/swap/remove is mechanism-decoded with one golden but no CLI yet.
   - `rw/triage/save-mint-status.md`: item (1) Open follow-ups updated to flag shards + feathers RESOLVED with their actual byte locations, narrowing the open hunt to wood / bean / other ingredient-type held resources. Item (2) main bullet updated similarly.

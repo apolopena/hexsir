@@ -26,6 +26,7 @@ from display_lib.output import error, info, success
 from lib import cooked
 from lib import game_registry as registry
 from lib.game_registry import RegistryError
+from lib.hero_edit import HeroEditError, swap_hero
 from lib.save_edit import get_crc, recompute_crc, write_field
 from lib.save_fields import load_fields
 from lib.skill_controllers import (
@@ -574,6 +575,72 @@ def feathers_cmd(count: int, source: Path, dest: Path, force: bool, verbose: boo
         "feathers (held)",
         count,
     )
+
+
+@write_savefile_cmd.command(
+    name="hero",
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
+@click.option(
+    "--key",
+    "-k",
+    "key",
+    required=True,
+    type=str,
+    metavar="<str>",
+    help="Strict hero key. Run `rerw game-assets inspect heroes` for valid keys.",
+)
+@_common_io_opts
+def hero_cmd(
+    key: str, source: Path, dest: Path, force: bool, verbose: bool
+) -> None:
+    """Swap the playable hero in the save.
+
+    Rewrites the length-prefixed `Heroes\\<EngineName>.herodef.ot` reference
+    inside the save body. Same-length swaps (e.g. Geppetto -> Carmilla,
+    Geppetto -> Melusine) leave the file size unchanged; different-length
+    swaps shift bytes after the hero record by the name-length delta. The
+    engine tolerates shifts in the verified range -5 to +2 bytes.
+
+    Resolves --key strictly against `data/heroes/*.yaml` (`hero.key`).
+    Run `rerw game-assets inspect heroes` for the list of valid keys.
+    """
+    out_path = _check_dest_writable(dest, force)
+    info(f"Source savefile: {source}")
+    try:
+        data = bytearray(source.read_bytes())
+    except OSError as exc:
+        error(f"Failed to read source: {exc}")
+        raise SystemExit(1) from exc
+
+    try:
+        hero = registry.heroes().lookup(key)
+    except RegistryError as exc:
+        error(str(exc))
+        raise SystemExit(1) from exc
+
+    old_crc = get_crc(data)
+    if verbose:
+        info(f"  {len(data)} bytes, CRC=0x{old_crc:08X}")
+        info(f"Target hero: key={hero.key} engine_name={hero.engine_name}")
+        info(f"Target save_ref: {hero.save_ref}")
+
+    try:
+        old_engine_name, new_engine_name = swap_hero(data, hero.save_ref)
+    except HeroEditError as exc:
+        error(str(exc))
+        raise SystemExit(1) from exc
+
+    new_crc = recompute_crc(data)
+    try:
+        out_path.write_bytes(bytes(data))
+    except OSError as exc:
+        error(f"Failed to write {out_path}: {exc}")
+        raise SystemExit(1) from exc
+
+    click.echo(f"hero: {old_engine_name} -> {new_engine_name}")
+    click.echo(f"CRC32: 0x{old_crc:08X} -> 0x{new_crc:08X}")
+    success(f"Wrote {out_path}")
 
 
 @write_savefile_cmd.command(
