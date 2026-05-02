@@ -100,6 +100,9 @@ The game's `Ravenswatch.exe` is loaded in Ghidra and reachable via `mcp__ghidra_
 ### WinDbg: live debugging available on request
 A WinDbg MCP server is registered in `.mcp.json` (port 8000); when running, tools appear under `mcp__windbg__*`. Use only for live-process debugging of the running game (breakpoints, memory inspection, stepping). If the tools aren't loaded, the server isn't up — ask the user to start it. Ask before initiating a debugging session — don't assume.
 
+### Frida: WSL → Windows interop workflow
+Frida scripts live at `tools/frida/*.js` in WSL; `frida.exe` runs Windows-side via interop (default path `/mnt/c/Users/KidSqid/AppData/Local/Python/pythoncore-3.14-64/Scripts/frida.exe`) and loads the WSL absolute path directly on initial invocation. The REPL eats backslashes on `%load` reloads — never reload from the REPL; after any edit, exit Frida and re-launch with a fresh one-liner.
+
 ### Ghidra: annotate findings on the spot
 This section governs all Ghidra reverse-engineering work. When you identify what something does — even partially — annotate it in Ghidra immediately. Do not batch annotations at session end. Each annotation makes future decompilation more readable for both you and the user, and prevents losing the identification when context drops. The bar is low: partial understanding is worth annotating. `unknown_serializer_at_this+0xc8` is more useful than `FUN_1403b3da0`.
 
