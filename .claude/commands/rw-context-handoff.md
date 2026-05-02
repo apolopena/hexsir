@@ -4,49 +4,68 @@ description: Generate a context handoff document so another agent can pick up wh
 
 ## Instructions
 
-Generate a **timestamped** handoff document under `.ai/scratch/` that lets a fresh agent (with zero conversation history) resume the current work cleanly. **Never overwrite an existing handoff** — every invocation produces a new file.
+Generate a **timestamped** handoff document under `.ai/scratch/` that lets a fresh agent (with zero conversation history) resume the current work cleanly. **Never overwrite an existing handoff.**
 
-**Optional argument:** `$ARGUMENTS` — if provided, focus the handoff on that specific topic. If empty, summarize whatever is currently in flight.
+**Optional argument:** `$ARGUMENTS` — if it includes `--full`, force full mode regardless of prior handoffs. If it includes any other text, treat that as a topic focus. Empty: summarize whatever is currently in flight.
 
-### Gather context first (run in parallel)
+### Choose mode
 
-- `date +%Y%m%d-%H%M%S` — capture the timestamp for the output filename. Use this exact value; do not invent or approximate.
+Run these in parallel:
+
+- `date +%Y%m%d-%H%M%S` — output filename timestamp (use exact value).
 - `git status --short`
 - `git log -10 --oneline`
-- `ls -lt .ai/scratch/`
+- `ls -1t .ai/scratch/rw-context-handoff-*.md 2>/dev/null | head -1` — locate the most recent prior handoff.
 
-The output filename is `.ai/scratch/rw-context-handoff-<TIMESTAMP>.md`, where `<TIMESTAMP>` is the value from the `date` command above (format: `YYYYMMDD-HHMMSS`). Example: `.ai/scratch/rw-context-handoff-20260425-143022.md`.
+**Mode selection:**
 
-### Required sections (in this order)
+- If `$ARGUMENTS` contains `--full`, use full mode.
+- Else if a prior handoff exists from today (filename starts with the same `YYYYMMDD` prefix as `date +%Y%m%d`), use **delta mode**.
+- Else use full mode.
 
-0. **PRIME DIRECTIVE — must be the first content in the file, before any other section.** Use this exact block, verbatim:
+The output filename is `.ai/scratch/rw-context-handoff-<TIMESTAMP>.md`. If it somehow exists (same-second invocation), append `-01`, `-02`, etc.
 
-   ```
-   > **CRITICAL — READ FIRST:** This handoff file is self-contained and is the single source of truth for resuming this work. **Do NOT read other handoff files in this directory** (`.ai/scratch/rw-context-handoff-*.md`) — they are prior snapshots and will pollute your context with stale state. **Do NOT read neighboring scratch files** in `.ai/scratch/` unless they are explicitly listed in "Required reading" below. The "Required reading" section is the complete and exclusive list of supplementary files you should consult.
-   ```
+### Prime directive (both modes)
 
-1. **TL;DR** — 3–5 bullets. The shortest possible summary: project, current task, what the next agent should do first.
-2. **Required reading** — files the next agent must read before acting, in priority order, with absolute paths. At minimum: `CLAUDE.md`, relevant docs in `.ai/docs/`, recent scratch files.
-3. **Objective** — what the user is trying to accomplish. Distinguish the immediate task from the broader project goals.
-4. **Current state** — what was done in this session. Be specific: file paths, line numbers, exact commands run. List files created/modified.
-5. **Findings** — facts established (mark as confirmed) vs hypotheses (mark as unconfirmed). Never blur the line.
-6. **Tried and ruled out** — approaches that failed, with the specific failure mode. Prevents the next agent from re-running dead ends.
-7. **Open questions and pending decisions** — anything waiting on user input, research, or external systems. Note what each is blocking.
-8. **Blockers** — active obstacles. Omit section if none.
-9. **Key context not obvious from the code** — conventions, gotchas, constraints, environmental quirks, user preferences, decisions. The "things you only learned through trial and error" category.
-10. **Next steps** — concrete actions in priority order. For each: exact command, file path, or decision needed. Mark anything requiring user confirmation.
+Every handoff begins with this exact block, verbatim:
 
-### Style rules
+```
+> **CRITICAL — READ FIRST:** This handoff file is self-contained and is the single source of truth for resuming this work. **Do NOT read other handoff files in this directory** (`.ai/scratch/rw-context-handoff-*.md`) — they are prior snapshots and will pollute your context with stale state. **Do NOT read neighboring scratch files** in `.ai/scratch/` unless they are explicitly listed in "Required reading" below. The "Required reading" section is the complete and exclusive list of supplementary files you should consult.
+```
+
+### Delta mode
+
+Short follow-up document referencing the prior handoff for unchanged context. Sections (in order):
+
+1. **Prior handoff** — absolute path to the most recent prior handoff. State explicitly: "Read that first; this delta only covers what's changed since."
+2. **Deltas since prior** — what shipped, what state changed, what new findings. Bullet list, ≤8 bullets.
+3. **Next steps** — concrete actions in priority order. ≤5 bullets, each with the exact command or file path.
+
+Skip everything else. If a section in this list would be empty, omit it.
+
+### Full mode
+
+Sections in order. Each capped at ~5 bullets unless a list inherently needs more (e.g. file paths). Omit any section that would be empty (do not write "none" or "n/a").
+
+1. **TL;DR** — 3–5 bullets. Project, current task, what the next agent should do first.
+2. **Required reading** — numbered list of absolute paths. No per-file commentary unless a file's purpose isn't obvious from its name. At minimum: `CLAUDE.md` and the most relevant `rw/key-findings/*.md`.
+3. **Objective** — immediate task vs. broader project goal. 2–3 sentences each.
+4. **Current state** — what's been done. File paths + exact commands. ≤5 bullets.
+5. **Findings** — facts (confirmed) vs hypotheses (unconfirmed). Mark explicitly. Omit the section if neither applies.
+6. **Tried and ruled out** — *include only if at least one dead end is worth recording*. Each: approach + specific failure mode.
+7. **Open questions** — *include only if at least one item is waiting on user/external input*. Note what each blocks.
+8. **Blockers** — *include only if there is at least one active obstacle.*
+9. **Key context not obvious from the code** — conventions, gotchas, user preferences. The trial-and-error category. ≤8 bullets.
+10. **Next steps** — concrete actions in priority order. Each: exact command, file path, or decision needed. Mark anything needing user confirmation.
+
+### Style rules (both modes)
 
 - Write for an agent with zero prior context. Never reference "earlier in this conversation."
-- Use absolute file paths.
-- Be specific. "Run the scan" is useless. "Run `python scripts/python/rw/mod_save.py Profile_1.ob --set Level 99` then attach x64dbg to `Ravenswatch.exe`" is useful.
-- Quote exact error messages and command output where they matter.
-- Skip narrative. The next agent doesn't care how you arrived; they care where to start.
-- Distinguish facts from hypotheses everywhere. Mark hypotheses explicitly.
+- Absolute file paths.
+- Be specific. "Run the mint" is useless. "`./tools/rerw mint savefile --source X --dest Y -f`" is useful.
+- Skip narrative. The next agent cares where to start, not how you arrived.
+- Distinguish facts from hypotheses explicitly (full mode).
 
 ### Output
 
-Write to the timestamped path constructed above (`.ai/scratch/rw-context-handoff-<TIMESTAMP>.md`). **Do not overwrite any existing handoff file.** If the timestamped path somehow already exists (rare — same-second invocation), append a 2-digit suffix: `-01`, `-02`, etc.
-
-After writing, print to the user the exact filename written and a 2–3 bullet summary of what's in it. Nothing else.
+Write to the timestamped path. After writing, print: the exact filename, the mode used (delta vs full), and a 2–3 bullet summary. Nothing else.

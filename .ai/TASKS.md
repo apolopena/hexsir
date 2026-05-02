@@ -17,6 +17,13 @@
 
 ## Done
 <!-- DONE_START -->
+MAINT-19: `rw-context-handoff` slash command — add delta mode (2026-05-01)
+  - Same-day re-invocations now produce a short delta document (Prior handoff / Deltas since prior / Next steps) referencing the most recent prior handoff for unchanged context, rather than re-emitting a full snapshot.
+  - Mode selection: explicit `--full` overrides; otherwise if a `rw-context-handoff-<YYYYMMDD>-*.md` already exists for today, delta mode is used; otherwise full mode.
+  - Full mode tightened: each section capped ~5 bullets unless inherently larger (paths), several "include only if applicable" sections (Tried-and-ruled-out / Open questions / Blockers) made conditional rather than always-on.
+  - Prime directive block extracted as a shared header for both modes.
+  - Output filename collision still handled with `-NN` suffix on same-second invocations.
+
 MAINT-18: Align hero + magical-item YAMLs to strict-key registry schema (2026-05-01)
   - 12 hero YAMLs add `schema_version: "1.0.0"`, `registry_id: hero_talents`, and a `hero:` block with `key` + `engine_name`. Closes the data side of the strict-key migration shipped in PRP-4 (`lib/game_registry.py`).
   - `magical-items.yaml` adds `schema_version: "1.0.0"` and `registry_id: magical_items`. Header comment dropped the obsolete reference to fuzzy normalization (case/whitespace/dashes/underscores) since the resolver is now strict-key only.
