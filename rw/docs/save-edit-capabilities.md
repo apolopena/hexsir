@@ -26,12 +26,17 @@ Two real-world gotchas at the bottom apply to every category.
 | Talent tier (`common` / `rare` / `epic` / `legendary`) | `rerw write savefile tier --slot N --tier <name>` |
 | Chapter (1, 2, 3, 4=epilogue) | `rerw write savefile chapter <1-4>` |
 | Playable hero² | `rerw write savefile hero --key <HeroKey>` |
+| Magical-object record — replace one slot's GUID³ | `rerw write savefile item swap --slot N --key <ItemKey>` |
+| Magical-object record — append a new record³ | `rerw write savefile item add --key <ItemKey>` |
+| Magical-object record — drop a slot³ | `rerw write savefile item remove --slot N` |
 | Mint a clean chapter-1 starter from a chapter-boss save | `rerw mint savefile --source X --dest Y` |
 | Swap a save into the live game slot | `rerw swap savefile --source X` |
 
 ¹ The `keys` subcommand updates an existing Nightmare Keys record's count. On a save with **zero** existing keys (no record present), `keys 0` is a no-op success but `keys N>0` errors — inserting a new record is in the deferred category below.
 
 ² Hero swap rewrites the length-prefixed `Heroes\<EngineName>.herodef.ot` reference in the save body. Same-length swaps (Geppetto ↔ Carmilla, Geppetto ↔ Melusine — all 8 chars) are byte-for-byte drop-ins with no body shift; different-length swaps shift bytes after the hero record by the name-length delta. Engine tolerance verified across `−5` to `+2` bytes (Red shrink and Snow_Queen grow respectively). On load, slot 1 auto-populates with the new hero's L5 ultimate; slots 2/3/4/5 are cleared. Run state, level, XP, currencies, and chapter position carry over from the source.
+
+³ Magical-object records are 32-byte entries inside the run-state record. **`swap`** is constant-size (replaces a 16-byte runtime GUID); **`add`** appends a record (file grows by 32 bytes); **`remove`** drops a record (file shrinks by 32 bytes). Slot indices are 1-indexed in records-array order. The engine enforces three independent ceilings on the records array on save load — the per-save fresh-reference cap (Rule A; bypassable via `add --reuse-counter-from-slot N`), the per-item +3-over-threshold cap (Rule B), and a total record-count ceiling (Rule C, ~94 records on Save A). Adding too many records past the natural baseline can crash the engine on load; see `rw/key-findings/magical-objects.md` for per-save tolerances. SWAP's safe domain is Legendary↔Legendary or Cursed↔Cursed swaps where neither item is in inventory; swapping into a stacked Common/Rare/Epic slot is unverified.
 
 ### Discovery commands
 
@@ -65,21 +70,6 @@ After mint, any of the CLI one-liners above can be applied to set per-field base
 ## 2. Proven save edits without a CLI
 
 These have at least one verified-working golden save in `rw/saves/edits/golden/`. The byte-level recipe is documented in the cross-referenced key-finding doc; reproducing the edit today requires adapting the one-off script that produced the golden.
-
-### Magical object — add
-
-Insert a magical object (any of the 68 — Dragon's Hide, Vorpal Blade, Moonstones, etc.) into a run's held inventory.
-
-- **Status:** 1 verified golden. Format fully decoded.
-- **Recipe:** `rw/key-findings/magical-objects.md` (tag=0x1a active-item records nested in the tag=0x12 run-state record; 32 bytes per record: marker + tag + 16-byte runtime GUID + u32 sequence counter + close).
-- **Goldens:** `rw/saves/edits/golden/geppetto/chapter2/laser-lenses_1/item-add-fill-moonstone-stack-5of5/`.
-
-### Magical object — swap or remove
-
-Replace one magical object with another, or remove a record entirely.
-
-- **Status:** format decoded but no proof-golden yet. Mechanism is the same record format as add.
-- **Recipe:** `rw/key-findings/magical-objects.md`.
 
 ### Insert Nightmare Keys record into a zero-keys save
 

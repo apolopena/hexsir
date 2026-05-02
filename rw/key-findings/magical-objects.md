@@ -273,13 +273,19 @@ Powerups appear in the records list (one record per pickup event) but don't show
 
 ## Tooling
 
-Tooling integration with `rerw` is **not yet wired**:
-- `lib/item_edit.py` — does not exist (analog of `lib/talent_edit.py`).
-- `lib/items.py` registry loader — does not exist (analog of `lib/skill_controllers.py`).
-- `commands/{read,write}_savefile.py` — no `--item-slot N --item-id <id>` flag yet.
-- `data/save-fields.yaml` — no `item_record:` entry yet.
+`rerw` integration is wired (MAINT-23, 2026-05-01):
 
-The data side (`magical-items.yaml`, `powerup-items.yaml`, `item-table.md`) is ready for integration. SWAP primitive can be wired now; ADD/REMOVE primitives need the open-questions resolved first.
+- `tools/rerw-src/lib/item_edit.py` — pure-logic primitives `find_run_state`, `parse_records`, `swap_item`, `add_item`, `remove_item`, with `ItemEditError`. Reuses the run-state record GUID also used by `talent_edit`.
+- `tools/rerw-src/lib/game_registry.py` — `magical_items().lookup(key)` resolves item key → 16-byte runtime GUID for the CLI.
+- `tools/rerw-src/commands/write_savefile.py` — three subcommands under the `item` group:
+  - `rerw write savefile item swap --slot N --key <ItemKey>`
+  - `rerw write savefile item add --key <ItemKey> [--reuse-counter-from-slot N]`
+  - `rerw write savefile item remove --slot N`
+- Validation: byte-equality between the production CLI's output and all three reference artifacts (`item-add-fill-moonstone-stack-5of5` golden, `item-vorpal-blade-to-baba-yagas-mortar` lab, `item-remove-last-record` lab). 14 unit tests in `tests/unit/test_lib_item_edit.py` cover the primitives plus error paths.
+
+Engine ceilings (Rule A / B / C) are not enforced by the tooling — the lib produces syntactically valid records and the caller is responsible for staying within the per-save tolerance documented above. `add --reuse-counter-from-slot N` is the recommended Rule A bypass.
+
+The data side (`magical-items.yaml`, `powerup-items.yaml`, `item-table.md`) backs the strict-key registry. Key resolution rejects display names and aliases; valid keys are discoverable via `rerw game-assets inspect items`.
 
 ## Sources
 

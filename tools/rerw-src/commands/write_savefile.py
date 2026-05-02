@@ -27,6 +27,12 @@ from lib import cooked
 from lib import game_registry as registry
 from lib.game_registry import RegistryError
 from lib.hero_edit import HeroEditError, swap_hero
+from lib.item_edit import (
+    ItemEditError,
+    add_item,
+    remove_item,
+    swap_item,
+)
 from lib.save_edit import get_crc, recompute_crc, write_field
 from lib.save_fields import load_fields
 from lib.skill_controllers import (
@@ -639,6 +645,230 @@ def hero_cmd(
         raise SystemExit(1) from exc
 
     click.echo(f"hero: {old_engine_name} -> {new_engine_name}")
+    click.echo(f"CRC32: 0x{old_crc:08X} -> 0x{new_crc:08X}")
+    success(f"Wrote {out_path}")
+
+
+@write_savefile_cmd.group(
+    name="item",
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
+def item_grp() -> None:
+    """Edit the magical-objects records array (swap / add / remove).
+
+    The player's collected magical objects are stored as `tag=0x1a` records
+    inside the run-state record. Each subcommand is a single edit:
+
+      swap   --slot N --key X    replace slot N's runtime GUID
+      add    --key X             append a new record at the end
+      remove --slot N            drop the record at slot N
+
+    Slot numbers are 1-indexed. Run `rerw read savefile` to inspect the
+    current records (or `rerw game-assets inspect items` to discover keys).
+
+    Engine validation: each save has a per-save record-count tolerance
+    (Rule A fresh-ref cap, Rule C total-count ceiling). Adding too many
+    records beyond the natural baseline can crash the engine on load.
+    Use `add --reuse-counter-from-slot N` to bypass Rule A. See
+    `rw/key-findings/magical-objects.md` for per-save tolerances.
+    """
+
+
+def _load_save_bytes(source: Path) -> bytearray:
+    try:
+        return bytearray(source.read_bytes())
+    except OSError as exc:
+        error(f"Failed to read source: {exc}")
+        raise SystemExit(1) from exc
+
+
+def _write_save_bytes(out_path: Path, data: bytes) -> None:
+    try:
+        out_path.write_bytes(data)
+    except OSError as exc:
+        error(f"Failed to write {out_path}: {exc}")
+        raise SystemExit(1) from exc
+
+
+@item_grp.command(
+    name="swap",
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
+@click.option(
+    "--slot",
+    "-s",
+    required=True,
+    type=click.IntRange(1),
+    metavar="<int 1..>",
+    help="Slot to overwrite (1-indexed).",
+)
+@click.option(
+    "--key",
+    "-k",
+    "key",
+    required=True,
+    type=str,
+    metavar="<str>",
+    help="Strict item key. Run `rerw game-assets inspect items` for valid keys.",
+)
+@_common_io_opts
+def item_swap_cmd(
+    slot: int, key: str, source: Path, dest: Path, force: bool, verbose: bool
+) -> None:
+    """Replace slot N's runtime GUID with the keyed item's GUID.
+
+    Constant-size edit; file size unchanged. Safe domain (per
+    `rw/key-findings/magical-objects.md`): Legendary <-> Legendary or
+    Cursed <-> Cursed swaps where neither item is in inventory. Swapping
+    one of a stacked Common / Rare / Epic instance is unverified.
+    """
+    out_path = _check_dest_writable(dest, force)
+    info(f"Source savefile: {source}")
+    data = _load_save_bytes(source)
+
+    try:
+        item = registry.magical_items().lookup(key)
+    except RegistryError as exc:
+        error(str(exc))
+        raise SystemExit(1) from exc
+
+    old_crc = get_crc(data)
+    if verbose:
+        info(f"  {len(data)} bytes, CRC=0x{old_crc:08X}")
+        info(f"Target item: key={item.key} display={item.display_name}")
+        info(f"Target runtime GUID: {item.guid.hex()}")
+
+    try:
+        old_guid = swap_item(data, slot, item.guid)
+    except ItemEditError as exc:
+        error(str(exc))
+        raise SystemExit(1) from exc
+
+    new_crc = recompute_crc(data)
+    _write_save_bytes(out_path, bytes(data))
+
+    click.echo(
+        f"item slot {slot}: {old_guid.hex()} -> "
+        f"{item.guid.hex()} ({item.key})"
+    )
+    click.echo(f"CRC32: 0x{old_crc:08X} -> 0x{new_crc:08X}")
+    success(f"Wrote {out_path}")
+
+
+@item_grp.command(
+    name="add",
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
+@click.option(
+    "--key",
+    "-k",
+    "key",
+    required=True,
+    type=str,
+    metavar="<str>",
+    help="Strict item key. Run `rerw game-assets inspect items` for valid keys.",
+)
+@click.option(
+    "--reuse-counter-from-slot",
+    "reuse_slot",
+    default=None,
+    type=click.IntRange(1),
+    metavar="<int 1..>",
+    help=(
+        "Copy the new record's counter from this existing slot to bypass "
+        "the per-save Rule A fresh-reference cap. Default: last_counter+1 "
+        "(uses a fresh reference)."
+    ),
+)
+@_common_io_opts
+def item_add_cmd(
+    key: str,
+    reuse_slot: int | None,
+    source: Path,
+    dest: Path,
+    force: bool,
+    verbose: bool,
+) -> None:
+    """Append a new item record at the end of the records array.
+
+    File size grows by 32 bytes. The new record's counter defaults to
+    `last_counter + 1` (allocates a fresh reference); use
+    `--reuse-counter-from-slot N` to copy from an existing slot and
+    bypass the engine's Rule A fresh-reference cap.
+
+    Engine ceilings vary per save (Rule C). See magical-objects.md for
+    per-save tolerances.
+    """
+    out_path = _check_dest_writable(dest, force)
+    info(f"Source savefile: {source}")
+    data = _load_save_bytes(source)
+
+    try:
+        item = registry.magical_items().lookup(key)
+    except RegistryError as exc:
+        error(str(exc))
+        raise SystemExit(1) from exc
+
+    old_crc = get_crc(data)
+    if verbose:
+        info(f"  {len(data)} bytes, CRC=0x{old_crc:08X}")
+        info(f"Target item: key={item.key} display={item.display_name}")
+        if reuse_slot is not None:
+            info(f"Reusing counter from slot {reuse_slot}")
+
+    try:
+        new_count = add_item(data, item.guid, reuse_counter_from_slot=reuse_slot)
+    except ItemEditError as exc:
+        error(str(exc))
+        raise SystemExit(1) from exc
+
+    new_crc = recompute_crc(data)
+    _write_save_bytes(out_path, bytes(data))
+
+    click.echo(f"item add: {item.key} -> slot {new_count} (count {new_count})")
+    click.echo(f"CRC32: 0x{old_crc:08X} -> 0x{new_crc:08X}")
+    success(f"Wrote {out_path}")
+
+
+@item_grp.command(
+    name="remove",
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
+@click.option(
+    "--slot",
+    "-s",
+    required=True,
+    type=click.IntRange(1),
+    metavar="<int 1..>",
+    help="Slot to remove (1-indexed).",
+)
+@_common_io_opts
+def item_remove_cmd(
+    slot: int, source: Path, dest: Path, force: bool, verbose: bool
+) -> None:
+    """Drop slot N's record from the records array.
+
+    File size shrinks by 32 bytes. Slot indices of records after the
+    removed slot decrease by one in subsequent calls.
+    """
+    out_path = _check_dest_writable(dest, force)
+    info(f"Source savefile: {source}")
+    data = _load_save_bytes(source)
+
+    old_crc = get_crc(data)
+    if verbose:
+        info(f"  {len(data)} bytes, CRC=0x{old_crc:08X}")
+
+    try:
+        removed_guid = remove_item(data, slot)
+    except ItemEditError as exc:
+        error(str(exc))
+        raise SystemExit(1) from exc
+
+    new_crc = recompute_crc(data)
+    _write_save_bytes(out_path, bytes(data))
+
+    click.echo(f"item remove: slot {slot} (was runtime GUID {removed_guid.hex()})")
     click.echo(f"CRC32: 0x{old_crc:08X} -> 0x{new_crc:08X}")
     success(f"Wrote {out_path}")
 
