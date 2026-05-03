@@ -17,6 +17,7 @@ Reverse engineering work for Ravenswatch (single-player roguelike, OEngine / OSo
 |-----|---------|
 | [Playbook](playbook.md) | Directory structure, what to track, promotion paths, workflow |
 | [Terminology](terminology/README.md) | Standardized terms for talents, items, seeds, and indexing. Read before writing about these domains. |
+| [Wishlist](wishlist.md) | Future-work ideas parking lot — CLI surface, digs, doc cleanups. Not commitments. |
 | [Ghidra and WinDbg MCP for WSL](ghidra-windbg-mcp-for-wsl.md) | WSL mirrored-networking fix plus Windows-hosted Ghidra and WinDbg MCP setup for Codex |
 | [Tools](tools/README.md) | Tools used for RW work |
 | [Frida save tools](../../tools/frida/README.md) | `save_now.js` and `repl.js` — Frida scripts that drive the save subsystem from outside the game. Setup, usage, troubleshooting. |

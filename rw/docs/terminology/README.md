@@ -44,9 +44,18 @@ The slot/controller numbers in `tools/rerw-src/lib/talent_edit.py` and `lib/item
   - **Forced Seed UInt** = INI setting, feeds master-seed path only.
 - **"Slot"** is fine across domains (HUD slot, tier array slot, item slot) as long as the indexing base is clear from context. When in doubt, say "1-based" or "0-based" explicitly.
 
+## Save artifact types
+
+Three artifact types live under `rw/saves/`. Definitions, path conventions, and promotion paths are in `rw/docs/playbook.md`. Quick summary:
+
+- **Lab** — gitignored work-in-progress save edit.
+- **Golden** — verified save edit whose chain does NOT use `rerw mint savefile`.
+- **Mint** — verified save edit whose chain DOES use `rerw mint savefile` (zeroed per-run state, chapter-1 output). Lives under `saves/mints/`, organized by source-chapter, requires an `info.md` next to `Profile_1.ob`.
+
 ## References
 
-- `rw/key-findings/talent-records.md` — talent record format, picks block, tier records.
+- `rw/docs/playbook.md` — save artifact types, path conventions, promotion paths, CLI promotion rules.
+- `rw/key-findings/talent-records.md` — talent record format, picks block, rarity records.
 - `rw/key-findings/magical-objects.md` — item record format, catalog, edit primitives.
 - `rw/key-findings/rng-behavior.md` — single-seed PCG model, forcing strategy.
 - `rw/triage/random-seed-system.md` — open dig: master chapter seed location.

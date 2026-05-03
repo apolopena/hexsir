@@ -22,10 +22,12 @@ rw/
 └── saves/
     ├── proofs/                 # tracked — baseline original saves
     │   └── <hero>/<chapter>/<run-id>/Profile_1.ob
-    └── edits/
-        ├── lab/                # gitignored — WIP test modifications
-        └── golden/             # tracked — confirmed-working modifications
-            └── <hero>/<chapter>/<run-id>/<mod-id>/Profile_1.ob
+    ├── edits/
+    │   ├── lab/                # gitignored — WIP test modifications
+    │   └── golden/             # tracked — verified non-mint modifications
+    │       └── <hero>/<chapter>/<run-id>/<mod-id>/Profile_1.ob
+    └── mints/                  # tracked — verified saves built via `rerw mint savefile`
+        └── <hero>/<source-chapter>/<run-id>/<mod-id>/{Profile_1.ob, info.md}
 ```
 
 ## What Goes Where
@@ -39,16 +41,18 @@ rw/
 | Confirmed findings | `key-findings/` | Yes | Curated facts extracted from triage |
 | Original saves | `saves/proofs/` | Yes | Baseline `Profile_1.ob` snapshots |
 | Test modifications | `saves/edits/lab/` | No | Experimental save edits |
-| Verified mods | `saves/edits/golden/` | Yes | Save edits confirmed working in-game |
+| Verified non-mint mods | `saves/edits/golden/` | Yes | Save edits confirmed working in-game whose build chain does NOT include `rerw mint savefile` |
+| Verified mints | `saves/mints/` | Yes | Verified saves whose build chain includes `rerw mint savefile`. The mint command zeros held currencies, per-run stats (damage, time, etc.), end-of-run score-page values + achievements, level/xp, and chapter; later chain steps may override specific fields. |
 
 ## Promotion Paths
 
-Four flows:
+Five flows:
 
 1. **`dumps/` → `triage/`** — When raw analysis is worth a writeup, create a triage document. Use the `rw-triage-report` skill.
 2. **`triage/` → `key-findings/`** — When findings firm up, extract them as curated artifacts.
-3. **`saves/edits/lab/` → `saves/edits/golden/`** — When a modified save runs successfully in the game, promote it.
-4. **`rw/scripts/` → `rerw` CLI** — When a hand-edit script's behavior is verified in-game via a lab save, lift its logic into the CLI. See "CLI Promotion" below.
+3. **`saves/edits/lab/` → `saves/edits/golden/`** — When a verified lab's build chain does NOT include `rerw mint savefile`, promote here. The mod is "golden" (canonical, regression-stable).
+4. **`saves/edits/lab/` → `saves/mints/`** — When a verified lab's build chain DOES include `rerw mint savefile`, promote here as a "mint." Mints are first-class artifacts, not refinements of goldens — the mint chain (proof → mint → customization) is the distinguishing property.
+5. **`rw/scripts/` → `rerw` CLI** — When a hand-edit script's behavior is verified in-game via a lab save, lift its logic into the CLI. See "CLI Promotion" below.
 
 Demotion is also fine. Something in `key-findings/` that turns out wrong moves back to `triage/` or gets deleted.
 
@@ -63,14 +67,41 @@ Use the **`rw-triage-report` skill** to create them — invoke with "create a tr
 - **Save files always named `Profile_1.ob`** — the game expects this filename. Never rename. Encode the variant identity in the directory path (e.g., `level99/`, `max-shards/`).
 - **Asset filenames preserve the `!` separator** — game uses `!` in filenames (e.g., `Hero_Geppetto!Hero_Geppetto.entity.ot.EntitySettingsResource.gen`). Keep it.
 
-## Save Edit Directory Conventions
+## Save Directory Conventions
 
-Both `saves/edits/lab/` and `saves/edits/golden/` are organized by the **source hero** of the save (not the post-edit hero, even when the edit changes the hero). Source hero keeps lineage traceable.
+All three save artifact types — labs, goldens, and mints — are organized by the **source hero** of the save (not the post-edit hero, even when the edit changes the hero). Source hero keeps lineage traceable.
 
-- **Golden:** `saves/edits/golden/<hero>/<chapter>/<run-id>/<mod-id>/Profile_1.ob` — full structured path with verified-mod metadata baked in.
-- **Lab:** `saves/edits/lab/<hero>/<run-name>/<descriptive-mod-id>/Profile_1.ob` — lighter than golden (no separate chapter level — chapter is encoded in the mod-id when relevant, e.g. `level-downgrade-from-ch2/`). The run-name mirrors the source proof's run-name exactly (don't normalize away inconsistencies like dash-vs-underscore across proofs). Lab is gitignored so renames are free.
+### Definitions
 
-A lab edit experiment that swaps Geppetto → Carmilla still lives under `lab/geppetto/<run>/`, because the file was *derived from* a Geppetto proof from that run. The mod-id (e.g., `hero-swap-to-carmilla/`) describes the change applied.
+- **Lab** — a work-in-progress save edit, gitignored. The arena for trying things.
+- **Golden** — a verified save edit whose build chain does NOT include `rerw mint savefile`. Promoted from a lab once the in-game test passes. Goldens preserve some per-run state from the source proof (currencies, scores, etc.).
+- **Mint** — a verified save edit whose build chain DOES include `rerw mint savefile`. The mint **command** produces a fresh chapter-1 starting state. It zeros: held currencies (Dream Shards, Stars of Fate, Raven Feathers, Nightmare Keys); per-run stats (damage dealt, time played, dream shards earned, feathers consumed); the end-of-run statistics page (score floats, chapter-progression banner, ActivityScore achievement records); level (→1) and xp (→0); and chapter (→1). Subsequent chain steps may override specific fields (e.g., a later `level 14` step overrides mint's level=1). The final artifact is called a "mint" because the chain *includes* the mint command, not because every stat in the file is necessarily zero. The label reflects the chain type, not a refinement step beyond golden.
+
+### Path conventions
+
+- **Lab:** `saves/edits/lab/<hero>/<run-name>/<descriptive-mod-id>/Profile_1.ob`
+  - Lighter than golden (no chapter level — chapter is encoded in the mod-id when relevant, e.g. `level-downgrade-from-ch2/`).
+  - The run-name mirrors the source proof's run-name exactly (don't normalize dash-vs-underscore inconsistencies across proofs).
+  - Gitignored, so renames are free.
+
+- **Golden:** `saves/edits/golden/<hero>/<chapter>/<run-id>/<mod-id>/Profile_1.ob`
+  - `<chapter>` is the **post-edit** chapter the save loads to.
+  - `<mod-id>` describes the post-edit flavor.
+  - When the source proof's chapter differs from the post-edit chapter, encode the source in the mod-id (e.g., `mint__from-chapter3-laser_lenses_1-proof/`).
+
+- **Mint:** `saves/mints/<hero>/<source-chapter>/<run-id>/<mod-id>/{Profile_1.ob, info.md}`
+  - `<source-chapter>` is the SOURCE proof's chapter. Mints by definition output chapter 1, so source-chapter is the more informative axis.
+  - `<mod-id>` describes the post-mint customization flavor (e.g., `romeo-pickscount0-all10-legendary`). No `__from-...` suffix — the source is encoded by the path.
+  - Each mint dir contains both `Profile_1.ob` (the save) AND `info.md` (the recipe — what the mint is, plus the commented command list). The `info.md` is **required**, not optional.
+
+### Examples
+
+- A lab swapping Geppetto → Carmilla lives under `lab/geppetto/<run>/hero-swap-to-carmilla/`, because the file was *derived from* a Geppetto proof. Mod-id describes the change.
+- A mint built from a chapter-2 Geppetto proof, customized to Romeo at level 14, lives under `mints/geppetto/chapter2/<run-id>/romeo-pickscount0-all10-legendary/`. The `<source-chapter>` is `chapter2` (proof's chapter), even though the mint's output is chapter 1.
+
+### Hygiene
+
+**Delete failed tests; don't preserve them as `<mod-id>-failed/`.** A polluted lab makes it impossible to tell verified-but-not-yet-promoted edits from known-broken ones across sessions. Capture failure outcomes in the relevant key finding (e.g., the "Misidentified" subsection in `save-binary-format.md`) and remove the lab artifact. Negative results live in docs, not in the lab tree.
 
 ## CLI Promotion
 
