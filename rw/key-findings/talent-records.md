@@ -88,6 +88,21 @@ In the chapter2 Geppetto proofs, the 5-pick block sits at:
 
 The edit is constant-size — the talent-pick block is fixed 80 bytes regardless of which talents are slotted. No body shift required.
 
+### All-10-slots-empty trick (verified 2026-05-02)
+
+Setting picks count to 0 AND removing the 80-byte GUID block produces a save the engine treats as "no picks made yet." Combined with `level=14`, the engine fires picker invocations for all 10 HUD slots on level-up — no auto-ult-insertion side effect, no error 4 modal.
+
+Procedure (applied AFTER any other talent edits):
+
+1. Locate the picks-block sentinel as above.
+2. Patch the count u32 (last 4 bytes of the 8-byte sentinel) from `5` to `0`.
+3. Delete the 80 bytes (5 × 16) of GUID data immediately after the sentinel. File shrinks by 80 bytes.
+4. Recompute CRC.
+
+Verified-success golden using this recipe: `rw/saves/edits/golden/romeo-ch1-level14-pickscount0-rarities-legendary__from-laser-lenses_1-proof/`. The recipe is currently driven by an ad-hoc script in the gitignored `rw/dumps/` (development scratch); promotion to a `rerw experimental clear-picks` CLI command is an open follow-up.
+
+Note: any CLI command that locates the picks block via the count=5 sentinel (e.g. `rerw write savefile talent --slot N --key K`) will fail on a save patched this way. Apply count=0+delete LAST in an edit chain.
+
 ### Other fields in the talent record (clarified 2026-05-02)
 
 Beyond the 5-pick block, the record also contains:

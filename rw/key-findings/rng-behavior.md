@@ -84,6 +84,16 @@ Because the entire chain is deterministic from one 32-bit seed and the algorithm
 
 Tier-rarity targeting requires also mirroring `FUN_1402e7b80` / `FUN_1402e7a40` (not yet decompiled).
 
+### Solver and CLI built (2026-05-02)
+
+The above plan is implemented:
+
+- `tools/rerw-src/lib/picker_seed_solver.py` — pure-Python PCG step + partial Fisher-Yates simulator. `simulate(seed, pool, num_picks)` for forward simulation; `find_seeds(pool, num_picks, target, ...)` for brute-force.
+- `tools/frida/force_seed.js` — `dumpTalentPoolNext()` REPL command writes the unpruned pool array to the diag log on the next picker entry, including 256 bytes of inner-deref so talent GUIDs can be matched against the hero registry.
+- `rerw experimental find-talent-seeds` — parses the diag log, picks the requested `[#N]` block, maps pool[i] -> talent name, brute-forces seeds whose simulated output matches the target talent set, prints matches.
+
+Validation: the algorithm matches the engine exactly on the simplest case (slot=4 ult picker, 2-of-2 pool). Verified `0x14e61463` -> `top=WildWaltz, bottom=BlackRoses` against an in-game forced-seed run. Cross-session determinism (same seed, same target, separate game launches) is the next test — see `.ai/scratch/test-plan-cross-session-seeds-20260502.md`.
+
 ## Other consumers of TLS+0xff3c (partial list)
 
 The same TLS slot is read or stepped by many other code paths. Empirically observed during combat (via earlier diagnostic Frida hook on the leaf):

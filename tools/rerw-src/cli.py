@@ -17,6 +17,7 @@ from repl_lib import Repl
 from commands import (
     cipher,
     decipher,
+    experimental,
     game_assets,
     game_assets_inspect,
     mint_savefile,
@@ -274,6 +275,7 @@ cli.add_command(mint_, name="mint")
 cli.add_command(cipher.cipher_cmd, name="cipher")
 cli.add_command(decipher.decipher_cmd, name="decipher")
 cli.add_command(game_assets.game_assets_group, name="game-assets")
+cli.add_command(experimental.experimental_grp, name="experimental")
 cli.add_command(interactive_cmd, name="interactive")
 
 
