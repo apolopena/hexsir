@@ -1,7 +1,7 @@
 """Inspect the talent picks-block layout across chapter 2 / 3 / epilogue proofs.
 
 Goal: decode the storage layout for slot counts != 5. Chapter 2 has count=5 (verified);
-chapter 3 and epilogue have higher counts (unverified — `rw/key-findings/talent-records.md`
+chapter 3 and epilogue have higher counts (unverified — `rw/findings/talent-records.md`
 flags this as the open dig).
 
 For each proof:

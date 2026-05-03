@@ -10,7 +10,7 @@ it changes the hero on load. Same-length swaps leave file size unchanged;
 different-length swaps shift every byte after the path by the name-length
 delta.
 
-Verified end-to-end (`rw/key-findings/hero-swaps.md`, MAINT-8) across four
+Verified end-to-end (`rw/findings/hero-swaps.md`, MAINT-8) across four
 swaps from the chapter-2 Geppetto proof:
     Carmilla    (no shift)
     Aladdin     (-1 byte)

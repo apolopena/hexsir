@@ -3,7 +3,7 @@
 The other functions in `lib.talent_edit` (`find_talent_record`,
 `find_picks_count`, `read_picks`, `write_pick`, `read_rarity`, `write_rarity`,
 `parse_rarity`) are exercised indirectly by `test_cli` and the
-in-game-validated golden labs catalogued in `rw/key-findings/talent-records.md`.
+in-game-validated golden labs catalogued in `rw/findings/talent-records.md`.
 The bulk-set primitives covered here get targeted unit coverage.
 
 Validation strategy: against the epilogue-laser-lenses_1 proof — known to
@@ -32,7 +32,7 @@ from lib.talent_edit import (
 )
 
 # 15-byte talent record GUID — same across all Geppetto saves observed,
-# presumed hero-independent per `rw/key-findings/talent-records.md`.
+# presumed hero-independent per `rw/findings/talent-records.md`.
 TALENT_RECORD_GUID_15 = bytes.fromhex(
     "bfe7f6604385cb4887f6b4b79f6812"
 )

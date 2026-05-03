@@ -48,4 +48,4 @@ talent_record:
       close marker to locate the count u32 — count-agnostic.
       Tag=0x10 first-occurrence records (one per skill controller, near
       the hero record) carry the per-talent rarity byte at offset GUID+17.
-      See rw/key-findings/talent-records.md.
+      See rw/findings/talent-records.md.

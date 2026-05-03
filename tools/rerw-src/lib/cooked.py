@@ -3,7 +3,7 @@
 Used by every `.gen` file in `_Cooking/` (entity defs, hero defs, item defs,
 etc.) and — with a 16-byte header variant — by `Profile_1.ob` save files.
 
-Format reference: rw/key-findings/save-subsystem.md
+Format reference: rw/findings/save-subsystem.md
   ("Modal_Save_Or_Quit.entity.ot decoded" section)
 
 Magic markers (from FUN_1404e9350 / serialize_object_with_name):

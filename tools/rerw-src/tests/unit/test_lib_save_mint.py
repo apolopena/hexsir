@@ -12,7 +12,7 @@ Two important regressions guard against past mistakes:
 1. ActivityScore RECORDS REMOVED, count u32 ZEROED. Earlier mint versions
    either truncated AS bodies (silencer trip) or preserved them verbatim
    (chapter-N icon carryover). The current recipe removes the records
-   entirely. See `rw/key-findings/save-silencer-mechanism.md`.
+   entirely. See `rw/findings/save-silencer-mechanism.md`.
 
 2. Mint must work across chapter shapes. The walker resolves
    `dream_shards_spent` dynamically; an earlier hardcoded +0x35D offset

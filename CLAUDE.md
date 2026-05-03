@@ -84,19 +84,13 @@ CRITICAL: Mark agent (subagent_type=mark) is responsible for ALL GitHub write op
 Mark gathers context and dispatches .github/workflows/gh-dispatch-ai.yml with proper provenance.
 
 ### Save-file swap
-Always use `rerw swap savefile --source <path>`. Never raw `cp`. Always ask the user to confirm the game is closed before swapping — mid-session writes don't register (the running game holds its own in-memory state and won't re-read `Profile_1.ob`). Once authorized, execute the bare swap and stop. No backups, md5s, stats, or process checks.
+Always use `rerw swap savefile --source <path>`. Never raw `cp`. Confirm the game is closed before swapping; once authorized, execute the bare swap and stop — no backups, md5s, stats, or process checks. Full narrative including the mid-session-swap-clobber gotcha lives in `rw/docs/workflow/save-editing.md` §Gotchas.
 
 ### Steam Cloud sync
-Assume Steam Cloud sync for Ravenswatch is **OFF** on the user's machine. Do not mention it, do not warn about it, do not factor it into swap or save behavior. If a swap-didn't-take symptom comes up, look elsewhere first.
+Assume Steam Cloud sync is disabled for Ravenswatch. Saves persist on disk; `rerw swap savefile` sticks across game sessions. The mid-session swap clobber rule still applies — never swap while the game is running.
 
 ### Saves are only generated at chapter-boss kills — there is no other save event
-Ravenswatch only writes a new `Profile_1.ob` after a chapter boss is defeated. After the boss-kill animation a dialogue offers to save; if the player chooses yes, a save is generated AND the game exits. There is no autosave, no quicksave, no save-on-quit, no save-on-death. Mid-run state, defeats, score-page values, and HUD changes are NOT captured in any new save file.
-
-Implications for save-edit testing:
-- We cannot do "edit → swap → play → save → re-inspect" round-trips. Mid-run state changes never make it back to disk.
-- Valid observations are limited to (a) HUD values immediately on save load, (b) end-of-run score page after defeat, (c) anything visible during play. None of these produce a new save we can diff against.
-- "Verifying" an edit means visually confirming the loaded HUD/score-page reflects the edited value. There is no automated round-trip check beyond the parse-encode byte-equality test on the file itself.
-- Reaching a new chapter-boss kill to generate fresh save data is a real-time play investment — typically ~20 minutes of focused play per save. Treat existing proof saves as scarce. Proposing a new save run is NOT off the table, but it must be extremely warranted — strong justification (e.g., the test cannot be done any other way and the resulting save unblocks meaningful progress). Don't suggest a fresh-save test casually.
+Ravenswatch only writes a new `Profile_1.ob` on chapter-boss kill (no autosave / quicksave / save-on-quit / save-on-death). Mid-run "edit → swap → play → save → re-inspect" round-trips are not possible; a new chapter-boss kill is ~20 minutes of focused play. Treat proof saves as scarce — propose new save runs only with strong justification. Full narrative in `rw/docs/workflow/save-editing.md` §Gotchas.
 
 ### Ghidra: decompilation available on request
 The game's `Ravenswatch.exe` is loaded in Ghidra and reachable via `mcp__ghidra__*` tools. If decompilation would help answer a question, ask the user before digging — don't assume.
@@ -108,36 +102,16 @@ A WinDbg MCP server is registered in `.mcp.json` (port 8000); when running, tool
 Frida scripts live at `tools/frida/*.js` in WSL; `frida.exe` runs Windows-side via interop (default path `/mnt/c/Users/KidSqid/AppData/Local/Python/pythoncore-3.14-64/Scripts/frida.exe`) and loads the WSL absolute path directly on initial invocation. The REPL eats backslashes on `%load` reloads — never reload from the REPL; after any edit, exit Frida and re-launch with a fresh one-liner.
 
 ### Ghidra: annotate findings on the spot
-This section governs all Ghidra reverse-engineering work. When you identify what something does — even partially — annotate it in Ghidra immediately. Do not batch annotations at session end. Each annotation makes future decompilation more readable for both you and the user, and prevents losing the identification when context drops. The bar is low: partial understanding is worth annotating. `unknown_serializer_at_this+0xc8` is more useful than `FUN_1403b3da0`.
-
-Annotation kinds and the tool to use:
-
-- **Functions** — rename via `mcp__ghidra__rename_symbol` (target_type=function) or `mcp__ghidra__batch_rename`. Convention: snake_case for free functions, `Class_method` or `Class::Method` for members, `Class_vftable` for vtables.
-- **Data / globals** — rename via `mcp__ghidra__rename_symbol` (target_type=data). Used for vftables, RTTI, string tables, registries.
-- **Function parameters and local variables** — rename via `mcp__ghidra__rename_symbol` (target_type=variable) inside a decoded function. Replace `param_1` with `this` / `stream` / `hero_state`, `local_88` with `count_delta`, `uVar3` with `ingredient_index`.
-- **Struct definitions** — when a class layout is understood, define the struct via `mcp__ghidra__struct` (action=create). Once defined, accesses like `*(int *)(this + 0x08)` auto-render as `this->type_id` everywhere the type is applied.
-- **Equates / enums** for magic constants — `0xAABB1111` → `MARK_START`, schema-version IDs, ingredient class IDs. Use `mcp__ghidra__types` (action=create_enum).
-
-The "why" of a finding belongs in `rw/key-findings/*.md`, not in Ghidra plate/EOL comments. Ghidra annotations are for symbol-level identity (names, types, structures); narrative context lives in the key-findings docs.
+When you identify what a function/struct/global does — even partially — annotate it in Ghidra immediately via the `mcp__ghidra__*` tools. Don't batch at session end. Symbol identity (names, types, struct definitions, enums) goes in Ghidra; narrative context goes in `rw/findings/*.md`. Full annotation kinds, naming conventions, and the symbol-identity-vs-narrative split live in `rw/docs/workflow/ghidra.md`.
 
 ### Save-edit lab base rule — never layer on a failed experiment
-New save edits are ALWAYS layered on top of either (a) a golden save, or (b) a proof / verified-success lab save that is a candidate for promotion to golden. NEVER layer a new edit on top of a failed lab variant — that carries dead-end edits forward and confounds the test. If unsure whether a prior lab is a success, ask before using it as the base.
+New save edits MUST layer on top of a golden, a proof, or a verified-success lab. Never layer on a failed lab variant. If unsure whether a prior lab is a success, ask before using it. Full rationale in `rw/docs/workflow/save-editing.md` §Concepts → "Lab base rule."
 
 ### Save-edit lab naming convention
-Lab folder names MUST encode their source/lineage so the layering chain is visible at a glance. Pattern: `<edit-name>__from-<source-name>[__<extra-suffix>]/Profile_1.ob`. The `__from-` separator is a literal double-underscore. Examples:
-
-- `feathers-14__from-test3-mint/` — sets feather field to 14, layered on the test3-silencer-fix-verified mint
-- `keys-count-5__from-test3-mint/` — sets keys count subfield to 5, same source
-- `mint-feathers-consumed-zero__from-laser-lenses_1-proof__chapter1-stars7/` — output of `rerw mint savefile` with the feathers-consumed-zero recipe step, sourced from the laser-lenses_1 chapter-2 proof, set to chapter 1 with Stars of Fate baseline 7
-
-Use the source's directory name (the leaf, not the full path) as the source identifier. Disambiguate proof vs golden vs mint with a suffix when the leaf name alone could be ambiguous.
+Lab folder names encode lineage: `<edit-name>__from-<source-name>[__<extra-suffix>]/Profile_1.ob`. The `__from-` separator is a literal double-underscore. Use the source directory's leaf name. Examples and full convention live in `rw/docs/workflow/save-editing.md` §Concepts → "Folder taxonomy and naming."
 
 ### Save-file taxonomy
-Three top-level categories under `rw/saves/`:
-
-- `proofs/` — natural unmodified gameplay saves (player reached a chapter-boss kill and saved; no edits applied)
-- `mints/` — saves derived from running the mint chain: a proof was minted into a starting save, that mint was loaded and played forward, the player reached another chapter-boss kill and saved. Mint-derived saves are NOT proofs because the mint influenced their starting state.
-- `edits/lab/` and `edits/golden/` — work-in-progress edits and promoted/verified-success edits respectively. Both follow the lab naming convention above.
+Four buckets under `rw/saves/`: `proofs/` (unmodified chapter-boss-kill saves), `mints/` (saves derived from a mint chain), `edits/lab/` (gitignored WIP edits), `edits/golden/` (tracked verified edits). Full definitions and path conventions in `rw/docs/workflow/save-editing.md` §Concepts → "Folder taxonomy and naming."
 
 ### Save-load error modal — read the actual outcome, not the modal
 The "Save Loading Error (Error code: N)" modal does NOT always indicate a hard failure. It can appear in two distinct scenarios:

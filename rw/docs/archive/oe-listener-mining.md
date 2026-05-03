@@ -3,7 +3,7 @@
 > RTTI walk, mirror-cascade analysis, listener-instance pinning) for the future
 > read-only monitoring track when per-session ASLR re-discovery is built.
 > For current canonical save-format state and the live-memory tabled-status
-> summary, see [`rw/key-findings/save-binary-format.md`](../../key-findings/save-binary-format.md).
+> summary, see [`rw/findings/save-binary-format.md`](../../findings/save-binary-format.md).
 
 # OEngine listener-data mining — techniques
 
@@ -14,10 +14,10 @@ instances bind to the stat you care about, and read or modify the value at
 offset `+8` from the instance base.
 
 This doc is the working playbook for that work. Cross-reference:
-- `rw/key-findings/archive/oe-dynamic-listener-data.md` — vtable map for all `<T>` specializations
-- `rw/triage/level-runtime-address.md` — first end-to-end walk-through of these techniques
+- `rw/findings/oe-dynamic-listener-data.md` — vtable map for all `<T>` specializations
+- `rw/findings/level-runtime-address.md` — first end-to-end walk-through of these techniques
 - `rw/saves/edits/golden/geppetto/chapter2/laser-lenses_1/session1_level_analysis.md` — session 1 results
-- `rw/docs/tools/mem-snapshot.md` — `mem_snapshot.py` command reference
+- `rw/docs/workflow/frida.md §Memory analysis` — `mem_snapshot.py` command reference
 
 ## What survives a restart, what doesn't
 
@@ -278,8 +278,8 @@ gameplay events change the HUD value, and external writes to them don't
 propagate to the live game. What they ARE beyond "not live" is undetermined
 (save-buffers, allocation-time defaults, dead-code subsystem fields, etc.
 are all consistent with the observations); see
-`rw/triage/pin-identity-uncertain.md` for the open hypothesis list and
-`rw/key-findings/archive/oe-dynamic-listener-data.md` (Status section) for the
+`rw/findings/pin-identity-uncertain.md` for the open hypothesis list and
+`rw/findings/oe-dynamic-listener-data.md` (Status section) for the
 full test record.
 
 This invalidates the "source-of-truth" framing throughout this doc. The
@@ -299,7 +299,7 @@ the mirrors are either silently overwritten by the engine (active
 high-frequency mirrors) or persisted-but-ignored by the read path (passive
 event-mirrors). The canonical source for any stat we tested has not been
 located via memory-only techniques. See
-`rw/triage/live-state-mirror-cascade.md` for the cascade observations and
+`rw/findings/live-state-mirror-cascade.md` for the cascade observations and
 the failed canonical-source hunts.
 
 ## Techniques planned (next steps)
@@ -357,7 +357,7 @@ entries × 8 bytes/entry). Speed: ~30-60s per snap walk for verification.
 > whose writes propagate to UI / other mirrors. That presupposition is
 > false for these pinned listeners — they're decoupled from the live
 > read path. (Their further identity is undetermined; see
-> `rw/triage/pin-identity-uncertain.md`.)
+> `rw/findings/pin-identity-uncertain.md`.)
 >
 > The valid version of this technique would be: write to a candidate, then
 > watch the *out-of-band live HUD value* (or a verified-live listener if
@@ -393,7 +393,7 @@ robust.
 
 ### Save-format ↔ runtime binding
 
-Several save fields have known offsets and GUIDs (see `rw/triage/geppetto-save-analysis.md`).
+Several save fields have known offsets and GUIDs (see `rw/findings/geppetto-save-analysis.md`).
 For runtime values now identified (Level, XP threshold, etc.), we can correlate:
 - Save offset → save value
 - Runtime listener → runtime value

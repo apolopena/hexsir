@@ -15,7 +15,7 @@
 #   - displays_as: <live-item alias as shown in HUD>
 #   - inherits_from: <live entity's effect filename>
 #   - meta_notes: combined-effect description (verbatim wiki text where available)
-# See `rw/key-findings/item-table.md` for full per-item details (icons, name keys, catalog GUIDs).
+# See `rw/findings/item-table.md` for full per-item details (icons, name keys, catalog GUIDs).
 
 schema_version: "1.0.0"
 registry_id: magical_items

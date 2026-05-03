@@ -10,7 +10,7 @@ Frida scripts that drive Ravenswatch's save subsystem from outside the game. No 
 | `save_now.js` | Finds `oCDtRootGs`, calls `save_request_sync(NULL, data_source + 0x1928)`, blocks until save completes, prints status. Updates `Profile_1.ob` on disk. |
 | `rw_lab.js` | Live-patch lab. Hub for runtime patches and diagnostics. Currently: talent-picker seed forcing (`force(seed)`, `forceFresh(seed)`), picker count override (`pickerCount(n)`), pool/slot dumps, held-talent clearing. See header comment for the full REPL command list. |
 
-`save_now.js` and `find_data_source.js` implement the recipe documented in `rw/key-findings/save-subsystem.md`.
+`save_now.js` and `find_data_source.js` implement the recipe documented in `rw/findings/save-subsystem.md`.
 
 ## Setup (one-time, on Windows)
 
@@ -227,7 +227,7 @@ The data source (`oCDtRootGs`) is heap-allocated when a profile loads. Run these
 - This shouldn't happen on a typical run. The heap is usually under 200MB and the scan completes in under 500ms. If it's much slower, the game may be in an unusual state — try re-running.
 
 **Game crashes during scan**
-- Extremely unlikely with the current filters (vtable must point inside the image, and vtable[0] is called inside try/catch). If it happens, capture the call stack and we can tighten the filters further. Report it as a triage entry in `rw/triage/`.
+- Extremely unlikely with the current filters (vtable must point inside the image, and vtable[0] is called inside try/catch). If it happens, capture the call stack and we can tighten the filters further. Report it as a triage entry in `rw/findings/`.
 
 ## Implementation notes
 

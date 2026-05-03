@@ -46,7 +46,7 @@ The slot/controller numbers in `tools/rerw-src/lib/talent_edit.py` and `lib/item
 
 ## Save artifact types
 
-Three artifact types live under `rw/saves/`. Definitions, path conventions, and promotion paths are in `rw/docs/playbook.md`. Quick summary:
+Three artifact types live under `rw/saves/`. Definitions, path conventions, and promotion paths are in `rw/docs/workflow/save-editing.md`. Quick summary:
 
 - **Lab** — gitignored work-in-progress save edit.
 - **Golden** — verified save edit whose chain does NOT use `rerw mint savefile`.
@@ -54,8 +54,8 @@ Three artifact types live under `rw/saves/`. Definitions, path conventions, and 
 
 ## References
 
-- `rw/docs/playbook.md` — save artifact types, path conventions, promotion paths, CLI promotion rules.
-- `rw/key-findings/talent-records.md` — talent record format, picks block, rarity records.
-- `rw/key-findings/magical-objects.md` — item record format, catalog, edit primitives.
-- `rw/key-findings/rng-behavior.md` — single-seed PCG model, forcing strategy.
-- `rw/triage/random-seed-system.md` — open dig: master chapter seed location.
+- `rw/docs/workflow/save-editing.md` — save artifact types, path conventions, promotion paths, CLI promotion rules.
+- `rw/findings/talent-records.md` — talent record format, picks block, rarity records.
+- `rw/findings/magical-objects.md` — item record format, catalog, edit primitives.
+- `rw/findings/rng-behavior.md` — single-seed PCG model, forcing strategy.
+- `rw/findings/random-seed-system.md` — open dig: master chapter seed location.

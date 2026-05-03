@@ -9,7 +9,7 @@
 // Will load, then auto-run. On the REPL prompt that follows, type 'exit'
 // to leave (or pipe stdin: `printf 'exit\n' | frida ...`).
 //
-// Reference: rw/key-findings/save-subsystem.md and HANDOFF.md
+// Reference: rw/findings/save-subsystem.md and HANDOFF.md
 
 'use strict';
 

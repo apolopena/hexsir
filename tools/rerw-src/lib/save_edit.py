@@ -6,7 +6,7 @@ Layout assumptions match `rw/scripts/mod_save.py`:
     GUID matches      : value lives at GUID_offset + len(guid) (15 bytes)
 
 Verified end-to-end via the chapter-rewind primitive
-(see `rw/key-findings/save-chapter-counter.md`).
+(see `rw/findings/save-chapter-counter.md`).
 """
 
 from __future__ import annotations

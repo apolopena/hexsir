@@ -4,7 +4,7 @@ description: Generate a context handoff document so another agent can pick up wh
 
 ## Instructions
 
-Generate a **timestamped** handoff document under `.ai/scratch/` that lets a fresh agent (with zero conversation history) resume the current work cleanly. **Never overwrite an existing handoff.**
+Generate a **timestamped** handoff document under `.ai/scratch/context-handoff/` that lets a fresh agent (with zero conversation history) resume the current work cleanly. **Never overwrite an existing handoff.**
 
 **Optional argument:** `$ARGUMENTS` — if it includes `--full`, force full mode regardless of prior handoffs. If it includes any other text, treat that as a topic focus. Empty: summarize whatever is currently in flight.
 
@@ -15,7 +15,7 @@ Run these in parallel:
 - `date +%Y%m%d-%H%M%S` — output filename timestamp (use exact value).
 - `git status --short`
 - `git log -10 --oneline`
-- `ls -1t .ai/scratch/rw-context-handoff-*.md 2>/dev/null | head -1` — locate the most recent prior handoff.
+- `ls -1t .ai/scratch/context-handoff/rw-context-handoff-*.md 2>/dev/null | head -1` — locate the most recent prior handoff.
 
 **Mode selection:**
 
@@ -23,14 +23,14 @@ Run these in parallel:
 - Else if a prior handoff exists from today (filename starts with the same `YYYYMMDD` prefix as `date +%Y%m%d`), use **delta mode**.
 - Else use full mode.
 
-The output filename is `.ai/scratch/rw-context-handoff-<TIMESTAMP>.md`. If it somehow exists (same-second invocation), append `-01`, `-02`, etc.
+The output filename is `.ai/scratch/context-handoff/rw-context-handoff-<TIMESTAMP>.md`. If it somehow exists (same-second invocation), append `-01`, `-02`, etc.
 
 ### Prime directive (both modes)
 
 Every handoff begins with this exact block, verbatim:
 
 ```
-> **CRITICAL — READ FIRST:** This handoff file is self-contained and is the single source of truth for resuming this work. **Do NOT read other handoff files in this directory** (`.ai/scratch/rw-context-handoff-*.md`) — they are prior snapshots and will pollute your context with stale state. **Do NOT read neighboring scratch files** in `.ai/scratch/` unless they are explicitly listed in "Required reading" below. The "Required reading" section is the complete and exclusive list of supplementary files you should consult.
+> **CRITICAL — READ FIRST:** This handoff file is self-contained and is the single source of truth for resuming this work. **Do NOT read other handoff files in this directory** (`.ai/scratch/context-handoff/rw-context-handoff-*.md`) — they are prior snapshots and will pollute your context with stale state. **Do NOT read neighboring scratch files** in `.ai/scratch/` unless they are explicitly listed in "Required reading" below. The "Required reading" section is the complete and exclusive list of supplementary files you should consult.
 ```
 
 ### Delta mode
@@ -48,7 +48,7 @@ Skip everything else. If a section in this list would be empty, omit it.
 Sections in order. Each capped at ~5 bullets unless a list inherently needs more (e.g. file paths). Omit any section that would be empty (do not write "none" or "n/a").
 
 1. **TL;DR** — 3–5 bullets. Project, current task, what the next agent should do first.
-2. **Required reading** — numbered list of absolute paths. No per-file commentary unless a file's purpose isn't obvious from its name. At minimum: `CLAUDE.md` and the most relevant `rw/key-findings/*.md`.
+2. **Required reading** — numbered list of absolute paths. No per-file commentary unless a file's purpose isn't obvious from its name. At minimum: `CLAUDE.md` and the most relevant `rw/findings/*.md` with `**Status:** confirmed`.
 3. **Objective** — immediate task vs. broader project goal. 2–3 sentences each.
 4. **Current state** — what's been done. File paths + exact commands. ≤5 bullets.
 5. **Findings** — facts (confirmed) vs hypotheses (unconfirmed). Mark explicitly. Omit the section if neither applies.
@@ -68,4 +68,4 @@ Sections in order. Each capped at ~5 bullets unless a list inherently needs more
 
 ### Output
 
-Write to the timestamped path. After writing, print: the exact filename, the mode used (delta vs full), and a 2–3 bullet summary. Nothing else.
+Write to the timestamped path under `.ai/scratch/context-handoff/`. After writing, print: the exact filename, the mode used (delta vs full), and a 2–3 bullet summary. Nothing else.

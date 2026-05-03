@@ -131,12 +131,7 @@ Options:
 -v, --verbose                Print file load, GUID, and CRC details.
 ```
 
-Current save-write scope: `write savefile` supports chapter, level, and talent
-edits only. Item/magical-object writes are not wired into the CLI yet: there is
-no `--item-slot` / `--item-id` flag, no `item_record` field type in
-`save-fields.yaml`, and no `lib/item_edit.py` implementation. See
-[`magical-objects.md`](../key-findings/magical-objects.md) for the verified item
-record format and edit primitives.
+Current save-write scope: see [`../workflow/save-editing.md`](../workflow/save-editing.md) §Recipes → "CLI one-liners" for the full inventory of shipped edit primitives (chapter, level, XP, currencies, talents, talent rarities, hero swap, item SWAP/ADD/REMOVE, mint, swap).
 
 ### `rerw swap savefile`
 

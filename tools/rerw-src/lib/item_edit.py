@@ -20,7 +20,7 @@ Records-array layout, relative to the run-state tag-byte offset (`pos`):
 The run-state record has no outer length prefix; the marker/close framing
 self-terminates. Splices propagate naturally — caller recomputes CRC.
 
-See `rw/key-findings/magical-objects.md` for the canonical reference and
+See `rw/findings/magical-objects.md` for the canonical reference and
 the Engine-validation gotchas (Rule A fresh-ref cap, Rule B per-item
 threshold cap, Rule C total-record-count cap). This module produces
 syntactically valid records; respecting per-save engine ceilings is the
@@ -178,7 +178,7 @@ def add_item(
             the new record. When None (default), uses `last_counter + 1`
             (allocates a fresh reference). Reusing an existing slot's
             counter bypasses the per-save Rule A fresh-reference cap;
-            see `rw/key-findings/magical-objects.md` for the rules.
+            see `rw/findings/magical-objects.md` for the rules.
 
     Raises:
         ItemEditError: if `runtime_guid` is not 16 bytes, the records

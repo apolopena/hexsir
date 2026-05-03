@@ -672,7 +672,7 @@ def item_grp() -> None:
     (Rule A fresh-ref cap, Rule C total-count ceiling). Adding too many
     records beyond the natural baseline can crash the engine on load.
     Use `add --reuse-counter-from-slot N` to bypass Rule A. See
-    `rw/key-findings/magical-objects.md` for per-save tolerances.
+    `rw/findings/magical-objects.md` for per-save tolerances.
     """
 
 
@@ -720,7 +720,7 @@ def item_swap_cmd(
     """Replace slot N's runtime GUID with the keyed item's GUID.
 
     Constant-size edit; file size unchanged. Safe domain (per
-    `rw/key-findings/magical-objects.md`): Legendary <-> Legendary or
+    `rw/findings/magical-objects.md`): Legendary <-> Legendary or
     Cursed <-> Cursed swaps where neither item is in inventory. Swapping
     one of a stacked Common / Rare / Epic instance is unverified.
     """
