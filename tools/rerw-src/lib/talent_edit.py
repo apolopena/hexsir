@@ -94,7 +94,7 @@ def find_picks_count(data: bytes, record_off: int) -> tuple[int, int]:
     `picks_count_offset + 4 .. picks_count_offset + 4 + count*16`.
 
     Replaces the chapter-2-only `00 00 00 00 05 00 00 00` sentinel search.
-    See `rw/key-findings/talent-records.md` § "Picks-block locator".
+    See `rw/findings/talent-records.md` § "Picks-block locator".
     """
     cursor = data.find(RUN_STATE_CLOSE_MARKER, record_off)
     while cursor >= 0:
@@ -107,7 +107,12 @@ def find_picks_count(data: bytes, record_off: int) -> tuple[int, int]:
             and pre[TRAILER_PRE_FLOAT_PAD + 4 :] == b"\x00" * TRAILER_POST_FLOAT_PAD
         ):
             f_val = struct.unpack_from("<f", pre, TRAILER_PRE_FLOAT_PAD)[0]
-            if TIMING_FLOAT_MIN < f_val < TIMING_FLOAT_MAX:
+            # Accept f_val == 0.0 (mint zeroes per-run timing stats including
+            # this float) AND the populated-run range. The 8-zero/8-zero
+            # sandwich + close marker is already a strong structural signature;
+            # keeping a permissive sanity check here without rejecting valid
+            # post-mint saves.
+            if f_val == 0.0 or TIMING_FLOAT_MIN < f_val < TIMING_FLOAT_MAX:
                 picks_end = cursor - TRAILER_LEN
                 # Try N=1..MAX first (non-zero picks). N=0 last so we don't
                 # falsely match coincidental zero u32s inside GUID bytes.
