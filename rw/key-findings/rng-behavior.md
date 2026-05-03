@@ -89,7 +89,7 @@ Tier-rarity targeting requires also mirroring `FUN_1402e7b80` / `FUN_1402e7a40` 
 The above plan is implemented:
 
 - `tools/rerw-src/lib/picker_seed_solver.py` — pure-Python PCG step + partial Fisher-Yates simulator. `simulate(seed, pool, num_picks)` for forward simulation; `find_seeds(pool, num_picks, target, ...)` for brute-force.
-- `tools/frida/force_seed.js` — `dumpTalentPoolNext()` REPL command writes the unpruned pool array to the diag log on the next picker entry, including 256 bytes of inner-deref so talent GUIDs can be matched against the hero registry.
+- `tools/frida/rw_lab.js` — `dumpTalentPoolNext()` REPL command writes the unpruned pool array to the diag log on the next picker entry, including 256 bytes of inner-deref so talent GUIDs can be matched against the hero registry.
 - `rerw experimental find-talent-seeds` — parses the diag log, picks the requested `[#N]` block, maps pool[i] -> talent name, brute-forces seeds whose simulated output matches the target talent set, prints matches.
 
 Validation: the algorithm matches the engine exactly on the simplest case (slot=4 ult picker, 2-of-2 pool). Verified `0x14e61463` -> `top=WildWaltz, bottom=BlackRoses` against an in-game forced-seed run. Cross-session determinism (same seed, same target, separate game launches) is the next test — see `.ai/scratch/test-plan-cross-session-seeds-20260502.md`.
@@ -125,5 +125,5 @@ Talent-pick rarity is stored TWICE in the save and the picker reads either one d
 ## References
 
 - Function: `SkillController_roll_proposed_skills` at `image+0x39c300` (renamed from `FUN_14039c300`; previously misnamed `read_extra_skill_choice_modifier`).
-- Frida harness: `tools/frida/force_seed.js`.
+- Frida harness: `tools/frida/rw_lab.js`.
 - Related Ghidra renames committed in this session: `SkillController_state_dispatch`, `SkillController_repropose_skills`, `SkillController_persist_proposed_list`, `is_skill_pick_free`, `oCDtEntityCpntSkillController_typedesc_init`, `oCDtEntityCpntSandmanMenuUiController_typedesc_init`, `sandman_purchase_commit`, `fire_named_event`, `register_named_event_table`, `register_named_event`, `register_modifier_stat`, `register_gameplay_modifier_stats`, `subscribe_run_tracker_to_named_events`, `vector_move_assign`, `broadcast_to_handler_list`, `invoke_callable_and_cleanup`, `entity_init_from_config_block`.

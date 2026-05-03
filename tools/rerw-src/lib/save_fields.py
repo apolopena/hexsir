@@ -126,7 +126,7 @@ def _parse_field(name: str, category: str, body: object) -> Field:
         )
 
     if vtype == "talent_picks":
-        for required in ("record_guid", "sentinel", "slot_count", "skills_data_dir"):
+        for required in ("record_guid", "skills_data_dir"):
             if required not in body:
                 raise SaveFieldsError(
                     f"Field '{name}': type 'talent_picks' requires '{required}'"
@@ -134,17 +134,6 @@ def _parse_field(name: str, category: str, body: object) -> Field:
         record_guid = _parse_guid(
             body["record_guid"], field_name=name, index=0
         )
-        try:
-            sentinel = bytes.fromhex(str(body["sentinel"]))
-        except ValueError as exc:
-            raise SaveFieldsError(
-                f"Field '{name}': sentinel not valid hex: {body['sentinel']!r}"
-            ) from exc
-        slot_count = body["slot_count"]
-        if not isinstance(slot_count, int) or slot_count <= 0:
-            raise SaveFieldsError(
-                f"Field '{name}': slot_count must be a positive int"
-            )
         skills_data_dir = body["skills_data_dir"]
         if not isinstance(skills_data_dir, str):
             raise SaveFieldsError(
@@ -152,8 +141,6 @@ def _parse_field(name: str, category: str, body: object) -> Field:
             )
         extra = {
             "record_guid": record_guid,
-            "sentinel": sentinel,
-            "slot_count": slot_count,
             "skills_data_dir": skills_data_dir,
         }
         return Field(

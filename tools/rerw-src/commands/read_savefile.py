@@ -14,13 +14,13 @@ from lib.skill_controllers import (
     load_hero_controllers,
 )
 from lib.talent_edit import (
-    TIER_VALUE_TO_NAME,
+    RARITY_VALUE_TO_NAME,
     TalentEditError,
     detect_hero,
-    find_picks_anchor,
+    find_picks_count,
     find_talent_record,
     read_picks,
-    read_tier,
+    read_rarity,
 )
 
 NOT_PRESENT = "<not present>"
@@ -163,12 +163,8 @@ def read_savefile_cmd(
 
     try:
         record_off = find_talent_record(data, talent_field.extra["record_guid"])
-        picks_start = find_picks_anchor(
-            data, record_off, talent_field.extra["sentinel"]
-        )
-        picks = read_picks(
-            data, picks_start, talent_field.extra["slot_count"]
-        )
+        picks_count_off, count = find_picks_count(data, record_off)
+        picks = read_picks(data, picks_count_off, count)
     except TalentEditError as exc:
         click.echo(f"talents: <{exc}>")
         return
@@ -176,7 +172,7 @@ def read_savefile_cmd(
     if verbose:
         info(
             f"Hero detected: {hero}; talent record body @ 0x{record_off:x}; "
-            f"picks block @ 0x{picks_start:x}"
+            f"picks count u32 @ 0x{picks_count_off:x} (N={count})"
         )
 
     click.echo(f"talents: ({hero})")
@@ -198,9 +194,9 @@ def read_savefile_cmd(
             else canonical
         )
         try:
-            tier_byte = read_tier(data, guid)
-            tier_name = TIER_VALUE_TO_NAME.get(tier_byte, f"u8={tier_byte}")
-            tier_str = f"{tier_name} (0x{tier_byte:02x})"
+            rarity_byte = read_rarity(data, guid)
+            rarity_name = RARITY_VALUE_TO_NAME.get(rarity_byte, f"u8={rarity_byte}")
+            rarity_str = f"{rarity_name} (0x{rarity_byte:02x})"
         except TalentEditError:
-            tier_str = "<no tag=0x10 record found>"
-        click.echo(f"  slot {i}: {display_name}  [tier: {tier_str}]")
+            rarity_str = "<no tag=0x10 record found>"
+        click.echo(f"  slot {i}: {display_name}  [rarity: {rarity_str}]")

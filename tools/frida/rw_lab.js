@@ -1,4 +1,18 @@
-// Ravenswatch — forced-seed harness for the skill picker.
+// Ravenswatch — live-patch lab.
+//
+// Hub script for runtime patches and diagnostics against Ravenswatch.exe.
+// Currently focused on the talent picker (SkillController_roll_proposed_skills
+// @ image+0x39c300), but new patches against unrelated subsystems can be
+// added below alongside the existing ones.
+//
+// Conventions:
+//   - Each feature is a self-contained block (Interceptor.attach or byte
+//     patch) with its own REPL commands. Extracting a feature into its own
+//     file later = copy the block + the REPL command bindings, no
+//     untangling.
+//   - Byte patches save the original bytes on first apply so they can be
+//     restored without relaunching.
+//   - All commands log a labeled line so behaviour is visible in LOG_PATH.
 //
 // Target: SkillController_roll_proposed_skills @ image+0x39c300.
 // The function uses an inline PCG loop reading TLS+0xff3c. We force a
@@ -51,6 +65,27 @@
 //   Disabled stub; prints a warning. Aggressive mode required hooking the
 //   IMUL inside the inline PCG loop, which crashed Frida's relocator. Kept
 //   for backward compat with old REPL muscle memory.
+//
+// PICKER COUNT (byte-patch — persists until unpatchPickerCount() or relaunch)
+// --------------------------------------------------------------------------
+// pickerCount(n)
+//   Patch the two immediate offsets that compute how many talents the
+//   picker offers per level-up. Vanilla logic is:
+//     local_148 = iVar18 + 2;             // non-zero slot index
+//     if (slot_index == 0) local_148 = iVar18 + 4;
+//   where iVar18 is the "Extra skill choice" gameplay-modifier stat.
+//   pickerCount(n) rewrites BOTH +2 and +4 to +n, so every slot offers
+//   `iVar18 + n` talents. n must be 1..127 (signed-byte immediate).
+//   Effect is global until unpatchPickerCount() restores the original
+//   bytes. Log line on apply records the prior value; first call
+//   captures original bytes for restore.
+//
+//   Patch sites:
+//     image+0x39c4cd  (LEA ECX,[RBX+0x2]  imm)  vanilla 0x02
+//     image+0x39c4e4  (ADD EBX, 0x4       imm)  vanilla 0x04
+//
+// unpatchPickerCount()
+//   Restore vanilla picker count. No-op if not patched.
 //
 // LOGGING
 // -------
@@ -465,6 +500,60 @@ if (mod === null) {
         logLine(ts() + ' --- mark: ' + label + ' entries=' + entryCount + ' ---');
     };
 
+    // Picker-count byte patch. Rewrites the two immediates that compute
+    // how many talents the picker offers per level-up:
+    //   image+0x39c4cd : LEA ECX,[RBX+0x2]  imm   (non-zero slot)
+    //   image+0x39c4e4 : ADD EBX, 0x4       imm   (slot 0)
+    // Both get rewritten to the same value so every slot offers iVar18+n.
+    const PICKER_LEA_IMM_RVA = 0x39c4cd;
+    const PICKER_ADD_IMM_RVA = 0x39c4e4;
+    let pickerOriginal = null;  // { lea: u8, add: u8 } once first patched
+
+    globalThis.pickerCount = function (n) {
+        if (typeof n !== 'number' || !Number.isInteger(n) || n < 1 || n > 127) {
+            console.log('[diag] usage: pickerCount(n) — integer 1..127');
+            return;
+        }
+        const leaAddr = mod.base.add(PICKER_LEA_IMM_RVA);
+        const addAddr = mod.base.add(PICKER_ADD_IMM_RVA);
+        if (pickerOriginal === null) {
+            pickerOriginal = {
+                lea: leaAddr.readU8(),
+                add: addAddr.readU8(),
+            };
+        }
+        try {
+            Memory.patchCode(leaAddr, 1, function (p) { p.writeU8(n & 0xff); });
+            Memory.patchCode(addAddr, 1, function (p) { p.writeU8(n & 0xff); });
+        } catch (e) {
+            logLine(ts() + ' === PICKER-COUNT: patch FAILED ' + e.message + ' ===');
+            return;
+        }
+        logLine(ts() + ' === PICKER-COUNT: every slot offers iVar18 + ' + n +
+                ' talents (was +' + pickerOriginal.lea + ' / +' + pickerOriginal.add +
+                ' for slot 0) ===');
+    };
+
+    globalThis.unpatchPickerCount = function () {
+        if (pickerOriginal === null) {
+            console.log('[diag] picker count not patched — nothing to restore');
+            return;
+        }
+        const leaAddr = mod.base.add(PICKER_LEA_IMM_RVA);
+        const addAddr = mod.base.add(PICKER_ADD_IMM_RVA);
+        try {
+            Memory.patchCode(leaAddr, 1, function (p) { p.writeU8(pickerOriginal.lea); });
+            Memory.patchCode(addAddr, 1, function (p) { p.writeU8(pickerOriginal.add); });
+        } catch (e) {
+            logLine(ts() + ' === PICKER-COUNT: restore FAILED ' + e.message + ' ===');
+            return;
+        }
+        logLine(ts() + ' === PICKER-COUNT: restored vanilla (slot0=+' +
+                pickerOriginal.add + ', others=+' + pickerOriginal.lea + ') ===');
+        pickerOriginal = null;
+    };
+
     console.log('[diag] ready. REPL: force(seed) | forceFresh(seed) | unforce() | mark("label")');
     console.log('[diag]        dumpTalentSlotsNext() | dumpTalentPoolNext() | clearHeldTalentNext(idx?)');
+    console.log('[diag]        pickerCount(n) | unpatchPickerCount()');
 }

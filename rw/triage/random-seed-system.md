@@ -26,7 +26,7 @@
 The talent picker uses an inline PCG against TLS+`0xff3c`. Forcing the seed at function entry (Frida hook) gives full deterministic control over both selection and rarity roll. See:
 
 - `rw/key-findings/rng-behavior.md` — full mechanism
-- `tools/frida/force_seed.js` — working harness with `force(seed)` / `forceFresh(seed)` / `clearHeldNext(slotIdx)` REPL commands
+- `tools/frida/rw_lab.js` — working harness with `force(seed)` / `forceFresh(seed)` / `clearHeldNext(slotIdx)` REPL commands
 - `rw/key-findings/talent-records.md` — the dual-storage tier model
 - Renamed Ghidra functions: `SkillController_roll_proposed_skills`, `SkillController_state_dispatch`, `SkillController_repropose_skills`, `talent_roll_tier_weighted`, `talent_stamp_tier`, `uniform_float_in_range_pcg`, `SkillController_sync_slot_tiers_from_talents`, `SkillController_init_or_load_persistent`
 
@@ -56,5 +56,5 @@ Picks block storage layout for >5-pick saves (chapter-3, epilogue) is genuinely 
 
 - `rw/key-findings/rng-behavior.md` — single-seed model, dual-storage tier, Frida-forcing strategy
 - `rw/key-findings/talent-records.md` — talent record byte layouts, slot.tier u32 array
-- `tools/frida/force_seed.js` — talent-picker forcing harness
+- `tools/frida/rw_lab.js` — talent-picker forcing harness
 - `rw/docs/save-edit-capabilities.md` — `all-talent-rarities` CLI capability

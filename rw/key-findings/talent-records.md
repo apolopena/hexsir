@@ -2,39 +2,39 @@
 
 ## What this doc is — for non-experts
 
-**Plain-English summary.** When you pick talents during a Ravenswatch run, the game records two different things in the save: WHICH talent goes in each slot (a 16-byte ID per slot) and WHAT RARITY each talent has (a 1-byte tier value per controller, plus 10 u32 per-slot tier values). The CLI exposes editing both for chapter-2 boss-kill saves; epilogue saves use a different storage layout that we haven't yet decoded.
+**Plain-English summary.** When you pick talents during a Ravenswatch run, the game records two different things in the save: WHICH talent goes in each slot (a 16-byte ID per slot) and WHAT RARITY each talent has (a 1-byte rarity value per controller, plus 10 u32 per-slot rarity values). The picks-block format is the same across all chapters — `[u32 N count][N × 16-byte GUIDs]` — but the chapter-2 layout has a coincidental "sentinel pattern" that doesn't generalize. See "Picks-block locator" below.
 
 **Rules of thumb when working with this finding:**
 
-1. **Talent CLI only works on saves with exactly 5 picks.** `rerw write savefile talent --slot N --key K` searches for the `count=5` sentinel and fails on any save with fewer or more picks (e.g. epilogue with 10 picks). For now, all per-slot talent edits must be sourced from a chapter-2 (or other 5-pick) proof.
-2. **Tier is stored in TWO places.** The per-controller tier byte (in tag=0x10 records) drives the HUD display and the picker stamp when the slot's loaded talent is valid. The per-slot u32 array at talent-record `+0x35` (10 entries) drives the picker stamp when the slot's loaded talent is null/incompatible. Edit both via `rerw write savefile all-talent-rarities <rarity>`.
-3. **Slot 5 is the ult slot. Slot 10 is the ult-upgrade.** Slot 5's tier byte is always `0x04` (ult-marker). Slot 10 has rarity per the user's gameplay observation, contrary to what an earlier version of this doc claimed.
-4. **Mint does NOT clear talent picks.** It zeroes per-run currencies, level, xp, scores, and a few other fields, but the talent records (tag=0x12 picks block + tag=0x10 tier bytes + slot.tier u32s) are passed through verbatim from the source proof.
+1. **Picks-block format is uniform: `[u32 N][N × 16-byte GUIDs]`.** Chapter 2 has N=5, chapter 3 has N=8, epilogue has N=10. Verified 2026-05-03 across all three Geppetto proofs by `rw/scripts/inspect_picks_block.py`. Picks accumulate forward across chapters (slot-1 GUID is identical in chapter-2, chapter-3, and epilogue proofs). `rerw write savefile talent --slot N --key K` and `talent-rarity --slot N --rarity X` accept any slot 1..10 (slot 5 is the ult and has no rarity).
+2. **Rarity is stored in TWO places.** The per-controller rarity byte (in tag=0x10 records) drives the HUD display and the picker stamp when the slot's loaded talent is valid. The per-slot u32 array at talent-record `+0x35` (10 entries) drives the picker stamp when the slot's loaded talent is null/incompatible. Edit both via `rerw write savefile all-talent-rarities <rarity>`.
+3. **Slot 5 is the ult slot. Slot 10 is the ult-upgrade.** Slot 5's rarity byte is always `0x04` (ult-marker). Slot 10 has rarity per the user's gameplay observation, contrary to what an earlier version of this doc claimed.
+4. **Mint does NOT clear talent picks.** It zeroes per-run currencies, level, xp, scores, and a few other fields, but the talent records (tag=0x12 picks block + tag=0x10 rarity bytes + slot.rarity u32s) are passed through verbatim from the source proof.
 5. **Hero-swap creates a hybrid state.** The save still has the old hero's talent GUIDs but the new hero's controller pool; the engine "translates" old GUIDs to new-hero equivalents. Side effect: if you hero-swap an epilogue save to a different hero, the engine may put the new hero's ult into engine-slot 0 (HUD slot 1) at runtime, distorting the level 5 picker behavior.
 
 **Skip to the deeper sections for the byte layouts and editing primitives.**
 
 ---
 
-Talent picks and tier values are encoded in the save body as references to skill-controller GUIDs defined in each hero's `herodef.ot` binary. Two distinct record types carry the data:
+Talent picks and rarity values are encoded in the save body as references to skill-controller GUIDs defined in each hero's `herodef.ot` binary. Two distinct record types carry the data:
 
 - A **tag=0x12 talent record** holds the player's talent picks for the run, stored as N × 16-byte skill-controller GUIDs back-to-back near the end of the record (N = number of slots picked so far).
-- 28 **tag=0x10 first-occurrence records** (one per skill controller) sit in the herodef-reference region near the hero record. Each carries that controller's tier byte. The engine reads tier from the tag=0x10 record matching the slot's *current* GUID — change a slot's GUID and the engine looks up tier from the new talent's tag=0x10 record.
+- 28 **tag=0x10 first-occurrence records** (one per skill controller) sit in the herodef-reference region near the hero record. Each carries that controller's rarity byte. The engine reads rarity from the tag=0x10 record matching the slot's *current* GUID — change a slot's GUID and the engine looks up rarity from the new talent's tag=0x10 record.
 
-**Status:** verified end-to-end across three swaps from the Geppetto chapter2 (level 5) proof — talent-only swap (slot 1 → Trait Twins, displayed as Common), tier-only edit (Dummy Ball → Legendary), and combined edit (slot 1 → Trait Twins at Legendary). Verified scope is **slots 1–5 only**. Slots 6–10 are unverified — no L10+ proof saves yet. Hero-specific (Geppetto only); cross-hero generality unverified.
+**Status:** verified end-to-end. Slots 1–5 swaps via the chapter-2 `laser-lenses_1` proof (talent-only swap to Trait Twins, rarity-only edit to Legendary, combined edit). Slots 6–10 swap verified 2026-05-03 via the epilogue `laser-lenses_1` proof (slot 6 → Twin Dummies, in-game HUD readback). Hero-specific verification is Geppetto only; cross-hero generality unverified.
 **Created:** 2026-04-27
 
 ## Run leveling structure (player gameplay reference)
 
 A Ravenswatch run uses 10 talent slots, but only 6 of them are actively chosen at "talent pick" milestones — and only slot 5 and slot 10 are ult-related. The full table:
 
-| Level | Slot | Pick options | Has tier? | Notes |
+| Level | Slot | Pick options | Has rarity? | Notes |
 |------:|-----:|---|:-:|---|
 | 1 | 1 | 4 starting talents (choose 1) | yes | hero's starting kit |
 | 2 | 2 | 3 regular talents | yes | regular pick |
 | 3 | 3 | 3 regular talents | yes | regular pick |
 | 4 | 4 | 3 regular talents | yes | regular pick |
-| 5 | 5 | Ultimate Power 1 or Ultimate Power 2 | **no** | one-of-two ult; tier byte is `0x04` (ult-marker) |
+| 5 | 5 | Ultimate Power 1 or Ultimate Power 2 | **no** | one-of-two ult; rarity byte is `0x04` (ult-marker) |
 | 6 | 6 | 3 regular talents | yes | regular pick |
 | 7 | 7 | 3 regular talents | yes | regular pick |
 | 8 | 8 | 3 regular talents | yes | regular pick |
@@ -49,7 +49,7 @@ Verified 2026-04-29 via cross-reference against the Ravenswatch wiki for all 12 
 
 (For Geppetto. Each hero defines its own four ult-upgrade controllers in its herodef.)
 
-The save records the talent-pick block with a count field. At chapter 2 entry (level 5) the count is 5 and the 5 × 16-byte block is the slots 1–5 picks. At higher levels the count grows; **the storage layout for slots 6–10 is unverified** — likely the same record's count field bumps and additional 16-byte GUIDs append, but no L10+ proof has been analyzed yet.
+The save records the talent-pick block with a count field. Layout is `[u32 N][N × 16-byte GUIDs]`, linear-append. **Verified 2026-05-03 across chapter-2 (N=5), chapter-3 (N=8), and epilogue (N=10) Geppetto proofs.** Picks carry forward across chapters: slot-1 GUID is identical across all three proofs.
 
 ## Talent record (tag=0x12)
 
@@ -57,36 +57,56 @@ Located by its stable 15-byte GUID `bf e7 f6 60 43 85 cb 48 87 f6 b4 b7 9f 68 12
 
 Locate by `data.find(b'\x12\x00\x00\x00' + record_guid_15)`.
 
-### 5-talent-pick block
-
-The 5 picks are anchored by an 8-byte sentinel `00 00 00 00 05 00 00 00` (the trailing u32 is the count = 5). The 5 × 16-byte talent GUIDs follow immediately, back-to-back at 16-byte intervals.
+### Picks block — generalized layout
 
 ```
-[u32 = 0]              ← 4 bytes, purpose unclear
-[u32 = 5]              ← count of talent picks (the sentinel anchor)
-[16 bytes: slot 1 talent GUID]
-[16 bytes: slot 2 talent GUID]
-[16 bytes: slot 3 talent GUID]
-[16 bytes: slot 4 talent GUID]
-[16 bytes: slot 5 talent GUID]   ← L5 ult slot
+[u32 N]                        ← talents-picked count (was the "sentinel" anchor in chapter-2)
+[N × 16-byte talent GUIDs]     ← slots 1..N, back-to-back at 16-byte intervals
 [8 bytes: 0x00 padding]
-[float (≈990–1370): timing accumulator, varies per save]
-[4 bytes: 0x00 padding]
+[float ≈ 800–4000: timing accumulator, varies per save]
+[8 bytes: 0x00 padding]
+[4 bytes: 22 22 bb aa close marker]
 ```
 
-In the chapter2 Geppetto proofs, the 5-pick block sits at:
-- Save A (`laser-lenses_1`): data offset 0xf130 (sentinel at 0xf128).
-- Save B (`twin-dummies-all-legendary-talents`): data offset 0xef70 (sentinel at 0xef68).
+Verified across all three Geppetto proofs (2026-05-03, `rw/scripts/inspect_picks_block.py`):
 
-### Editing slot N's talent (verified primitive)
+| Save | N | Picks-count u32 offset | Trailing float |
+|------|--:|------------------------|---------------:|
+| chapter-2 / laser-lenses_1 | 5 | 0xf12c | 990.0 |
+| chapter-3 / laser_lenses_1 | 8 | 0xf598 | 2020.0 |
+| epilogue / laser-lenses_1 | 10 | 0xf7d8 | 3700.0 |
 
-1. Locate the talent record: `record_off = data.find(bytes([0x12,0,0,0]) + RECORD_GUID_15)`.
-2. Find the sentinel: `anchor = data.find(b'\x00\x00\x00\x00\x05\x00\x00\x00', record_off)`.
-3. Compute slot N's offset: `picks_start = anchor + 8`, `slot_N_off = picks_start + (N - 1) * 16`.
-4. Write the new 16-byte skill-controller GUID at `slot_N_off`.
-5. Recompute body CRC32 and write at offset `0x0C`.
+### Picks-block locator (generalized)
 
-The edit is constant-size — the talent-pick block is fixed 80 bytes regardless of which talents are slotted. No body shift required.
+The picks block sits inside the run-state record (the same tag=0x12 record that holds item records — see `magical-objects.md`). The bytes immediately preceding the picks count u32 are the **end of the set-bonus tracker** (`[u32 N items at threshold][N × 16-byte GUIDs]` per `magical-objects.md`).
+
+**Why the chapter-2 sentinel `00 00 00 00 05 00 00 00` worked, and why it stops working:**
+
+- Chapter-2 `laser-lenses_1` has **0 set-bonus items at threshold** → the tracker collapses to `[u32 = 0]` = 4 zero bytes → those 4 zeros sit immediately before the picks count u32 → pattern matches.
+- Chapter-3 / epilogue have **N > 0 set-bonus items** → the 4 bytes before the picks count are the tail of the last tracker GUID (random-looking) → pattern does not match.
+
+The sentinel is a chapter-2 coincidence, not a structural anchor. **Don't search for it.**
+
+**Correct locator strategy:**
+
+1. Locate the talent (run-state) record: `record_off = data.find(bytes([0x12,0,0,0]) + RECORD_GUID_15)`.
+2. Walk the run-state body forward per `magical-objects.md`: items count → items records-array → set-bonus tracker (`[u32 N][N × 16-byte GUIDs]`).
+3. The 4 bytes immediately after the tracker = the picks count u32. Read it as `M`.
+4. Picks block = next `M × 16` bytes. Slot N (1-indexed) = picks_start + (N-1)*16.
+5. After picks: `[8 zero][float][8 zero][22 22 bb aa]` close marker.
+
+Alternative (simpler if items-side parsing is unavailable): walk **backward** from the close marker. The trailing structure is fixed: `[8 zero][float][8 zero][close]`. Past those 24 bytes the picks block ends; the 4 bytes before that are the last GUID's tail; back up 16 bytes per GUID until you find a u32 N at picks_count_off such that `picks_count_off + 4 + N*16 == picks_end`. This is what `rw/scripts/inspect_picks_block.py` does.
+
+### Editing slot N's talent (primitive — needs CLI rewrite)
+
+1. Locate the picks count via the strategy above.
+2. Compute slot N's offset: `slot_N_off = picks_count_off + 4 + (N - 1) * 16`.
+3. Write the new 16-byte skill-controller GUID at `slot_N_off`.
+4. Recompute body CRC32 and write at offset `0x0C`.
+
+The edit is constant-size — the picks block is `M × 16` bytes regardless of which talents are slotted. No body shift required as long as M is unchanged.
+
+The current CLI (`rerw write savefile talent --slot N --key K`) still uses the chapter-2-only sentinel search and so fails on chapter-3 / epilogue saves. Open follow-up: rewrite the locator using the generalized strategy above. Tracked in the open-follow-up list at the end of this doc.
 
 ### All-10-slots-empty trick (verified 2026-05-02)
 
@@ -99,18 +119,16 @@ Procedure (applied AFTER any other talent edits):
 3. Delete the 80 bytes (5 × 16) of GUID data immediately after the sentinel. File shrinks by 80 bytes.
 4. Recompute CRC.
 
-Verified-success golden using this recipe: `rw/saves/edits/golden/romeo-ch1-level14-pickscount0-rarities-legendary__from-laser-lenses_1-proof/`. The recipe is currently driven by an ad-hoc script in the gitignored `rw/dumps/` (development scratch); promotion to a `rerw experimental clear-picks` CLI command is an open follow-up.
-
-Note: any CLI command that locates the picks block via the count=5 sentinel (e.g. `rerw write savefile talent --slot N --key K`) will fail on a save patched this way. Apply count=0+delete LAST in an edit chain.
+Verified-success golden using this recipe: `rw/saves/edits/golden/romeo-ch1-level14-pickscount0-rarities-legendary__from-laser-lenses_1-proof/`. The CLI surface is `rerw write savefile clear-picks --source X --dest Y --force`.
 
 ### Other fields in the talent record (clarified 2026-05-02)
 
 Beyond the 5-pick block, the record also contains:
 - A header with timing/state floats (purpose unconfirmed).
-- **10 u32 LE values at body+0x35..+0x5c — the per-slot tier array.** Each value `[0..4]` is one slot's tier (0=Common, 1=Rare, 2=Epic, 3=Legendary, 4=ult-marker / uninitialized). Earlier this doc claimed this region was a "parallel encoding the engine doesn't read for HUD tier" — that was correct for HUD display but missed that the **picker** does read it: when a slot's loaded talent is null (e.g., after hero-swap incompatibility), the picker stamps the picked talent's rarity from this array rather than from the tag=0x10 byte. Empirically verified 2026-05-02 by editing all 10 entries to `3` and observing every picker proposal display Legendary regardless of which talent was selected. CLI: `rerw write savefile all-talent-rarities <rarity>` writes BOTH this array and the 28 tag=0x10 tier bytes in one pass.
+- **10 u32 LE values at body+0x35..+0x5c — the per-slot rarity array.** Each value `[0..4]` is one slot's rarity (0=Common, 1=Rare, 2=Epic, 3=Legendary, 4=ult-marker / uninitialized). Earlier this doc claimed this region was a "parallel encoding the engine doesn't read for HUD rarity" — that was correct for HUD display but missed that the **picker** does read it: when a slot's loaded talent is null (e.g., after hero-swap incompatibility), the picker stamps the picked talent's rarity from this array rather than from the tag=0x10 byte. Empirically verified 2026-05-02 by editing all 10 entries to `3` and observing every picker proposal display Legendary regardless of which talent was selected. CLI: `rerw write savefile all-talent-rarities <rarity>` writes BOTH this array and the 28 tag=0x10 rarity bytes in one pass.
 - A nested-record list of tag=0x1a records (21 in Save A, 11 in Save B). Each is 32 bytes (`marker + tag + 16-byte runtime GUID + u32 sequence counter + close`). **Identified 2026-04-29 as item pickup records, not talent-offer history.** Each record represents one item the player collected during the run; the 16-byte GUID matches a magical-object entity-component instance. See `magical-objects.md` for the full record format and verified SWAP edit primitive.
 
-## Tier record (tag=0x10, first-occurrence)
+## Rarity record (tag=0x10, first-occurrence)
 
 Each of the 28 Geppetto skill controllers has a tag=0x10 record in the herodef-reference region near the hero record. Each is 25 bytes:
 
@@ -118,39 +136,39 @@ Each of the 28 Geppetto skill controllers has a tag=0x10 record in the herodef-r
 [u32 = 0x10]             ← type tag
 [16 bytes: talent GUID]   ← matches the herodef Skill Controller GUID
 [byte = 0x01]             ← flag, constant; purpose unknown
-[byte = TIER]             ← THIS is the tier the engine reads for HUD display
+[byte = TIER]             ← THIS is the rarity the engine reads for HUD display
 [3 bytes: 0x00 padding]
 ```
 
-So tier is at `(talent_guid_first_occurrence_offset + 17)` — i.e., 16 bytes for the GUID + 1 byte for the `0x01` flag.
+So rarity is at `(talent_guid_first_occurrence_offset + 17)` — i.e., 16 bytes for the GUID + 1 byte for the `0x01` flag.
 
-### Tier value encoding (verified)
+### Rarity value encoding (verified)
 
-| Byte value | Tier         | Notes |
+| Byte value | Rarity         | Notes |
 |-----------:|--------------|-------|
 | `0x00`     | Common       |       |
 | `0x01`     | Rare         |       |
 | `0x02`     | Epic         |       |
 | `0x03`     | Legendary    | Verified by single-byte lab edit on Save A slot 1 (Dummy Ball Common → Legendary). |
-| `0x04`     | ult-marker   | Set on Ultimate Power 1, Ultimate Power 2, Ultimate 2 Upgrade 1, Ultimate 2 Upgrade 2. The L5 ult slot has no real "tier" in gameplay terms; this byte value is a structural placeholder. |
+| `0x04`     | ult-marker   | Set on Ultimate Power 1, Ultimate Power 2, Ultimate 2 Upgrade 1, Ultimate 2 Upgrade 2. The L5 ult slot has no real "rarity" in gameplay terms; this byte value is a structural placeholder. |
 
-### Editing a slot's tier (verified primitive)
+### Editing a slot's rarity (verified primitive)
 
-The engine reads tier from the tag=0x10 record matching the slot's **current** GUID. To change slot N's displayed tier:
+The engine reads rarity from the tag=0x10 record matching the slot's **current** GUID. To change slot N's displayed rarity:
 
 1. Look up the talent currently in slot N (via the talent-pick block above, or by trusting the caller).
 2. Find the FIRST occurrence of that talent's GUID in the save: `first_off = data.find(talent_guid_16)` (the FIRST occurrence is in the tag=0x10 record region, at a lower offset than the talent-pick block's second occurrence).
 3. Verify the pre-context: bytes `(first_off - 8) .. first_off` should equal `11 11 bb aa 10 00 00 00` (start marker + tag 0x10).
-4. Write the new tier byte at `first_off + 17`.
+4. Write the new rarity byte at `first_off + 17`.
 5. Recompute body CRC32 and write at offset `0x0C`.
 
-If you're swapping the talent AND changing tier in one operation, edit the talent-pick block first, then look up the NEW talent's tag=0x10 record and edit its tier byte. The tag=0x10 record for the OLD talent doesn't need to change (the engine no longer reads from it for that slot).
+If you're swapping the talent AND changing rarity in one operation, edit the talent-pick block first, then look up the NEW talent's tag=0x10 record and edit its rarity byte. The tag=0x10 record for the OLD talent doesn't need to change (the engine no longer reads from it for that slot).
 
-### Per-controller tier defaults in Save A
+### Per-controller rarity defaults in Save A
 
-All 28 Geppetto skill controllers' tag=0x10 records carry a tier byte even when the talent isn't a player pick. For Save A (`laser-lenses_1`), the tier bytes are:
+All 28 Geppetto skill controllers' tag=0x10 records carry a rarity byte even when the talent isn't a player pick. For Save A (`laser-lenses_1`), the rarity bytes are:
 
-| Slot | Picked talent             | tier byte | Tier  |
+| Slot | Picked talent             | rarity byte | Rarity  |
 |-----:|---------------------------|----------:|-------|
 | 1    | Special Creates Dummy     | `0x00`    | Common (= "Dummy Ball" L1) |
 | 2    | Passive Create Objects    | `0x02`    | Epic |
@@ -158,7 +176,7 @@ All 28 Geppetto skill controllers' tag=0x10 records carry a tier byte even when 
 | 4    | Trait Max Health          | `0x00`    | Common |
 | 5    | Ultimate Power 1          | `0x04`    | ult-marker |
 
-Non-picked controllers in Save A also have non-default tier bytes (e.g., `Special Regeneration: 0x03`, `Trait Nose Attack: 0x02`, `Attack Makes Dummies Attack: 0x01`). Most likely these record the player's prior level-up offers / observed tiers, not active picks.
+Non-picked controllers in Save A also have non-default rarity bytes (e.g., `Special Regeneration: 0x03`, `Trait Nose Attack: 0x02`, `Attack Makes Dummies Attack: 0x01`). Most likely these record the player's prior level-up offers / observed rarities, not active picks.
 
 ## Skill-controller GUIDs (Geppetto, 28 total)
 
@@ -201,20 +219,20 @@ The "in-game name" column maps the herodef internal name to what the player sees
 
 The talent-record GUID `bfe7f660...12a5` is presumed hero-independent — it identifies the talent-record type in the OEngine schema, not Geppetto specifically. Each hero's herodef defines its own 28 skill controllers with hero-specific GUIDs.
 
-The structure (tag=0x12 + 5 GUIDs at end + tag=0x10 records with tier byte at GUID+17) is presumed to generalize. Verifying requires a non-Geppetto save proof. Not yet attempted.
+The structure (tag=0x12 + 5 GUIDs at end + tag=0x10 records with rarity byte at GUID+17) is presumed to generalize. Verifying requires a non-Geppetto save proof. Not yet attempted.
 
 ## Verified golden artifacts
 
 Saves at `rw/saves/edits/golden/geppetto/chapter2/laser-lenses_1/`:
 
-- `talent-slot1-to-twin-dummies/` — slot 1 GUID swap only (Special Creates Dummy → Trait Twins). Tier remained Common (the engine read from Trait Twins' tag=0x10 record which had the default tier 0).
-- `talent-slot1-tier-byte-to-legendary/` — single-byte tier edit only (Special Creates Dummy tier `0x00` → `0x03`). Slot 1 displayed Dummy Ball at Legendary.
-- `talent-slot1-twin-dummies-legendary/` — combined: slot 1 GUID swap + tier byte edit on Trait Twins' tag=0x10 record. Slot 1 displayed Twin Dummies at Legendary.
+- `talent-slot1-to-twin-dummies/` — slot 1 GUID swap only (Special Creates Dummy → Trait Twins). Rarity remained Common (the engine read from Trait Twins' tag=0x10 record which had the default rarity 0).
+- `talent-slot1-rarity-byte-to-legendary/` — single-byte rarity edit only (Special Creates Dummy rarity `0x00` → `0x03`). Slot 1 displayed Dummy Ball at Legendary.
+- `talent-slot1-twin-dummies-legendary/` — combined: slot 1 GUID swap + rarity byte edit on Trait Twins' tag=0x10 record. Slot 1 displayed Twin Dummies at Legendary.
 
 ## Sources
 
 - `Heroes/Geppetto.herodef.ot.DtHeroDefinition.gen` (deciphered) — controller GUID source.
-- `rw/saves/proofs/geppetto/chapter2/laser-lenses_1/Profile_1.ob` — Save A (talents: Dummy Ball / Passive Create Objects / LaserLenses / Trait Max Health / Ultimate Power 1; tiers: Common/Epic/Rare/Common/ult).
+- `rw/saves/proofs/geppetto/chapter2/laser-lenses_1/Profile_1.ob` — Save A (talents: Dummy Ball / Passive Create Objects / LaserLenses / Trait Max Health / Ultimate Power 1; rarities: Common/Epic/Rare/Common/ult).
 - `rw/saves/proofs/geppetto/chapter2/twin-dummies-all-legendary-talents/Profile_1.ob` — Save B (Twin Dummies / Family Meeting / Clockwork Medicine / Sharp Noses / Overclock; all 4 tiered = Legendary).
 - `rw/dumps/geppetto/talent-record-decoded.txt` — exploration log including the body+0x35 false-lead investigation.
 - `rw/key-findings/talents.md` — talent name reference (player-facing names).

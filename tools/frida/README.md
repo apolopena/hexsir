@@ -8,8 +8,9 @@ Frida scripts that drive Ravenswatch's save subsystem from outside the game. No 
 |---|---|
 | `find_data_source.js` | Verify-only. Finds the heap-allocated `oCDtRootGs` instance and prints its address + key field values. Does NOT trigger a save. Use to confirm the scan works before committing to a save. |
 | `save_now.js` | Finds `oCDtRootGs`, calls `save_request_sync(NULL, data_source + 0x1928)`, blocks until save completes, prints status. Updates `Profile_1.ob` on disk. |
+| `rw_lab.js` | Live-patch lab. Hub for runtime patches and diagnostics. Currently: talent-picker seed forcing (`force(seed)`, `forceFresh(seed)`), picker count override (`pickerCount(n)`), pool/slot dumps, held-talent clearing. See header comment for the full REPL command list. |
 
-Both scripts implement the recipe documented in `rw/key-findings/save-subsystem.md`.
+`save_now.js` and `find_data_source.js` implement the recipe documented in `rw/key-findings/save-subsystem.md`.
 
 ## Setup (one-time, on Windows)
 
@@ -87,6 +88,43 @@ frida --version
 Should print a version string like `17.9.3`. If it does, you're set.
 
 > The rest of this doc assumes `frida` is on PATH. If you went with option C, substitute the full path each time `frida` appears below.
+
+### Invoking from WSL instead of PowerShell
+
+`frida.exe` is a Windows binary, but WSL interop lets you call it directly from a Linux shell via the `/mnt/c/` mount. No PATH change needed — point at the absolute Windows path.
+
+Set a variable once per shell (or in `~/.bashrc` / `~/.zshrc`):
+
+```bash
+# Replace <USERNAME> and <PYVER> (e.g. 3.14) with your values.
+export FRIDA="/mnt/c/Users/<USERNAME>/AppData/Local/Python/pythoncore-<PYVER>-64/Scripts/frida.exe"
+```
+
+Verify:
+
+```bash
+"$FRIDA" --version
+```
+
+Then invoke with WSL paths to the scripts — modern WSL auto-translates `/home/...` arguments when passed to a Windows binary:
+
+```bash
+"$FRIDA" -n Ravenswatch.exe -l /home/<USER>/repos/work/ravensmith/tools/frida/rw_lab.js
+```
+
+If a script path doesn't get picked up (older WSL, or the argument isn't recognized as a path), convert it explicitly with `wslpath -w`:
+
+```bash
+"$FRIDA" -n Ravenswatch.exe -l "$(wslpath -w /home/<USER>/repos/work/ravensmith/tools/frida/rw_lab.js)"
+```
+
+That produces a `\\wsl.localhost\<DISTRO>\home\...` path frida.exe can open unambiguously.
+
+Caveats:
+
+- Ravenswatch and frida.exe must be running on the Windows side. WSL is just driving the CLI.
+- WSL must be alive for `\\wsl.localhost\` paths to resolve. After a reboot, run any `wsl` command (or just stay in your WSL shell) to keep it up.
+- Stdin piping for the REPL works the same as PowerShell: `echo 'go()' | "$FRIDA" -n Ravenswatch.exe -l ...`.
 
 ### Where to find the scripts
 

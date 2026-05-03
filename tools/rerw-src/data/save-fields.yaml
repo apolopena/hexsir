@@ -40,12 +40,12 @@ talent_record:
   run_picks:
     type: talent_picks
     record_guid: bfe7f6604385cb4887f6b4b79f6812
-    sentinel: "0000000005000000"
-    slot_count: 5
     skills_data_dir: heroes
     description: |
-      5 × 16-byte talent GUIDs at the talent-pick block, anchored by the
-      8-byte sentinel `00 00 00 00 05 00 00 00` (zero u32 + count=5).
-      Tag=0x10 first-occurrence records (one per skill controller, near the
-      hero record) carry the per-talent tier byte at offset GUID+17.
+      Talent picks block: `[u32 N count][N × 16-byte talent GUIDs]`.
+      N varies by chapter (5 at chapter-2 entry, up to 10 at epilogue).
+      The lib's `find_picks_count` walks back from the run-state-record
+      close marker to locate the count u32 — count-agnostic.
+      Tag=0x10 first-occurrence records (one per skill controller, near
+      the hero record) carry the per-talent rarity byte at offset GUID+17.
       See rw/key-findings/talent-records.md.

@@ -97,7 +97,7 @@ For very long scans, use `Bash run_in_background: true` plus a Monitor that tail
 
 ## WSL log-access caveats
 
-Scripts that write a diagnostic log (e.g., `force_seed.js` -> `C:\Users\<USER>\AppData\Local\Temp\frida_seed_diag.log`) live on the Windows side. WSL sees them via `/mnt/c/...`. Two gotchas:
+Scripts that write a diagnostic log (e.g., `rw_lab.js` -> `C:\Users\<USER>\AppData\Local\Temp\frida_seed_diag.log`) live on the Windows side. WSL sees them via `/mnt/c/...`. Two gotchas:
 
 - **`tail -f` does NOT follow Windows-process writes reliably from WSL.** The /mnt/c filesystem driver does not deliver inotify events for modifications made by Windows processes (frida.exe is a Windows process). `tail -f` will appear frozen on stale content even though the file is growing. **Use `tail -F` (capital F)** — re-stats the file periodically and detects truncation/growth. `cat` works any time. `wc -l <path>` is a reliable size check.
 - **`'w'`-mode truncation on script reload.** Scripts that open the log with mode `'w'` truncate prior content on every Frida (re-)launch. Copy aside before re-attaching if you need the previous session:

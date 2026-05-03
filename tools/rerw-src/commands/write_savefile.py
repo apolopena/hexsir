@@ -41,17 +41,20 @@ from lib.skill_controllers import (
     resolve_talent_id,
 )
 from lib.talent_edit import (
-    TIER_VALUE_TO_NAME,
+    RARITY_VALUE_TO_NAME,
+    SLOT_COUNT,
+    ULT_SLOT_INDEX,
     TalentEditError,
+    clear_picks,
     detect_hero,
-    find_picks_anchor,
+    find_picks_count,
     find_talent_record,
-    parse_tier,
+    parse_rarity,
     read_picks,
-    write_all_slot_tiers,
-    write_all_tier_bytes,
+    write_all_rarity_bytes,
+    write_all_slot_rarities,
     write_pick,
-    write_tier,
+    write_rarity,
 )
 from lib import setters
 
@@ -255,7 +258,7 @@ def _apply_field_edit(
     "--talent-slot",
     "talent_slot",
     default=None,
-    type=click.IntRange(1, 5),
+    type=click.IntRange(1, 10),
     help="[DEPRECATED] Use `rerw write savefile talent --slot N --key X` instead.",
 )
 @click.option(
@@ -266,11 +269,11 @@ def _apply_field_edit(
     help="[DEPRECATED] Use `rerw write savefile talent --slot N --key X` instead.",
 )
 @click.option(
-    "--tier",
+    "--rarity",
     "tier_value",
     default=None,
     type=str,
-    help="[DEPRECATED] Use `rerw write savefile tier --slot N --tier T` instead.",
+    help="[DEPRECATED] Use `rerw write savefile talent-rarity --slot N --rarity T` instead.",
 )
 @click.option(
     "--force",
@@ -333,7 +336,7 @@ def write_savefile_cmd(
         "WARNING: top-level edit flags on `write savefile` are deprecated. "
         "Use `rerw write savefile <field> <value>` subcommands instead. "
         "(--chapter -> `chapter`, --level -> `level`, "
-        "--talent-* -> `talent` / `tier`.) Will be removed in a future release.",
+        "--talent-* -> `talent` / `talent-rarity`.) Will be removed in a future release.",
         err=True,
     )
 
@@ -381,19 +384,19 @@ def _legacy_atomic_edit(
     )
     if talent_edit_requested:
         if talent_slot is None:
-            error("--talent-id / --tier require --talent-slot N to specify which slot.")
+            error("--talent-id / --rarity require --talent-slot N to specify which slot.")
             raise SystemExit(2)
         if talent_id is None and tier_value is None:
-            error("--talent-slot N requires --talent-id, --tier, or both.")
+            error("--talent-slot N requires --talent-id, --rarity, or both.")
             raise SystemExit(2)
         if tier_value is not None and talent_slot == 5:
-            error("Slot 5 (ult) has no tier; --tier is invalid for slot 5.")
+            error("Slot 5 (ult) has no rarity; --rarity is invalid for slot 5.")
             raise SystemExit(2)
 
     if not scalar_edits and not talent_edit_requested:
         error(
             "No field flag supplied. Use --chapter, --level, "
-            "or --talent-slot N with --talent-id / --tier."
+            "or --talent-slot N with --talent-id / --rarity."
         )
         raise SystemExit(2)
 
@@ -468,10 +471,9 @@ def _legacy_atomic_edit(
             raise SystemExit(1) from exc
 
         record_guid = talent_field.extra["record_guid"]
-        sentinel = talent_field.extra["sentinel"]
         try:
             record_off = find_talent_record(data, record_guid)
-            picks_start = find_picks_anchor(data, record_off, sentinel)
+            picks_count_off, picks_count = find_picks_count(data, record_off)
         except TalentEditError as exc:
             error(str(exc))
             raise SystemExit(1) from exc
@@ -479,14 +481,12 @@ def _legacy_atomic_edit(
         if verbose:
             info(
                 f"Talent record body @ 0x{record_off:x}; "
-                f"picks block @ 0x{picks_start:x}"
+                f"picks count u32 @ 0x{picks_count_off:x} (N={picks_count})"
             )
 
-        current_picks = read_picks(
-            data, picks_start, talent_field.extra["slot_count"]
-        )
+        current_picks = read_picks(data, picks_count_off, picks_count)
 
-        new_guid_for_tier: bytes
+        new_guid_for_rarity: bytes
         if talent_id is not None:
             try:
                 resolved = resolve_talent_id(controllers, talent_id)
@@ -495,37 +495,37 @@ def _legacy_atomic_edit(
                 raise SystemExit(1) from exc
             try:
                 old_guid = write_pick(
-                    data, picks_start, talent_slot, resolved.guid
+                    data, picks_count_off, picks_count, talent_slot, resolved.guid
                 )
             except TalentEditError as exc:
                 error(str(exc))
                 raise SystemExit(1) from exc
-            new_guid_for_tier = resolved.guid
+            new_guid_for_rarity = resolved.guid
             summary.append(
                 f"talent slot {talent_slot}: "
                 f"{old_guid.hex()} -> {resolved.guid.hex()} ({resolved.name})"
             )
             if verbose:
-                voff = picks_start + (talent_slot - 1) * 16
+                voff = picks_count_off + 4 + (talent_slot - 1) * 16
                 click.echo(
                     f"  slot {talent_slot} GUID @ 0x{voff:x}: "
                     f"{old_guid.hex()} -> {resolved.guid.hex()}"
                 )
         else:
-            new_guid_for_tier = current_picks[talent_slot - 1]
+            new_guid_for_rarity = current_picks[talent_slot - 1]
 
         if tier_value is not None:
             try:
-                tier_int = parse_tier(tier_value)
-                old_tier = write_tier(data, new_guid_for_tier, tier_int)
+                rarity_int = parse_rarity(tier_value)
+                old_rarity = write_rarity(data, new_guid_for_rarity, rarity_int)
             except TalentEditError as exc:
                 error(str(exc))
                 raise SystemExit(1) from exc
-            old_tier_name = TIER_VALUE_TO_NAME.get(old_tier, f"u8={old_tier}")
-            new_tier_name = TIER_VALUE_TO_NAME.get(tier_int, f"u8={tier_int}")
+            old_rarity_name = RARITY_VALUE_TO_NAME.get(old_rarity, f"u8={old_rarity}")
+            new_rarity_name = RARITY_VALUE_TO_NAME.get(rarity_int, f"u8={rarity_int}")
             summary.append(
-                f"tier slot {talent_slot}: "
-                f"{old_tier_name} ({old_tier}) -> {new_tier_name} ({tier_int})"
+                f"rarity slot {talent_slot}: "
+                f"{old_rarity_name} ({old_rarity}) -> {new_rarity_name} ({rarity_int})"
             )
 
     new_crc = recompute_crc(data)
@@ -1025,9 +1025,9 @@ def xp_cmd(value: int, source: Path, dest: Path, force: bool, verbose: bool) -> 
     "--slot",
     "-s",
     required=True,
-    type=click.IntRange(1, 5),
-    metavar="<int 1..5>",
-    help="Slot to edit.",
+    type=click.IntRange(1, 10),
+    metavar="<int 1..10>",
+    help="Slot to edit (1-10; save's actual count must include this slot).",
 )
 @click.option(
     "--key",
@@ -1040,19 +1040,19 @@ def xp_cmd(value: int, source: Path, dest: Path, force: bool, verbose: bool) -> 
     "`rerw game-assets inspect talents --for-hero <hero>` for valid keys.",
 )
 @click.option(
-    "--tier",
-    "-t",
-    "tier",
+    "--rarity",
+    "-r",
+    "rarity",
     default=None,
     type=str,
-    metavar="<0-3|common|rare|epic|legendary>",
-    help="Optional; preserved if omitted.",
+    metavar="<common|rare|epic|legendary>",
+    help="Optional; preserved if omitted. Lowercase only.",
 )
 @_common_io_opts
 def talent_cmd(
     slot: int,
     key: str,
-    tier: str | None,
+    rarity: str | None,
     source: Path,
     dest: Path,
     force: bool,
@@ -1065,8 +1065,8 @@ def talent_cmd(
     Run `rerw game-assets inspect talents --for-hero <key>` to discover
     valid talent keys.
     """
-    if tier is not None and slot == 5:
-        error("Slot 5 (ult) has no tier; --tier is invalid for slot 5.")
+    if rarity is not None and slot == 5:
+        error("Slot 5 (ult) has no rarity; --rarity is invalid for slot 5.")
         raise SystemExit(2)
     out_path = _check_dest_writable(dest, force)
     info(f"Source savefile: {source}")
@@ -1101,10 +1101,10 @@ def talent_cmd(
         raise SystemExit(1) from exc
     try:
         record_off = find_talent_record(data, talent_field.extra["record_guid"])
-        picks_start = find_picks_anchor(
-            data, record_off, talent_field.extra["sentinel"]
+        picks_count_off, picks_count = find_picks_count(data, record_off)
+        old_guid = write_pick(
+            data, picks_count_off, picks_count, slot, talent.guid
         )
-        old_guid = write_pick(data, picks_start, slot, talent.guid)
     except TalentEditError as exc:
         error(str(exc))
         raise SystemExit(1) from exc
@@ -1113,17 +1113,17 @@ def talent_cmd(
         f"talent slot {slot}: "
         f"{old_guid.hex()} -> {talent.guid.hex()} ({talent.key})"
     ]
-    if tier is not None:
+    if rarity is not None:
         try:
-            tier_int = parse_tier(tier)
-            old_tier = write_tier(data, talent.guid, tier_int)
+            rarity_int = parse_rarity(rarity)
+            old_rarity = write_rarity(data, talent.guid, rarity_int)
         except TalentEditError as exc:
             error(str(exc))
             raise SystemExit(1) from exc
         summary.append(
-            f"tier slot {slot}: "
-            f"{TIER_VALUE_TO_NAME.get(old_tier, old_tier)} -> "
-            f"{TIER_VALUE_TO_NAME.get(tier_int, tier_int)}"
+            f"rarity slot {slot}: "
+            f"{RARITY_VALUE_TO_NAME.get(old_rarity, old_rarity)} -> "
+            f"{RARITY_VALUE_TO_NAME.get(rarity_int, rarity_int)}"
         )
 
     new_crc = recompute_crc(data)
@@ -1139,36 +1139,39 @@ def talent_cmd(
 
 
 @write_savefile_cmd.command(
-    name="tier",
+    name="talent-rarity",
     context_settings={"help_option_names": ["-h", "--help"]},
 )
 @click.option(
     "--slot",
     "-s",
     required=True,
-    type=click.IntRange(1, 4),
-    metavar="<int 1..4>",
-    help="Slot. Slot 5 (ult) has no tier.",
+    type=click.IntRange(1, 10),
+    metavar="<int 1..10 except 5>",
+    help="Slot (1-10, except 5 — slot 5 is the ult and has no rarity).",
 )
 @click.option(
-    "--tier",
-    "-t",
-    "tier",
+    "--rarity",
+    "-r",
+    "rarity",
     required=True,
     type=str,
-    metavar="<0-3|common|rare|epic|legendary>",
-    help="Target tier.",
+    metavar="<common|rare|epic|legendary>",
+    help="Target rarity (lowercase only).",
 )
 @_common_io_opts
-def tier_cmd(
+def talent_rarity_cmd(
     slot: int,
-    tier: str,
+    rarity: str,
     source: Path,
     dest: Path,
     force: bool,
     verbose: bool,
 ) -> None:
-    """Set the tier of the talent currently in slot N."""
+    """Set the rarity of the talent currently in slot N."""
+    if slot == 5:
+        error("Slot 5 (ult) has no rarity.")
+        raise SystemExit(2)
     out_path = _check_dest_writable(dest, force)
     info(f"Source savefile: {source}")
     try:
@@ -1187,15 +1190,15 @@ def tier_cmd(
     talent_field = fields[TALENT_FIELD]
     try:
         record_off = find_talent_record(data, talent_field.extra["record_guid"])
-        picks_start = find_picks_anchor(
-            data, record_off, talent_field.extra["sentinel"]
-        )
-        current_picks = read_picks(
-            data, picks_start, talent_field.extra["slot_count"]
-        )
+        picks_count_off, picks_count = find_picks_count(data, record_off)
+        if slot > picks_count:
+            raise TalentEditError(
+                f"slot {slot} not yet picked in this save (picks count = {picks_count})"
+            )
+        current_picks = read_picks(data, picks_count_off, picks_count)
         current_guid = current_picks[slot - 1]
-        tier_int = parse_tier(tier)
-        old_tier = write_tier(data, current_guid, tier_int)
+        rarity_int = parse_rarity(rarity)
+        old_rarity = write_rarity(data, current_guid, rarity_int)
     except TalentEditError as exc:
         error(str(exc))
         raise SystemExit(1) from exc
@@ -1207,9 +1210,9 @@ def tier_cmd(
         error(f"Failed to write {out_path}: {exc}")
         raise SystemExit(1) from exc
     click.echo(
-        f"tier slot {slot}: "
-        f"{TIER_VALUE_TO_NAME.get(old_tier, old_tier)} -> "
-        f"{TIER_VALUE_TO_NAME.get(tier_int, tier_int)}"
+        f"rarity slot {slot}: "
+        f"{RARITY_VALUE_TO_NAME.get(old_rarity, old_rarity)} -> "
+        f"{RARITY_VALUE_TO_NAME.get(rarity_int, rarity_int)}"
     )
     click.echo(f"CRC32: 0x{new_crc:08X}")
     success(f"Wrote {out_path}")
@@ -1222,7 +1225,7 @@ def tier_cmd(
 @click.argument(
     "rarity",
     type=str,
-    metavar="<0-3|common|rare|epic|legendary>",
+    metavar="<common|rare|epic|legendary>",
 )
 @_common_io_opts
 def all_talent_rarities_cmd(
@@ -1235,16 +1238,19 @@ def all_talent_rarities_cmd(
     """Bulk-set every talent's stored rarity in the hero's pool.
 
     Writes BOTH storage locations in one pass:
-    1. The tier byte on every tag=0x10 controller record (typically 28 per
+    1. The rarity byte on every tag=0x10 controller record (typically 28 per
        hero) — used by the picker when a slot has a valid loaded talent.
-    2. The 10 per-slot u32 tiers in the tag=0x12 talent record's persistent
-       block — used by the picker when a slot's talent pointer is null
-       (e.g. after a hero swap that invalidated the saved IDs).
+    2. The 10 per-slot u32 rarity entries in the tag=0x12 talent record —
+       used by the picker when a slot's talent pointer is null (e.g. after
+       a hero swap that invalidated the saved IDs).
 
-    Records / slots currently at the ult-marker sentinel (tier=4) are left
-    untouched in both passes. Picker outcome: every proposal in the run
-    displays the chosen rarity regardless of which talent gets stamped or
-    whether the slot's saved talent is compatible with the active hero.
+    The ult slot (slot index 4 = user slot 5) is skipped in pass 2.
+    Tag=0x10 records currently at the ult-marker sentinel (rarity=4) are
+    skipped in pass 1. Every other slot/controller is written.
+
+    Picker outcome: every proposal in the run displays the chosen rarity
+    regardless of which talent gets stamped or whether the slot's saved
+    talent is compatible with the active hero.
     """
     out_path = _check_dest_writable(dest, force)
     info(f"Source savefile: {source}")
@@ -1263,10 +1269,10 @@ def all_talent_rarities_cmd(
         raise SystemExit(1)
     talent_field = fields[TALENT_FIELD]
     try:
-        tier_int = parse_tier(rarity)
-        controllers_modified = write_all_tier_bytes(data, tier_int)
-        slots_modified = write_all_slot_tiers(
-            data, tier_int, talent_field.extra["record_guid"]
+        rarity_int = parse_rarity(rarity)
+        controllers_modified = write_all_rarity_bytes(data, rarity_int)
+        slots_modified = write_all_slot_rarities(
+            data, rarity_int, talent_field.extra["record_guid"]
         )
     except TalentEditError as exc:
         error(str(exc))
@@ -1284,10 +1290,67 @@ def all_talent_rarities_cmd(
     except OSError as exc:
         error(f"Failed to write {out_path}: {exc}")
         raise SystemExit(1) from exc
-    rarity_name = TIER_VALUE_TO_NAME.get(tier_int, tier_int)
+    rarity_name = RARITY_VALUE_TO_NAME.get(rarity_int, rarity_int)
     click.echo(
-        f"all-talent-rarities: {controllers_modified} controller tier byte(s) "
-        f"+ {slots_modified} per-slot tier(s) set to {rarity_name}"
+        f"all-talent-rarities: {controllers_modified} controller rarity byte(s) "
+        f"+ {slots_modified} per-slot rarity entry(ies) set to {rarity_name}"
+    )
+    click.echo(f"CRC32: 0x{new_crc:08X}")
+    success(f"Wrote {out_path}")
+
+
+@write_savefile_cmd.command(
+    name="clear-picks",
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
+@_common_io_opts
+def clear_picks_cmd(
+    source: Path,
+    dest: Path,
+    force: bool,
+    verbose: bool,
+) -> None:
+    """Set picks count to 0 and delete the picks-block GUIDs.
+
+    Produces the "all 10 slots empty" state. Combined with level=14, the
+    engine fires picker invocations for all 10 HUD slots on level-up.
+    Save shrinks by N×16 bytes where N was the prior picks count. CRC is
+    recomputed automatically.
+
+    Apply LAST in any edit chain — the destructive shrink invalidates the
+    chapter-2 sentinel that older code paths use, but does not affect the
+    new generalized picks-count locator.
+    """
+    out_path = _check_dest_writable(dest, force)
+    info(f"Source savefile: {source}")
+    try:
+        data = bytearray(source.read_bytes())
+    except OSError as exc:
+        error(f"Failed to read source: {exc}")
+        raise SystemExit(1) from exc
+    try:
+        fields = load_fields()
+    except Exception as exc:
+        error(f"Failed to load save-field registry: {exc}")
+        raise SystemExit(1) from exc
+    if TALENT_FIELD not in fields:
+        error(f"Talent field {TALENT_FIELD!r} is not in the registry.")
+        raise SystemExit(1)
+    talent_field = fields[TALENT_FIELD]
+    try:
+        old_count = clear_picks(data, talent_field.extra["record_guid"])
+    except TalentEditError as exc:
+        error(str(exc))
+        raise SystemExit(1) from exc
+
+    new_crc = recompute_crc(data)
+    try:
+        out_path.write_bytes(bytes(data))
+    except OSError as exc:
+        error(f"Failed to write {out_path}: {exc}")
+        raise SystemExit(1) from exc
+    click.echo(
+        f"clear-picks: count {old_count} -> 0, deleted {old_count * 16} bytes"
     )
     click.echo(f"CRC32: 0x{new_crc:08X}")
     success(f"Wrote {out_path}")

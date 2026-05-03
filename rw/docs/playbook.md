@@ -43,11 +43,12 @@ rw/
 
 ## Promotion Paths
 
-Three flows:
+Four flows:
 
 1. **`dumps/` → `triage/`** — When raw analysis is worth a writeup, create a triage document. Use the `rw-triage-report` skill.
 2. **`triage/` → `key-findings/`** — When findings firm up, extract them as curated artifacts.
 3. **`saves/edits/lab/` → `saves/edits/golden/`** — When a modified save runs successfully in the game, promote it.
+4. **`rw/scripts/` → `rerw` CLI** — When a hand-edit script's behavior is verified in-game via a lab save, lift its logic into the CLI. See "CLI Promotion" below.
 
 Demotion is also fine. Something in `key-findings/` that turns out wrong moves back to `triage/` or gets deleted.
 
@@ -70,6 +71,20 @@ Both `saves/edits/lab/` and `saves/edits/golden/` are organized by the **source 
 - **Lab:** `saves/edits/lab/<hero>/<run-name>/<descriptive-mod-id>/Profile_1.ob` — lighter than golden (no separate chapter level — chapter is encoded in the mod-id when relevant, e.g. `level-downgrade-from-ch2/`). The run-name mirrors the source proof's run-name exactly (don't normalize away inconsistencies like dash-vs-underscore across proofs). Lab is gitignored so renames are free.
 
 A lab edit experiment that swaps Geppetto → Carmilla still lives under `lab/geppetto/<run>/`, because the file was *derived from* a Geppetto proof from that run. The mod-id (e.g., `hero-swap-to-carmilla/`) describes the change applied.
+
+## CLI Promotion
+
+A code change to the `rerw` CLI requires in-game verification of the underlying edit primitive **before** the code change. The flow:
+
+1. Author the edit as a one-shot script in `rw/scripts/<descriptive-name>.py` (committed; not `rw/dumps/`).
+2. Use the script to build a lab save in `rw/saves/edits/lab/<hero>/<run>/<mod-id>/Profile_1.ob`.
+3. User loads the lab save in-game and verifies intended behavior.
+4. **Only after sign-off**, lift the script's logic into `tools/rerw-src/lib/<lib>.py` and expose via `tools/rerw-src/commands/<group>.py`.
+5. Promote the verified lab save to `saves/edits/golden/` as a regression artifact.
+
+Skipping step 3 (running script logic straight into the CLI without an in-game lab pass) is **not allowed**. The CLI is the contract surface — it ships changes that have been verified, not changes that look correct.
+
+The same rule applies in reverse for CLI bug fixes: if the fix changes behavior, build a lab demonstrating the new behavior, verify in-game, then commit.
 
 **Delete failed tests; don't preserve them as `<mod-id>-failed/`.** A polluted lab makes it impossible to tell verified-but-not-yet-promoted edits from known-broken ones across sessions. Capture failure outcomes in the relevant key finding (e.g., the "Misidentified" subsection in `save-binary-format.md`) and remove the lab artifact. Negative results live in docs, not in the lab tree.
 

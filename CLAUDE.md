@@ -14,8 +14,14 @@ Before starting any task, read `docs/README.md`. It is the index to all project 
 ### Git: Planning Artifacts
 Files in .ai/scratch/ and .ai/planning/prp/{instances,proposals,archive,abandoned}/ are gitignored. Do not attempt to commit them.
 
+### Scripts: dumps vs scripts
+`rw/dumps/` is gitignored — for one-shot debugging only. **Any script referenced by a recipe, breakthrough, key-finding, or other committed doc must live in `rw/scripts/` (committed), not `rw/dumps/`.** The moment a script is invoked from documentation, move it.
+
 ### Commit Messages
 <60 chars, brief, imperative mood
+
+### Terminology
+Standardized terms for talents, items, seeds, and indexing live in `rw/docs/terminology/README.md`. Read before writing about these domains. Indexing rule: code is 0-based, user-facing is 1-based — translate at the access boundary.
 
 ### AskUserQuestion Tool
 Never use this tool. Ask questions directly in response text.
@@ -66,9 +72,9 @@ dependencies such as PyYAML, use the project venv:
 tools/rerw-src/.venv/bin/python ...
 ```
 
-Use `uv run rerw` for normal CLI commands. If `uv run` fails in the agent
-sandbox with a read-only `~/.cache/uv` error, prefix the command with
-`UV_CACHE_DIR=/tmp/uv-cache`.
+Use `uv run rerw` for normal CLI commands. Do not prefix commands with
+`UV_CACHE_DIR=...` in docs, recipes, or tool calls — `UV_CACHE_DIR` is set
+project-wide via `.claude/settings.json`.
 
 ### CRITICAL: SSH Git Commands
 ALWAYS use `./scripts/git-ai.sh` for git commands requiring SSH (commit, push, pull, fetch, clone, remote, ls-remote, submodule). Prevents SSH askpass errors via keychain + adds AI attribution.
@@ -77,13 +83,11 @@ ALWAYS use `./scripts/git-ai.sh` for git commands requiring SSH (commit, push, p
 CRITICAL: Mark agent (subagent_type=mark) is responsible for ALL GitHub write operations (PRs, issues, comments, releases).
 Mark gathers context and dispatches .github/workflows/gh-dispatch-ai.yml with proper provenance.
 
-### Save-file swap operations
-ALWAYS ask the user before running `rerw swap savefile` (or any operation that overwrites the active game save in `_Save/Profile_1.ob`). Two distinct gotchas to be aware of:
+### Save-file swap
+Always use `rerw swap savefile --source <path>`. Never raw `cp`. Always ask the user to confirm the game is closed before swapping — mid-session writes don't register (the running game holds its own in-memory state and won't re-read `Profile_1.ob`). Once authorized, execute the bare swap and stop. No backups, md5s, stats, or process checks.
 
-- **Mid-session writes don't register.** While the game is running, the file is technically writable, but the running game holds its own in-memory state and doesn't re-read `Profile_1.ob` — the swap simply has no effect on the active session.
-- **Steam Cloud sync overwrites on game quit.** When the user quits Ravenswatch, Steam syncs cloud → local, restoring whatever the cloud copy holds. Local edits made before / during the session get reverted on quit. Persistent edits require disabling Steam Cloud sync for Ravenswatch (Steam → Library → Ravenswatch → Properties → uncheck "Keep games saves in the Steam Cloud") or accepting that swaps are session-scoped only.
-
-Confirm before swapping; do not assume; if the user reports a swap "didn't take" after a play session, the most likely explanation is the cloud-sync-on-quit overwrite.
+### Steam Cloud sync
+Assume Steam Cloud sync for Ravenswatch is **OFF** on the user's machine. Do not mention it, do not warn about it, do not factor it into swap or save behavior. If a swap-didn't-take symptom comes up, look elsewhere first.
 
 ### Saves are only generated at chapter-boss kills — there is no other save event
 Ravenswatch only writes a new `Profile_1.ob` after a chapter boss is defeated. After the boss-kill animation a dialogue offers to save; if the player chooses yes, a save is generated AND the game exits. There is no autosave, no quicksave, no save-on-quit, no save-on-death. Mid-run state, defeats, score-page values, and HUD changes are NOT captured in any new save file.

@@ -1,15 +1,15 @@
-"""Tests for the talent-edit primitives, focused on `write_all_tier_bytes`.
+"""Tests for the talent-edit primitives.
 
 The other functions in `lib.talent_edit` (`find_talent_record`,
-`find_picks_anchor`, `read_picks`, `write_pick`, `read_tier`, `write_tier`,
-`parse_tier`) are exercised indirectly by `test_cli` and the in-game-validated
-golden labs catalogued in `rw/key-findings/talent-records.md`. The bulk-set
-primitive added here is new and gets its own targeted unit coverage.
+`find_picks_count`, `read_picks`, `write_pick`, `read_rarity`, `write_rarity`,
+`parse_rarity`) are exercised indirectly by `test_cli` and the
+in-game-validated golden labs catalogued in `rw/key-findings/talent-records.md`.
+The bulk-set primitives covered here get targeted unit coverage.
 
 Validation strategy: against the epilogue-laser-lenses_1 proof — known to
-contain 28 tag=0x10 controller records of which 4 are ult-marker (tier=4).
+contain 28 tag=0x10 controller records of which 4 are ult-marker (rarity=4).
 Bulk-set should modify exactly 24 records and preserve the 4 ult-markers
-when `skip_ult_marker=True` (the default).
+(skip is hardcoded — value=4 entries are always preserved).
 """
 
 from __future__ import annotations
@@ -19,15 +19,16 @@ from pathlib import Path
 import pytest
 
 from lib.talent_edit import (
-    SLOT_TIERS_COUNT,
-    SLOT_TIERS_OFFSET_FROM_RECORD,
+    RARITY_OFFSET_FROM_GUID,
+    SLOT_COUNT,
+    SLOT_RARITY_ARRAY_OFFSET,
     TAG10_PRE_PATTERN,
-    TIER_OFFSET_FROM_GUID,
+    ULT_SLOT_INDEX,
     TalentEditError,
     find_talent_record,
-    parse_tier,
-    write_all_slot_tiers,
-    write_all_tier_bytes,
+    parse_rarity,
+    write_all_rarity_bytes,
+    write_all_slot_rarities,
 )
 
 # 15-byte talent record GUID — same across all Geppetto saves observed,
@@ -50,194 +51,177 @@ def epilogue_bytes() -> bytes:
     return EPILOGUE_PROOF.read_bytes()
 
 
-def _tier_distribution(data: bytes) -> dict[int, int]:
-    """Return {tier_byte_value: count} across all tag=0x10 records."""
+def _rarity_distribution(data: bytes) -> dict[int, int]:
+    """Return {rarity_byte_value: count} across all tag=0x10 records."""
     counts: dict[int, int] = {}
     pos = 0
     while True:
         pos = data.find(TAG10_PRE_PATTERN, pos)
         if pos < 0:
             break
-        tier_byte = data[pos + len(TAG10_PRE_PATTERN) + TIER_OFFSET_FROM_GUID]
-        counts[tier_byte] = counts.get(tier_byte, 0) + 1
+        rarity_byte = data[pos + len(TAG10_PRE_PATTERN) + RARITY_OFFSET_FROM_GUID]
+        counts[rarity_byte] = counts.get(rarity_byte, 0) + 1
         pos += 1
     return counts
 
 
-def test_write_all_tier_bytes_to_legendary_skips_ult(
+def test_write_all_rarity_bytes_to_legendary_skips_ult(
     epilogue_bytes: bytes,
 ) -> None:
-    """Bulk-set to legendary preserves the 4 ult-marker records by default."""
+    """Bulk-set to legendary preserves the 4 ult-marker records."""
     data = bytearray(epilogue_bytes)
-    src_dist = _tier_distribution(epilogue_bytes)
+    src_dist = _rarity_distribution(epilogue_bytes)
     # Sanity: epilogue has exactly 28 tag=0x10 records, 4 are ult-marker.
     assert sum(src_dist.values()) == 28
     assert src_dist.get(4, 0) == 4
 
-    modified = write_all_tier_bytes(data, tier=3)
+    modified = write_all_rarity_bytes(data, rarity=3)
     # Modified count = 28 total - 4 ult-marker = 24.
     assert modified == 24
 
-    out_dist = _tier_distribution(bytes(data))
+    out_dist = _rarity_distribution(bytes(data))
     # Result: 24 records at legendary (3) + 4 ult-markers (4) preserved.
     assert out_dist == {3: 24, 4: 4}
 
 
-def test_write_all_tier_bytes_no_skip_overrides_ult(
-    epilogue_bytes: bytes,
-) -> None:
-    """With skip_ult_marker=False, ALL 28 records get rewritten."""
-    data = bytearray(epilogue_bytes)
-    modified = write_all_tier_bytes(data, tier=3, skip_ult_marker=False)
-    assert modified == 28
-    out_dist = _tier_distribution(bytes(data))
-    assert out_dist == {3: 28}
-
-
-def test_write_all_tier_bytes_idempotent(epilogue_bytes: bytes) -> None:
+def test_write_all_rarity_bytes_idempotent(epilogue_bytes: bytes) -> None:
     """Running the same bulk-set twice yields the same bytes the second time."""
     data1 = bytearray(epilogue_bytes)
-    write_all_tier_bytes(data1, tier=2)
+    write_all_rarity_bytes(data1, rarity=2)
     snap = bytes(data1)
-    n = write_all_tier_bytes(data1, tier=2)
+    n = write_all_rarity_bytes(data1, rarity=2)
     assert n == 24  # same count
     assert bytes(data1) == snap
 
 
-def test_write_all_tier_bytes_each_rarity_value(
+def test_write_all_rarity_bytes_each_rarity_value(
     epilogue_bytes: bytes,
 ) -> None:
-    """Every tier value 0..3 produces a clean post-state distribution."""
-    for tier_int in (0, 1, 2, 3):
+    """Every rarity value 0..3 produces a clean post-state distribution."""
+    for rarity_int in (0, 1, 2, 3):
         data = bytearray(epilogue_bytes)
-        modified = write_all_tier_bytes(data, tier=tier_int)
+        modified = write_all_rarity_bytes(data, rarity=rarity_int)
         assert modified == 24
-        dist = _tier_distribution(bytes(data))
-        assert dist == {tier_int: 24, 4: 4}
+        dist = _rarity_distribution(bytes(data))
+        assert dist == {rarity_int: 24, 4: 4}
 
 
-def test_write_all_tier_bytes_rejects_out_of_range() -> None:
+def test_write_all_rarity_bytes_rejects_out_of_range() -> None:
     data = bytearray(b"\x00" * 1024)
     with pytest.raises(TalentEditError, match="must be a u8"):
-        write_all_tier_bytes(data, tier=-1)
+        write_all_rarity_bytes(data, rarity=-1)
     with pytest.raises(TalentEditError, match="must be a u8"):
-        write_all_tier_bytes(data, tier=256)
+        write_all_rarity_bytes(data, rarity=256)
 
 
-def test_write_all_tier_bytes_returns_zero_when_no_records() -> None:
+def test_write_all_rarity_bytes_returns_zero_when_no_records() -> None:
     """A buffer with no tag=0x10 records returns 0 and isn't mutated."""
     data = bytearray(b"\x00" * 1024)
     snap = bytes(data)
-    n = write_all_tier_bytes(data, tier=3)
+    n = write_all_rarity_bytes(data, rarity=3)
     assert n == 0
     assert bytes(data) == snap
 
 
-def test_parse_tier_accepts_rarity_names() -> None:
-    """The CLI accepts both ints and rarity-name strings."""
-    assert parse_tier("common") == 0
-    assert parse_tier("rare") == 1
-    assert parse_tier("epic") == 2
-    assert parse_tier("legendary") == 3
-    assert parse_tier("0") == 0
-    assert parse_tier("3") == 3
-    assert parse_tier(2) == 2
+def test_parse_rarity_accepts_only_lowercase_names() -> None:
+    """Strict surface: only the four lowercase rarity names are accepted."""
+    assert parse_rarity("common") == 0
+    assert parse_rarity("rare") == 1
+    assert parse_rarity("epic") == 2
+    assert parse_rarity("legendary") == 3
 
 
-def test_parse_tier_case_insensitive() -> None:
-    assert parse_tier("LEGENDARY") == 3
-    assert parse_tier("Epic") == 2
+def test_parse_rarity_rejects_numeric_input() -> None:
+    """Strict surface: numeric input is rejected."""
+    with pytest.raises(TalentEditError, match="must be one of"):
+        parse_rarity("0")
+    with pytest.raises(TalentEditError, match="must be one of"):
+        parse_rarity("3")
 
 
-def test_parse_tier_rejects_unknown() -> None:
-    with pytest.raises(TalentEditError, match="Unknown tier"):
-        parse_tier("mythic")
+def test_parse_rarity_rejects_non_lowercase() -> None:
+    """Strict surface: any case other than all-lowercase is rejected."""
+    with pytest.raises(TalentEditError, match="must be one of"):
+        parse_rarity("LEGENDARY")
+    with pytest.raises(TalentEditError, match="must be one of"):
+        parse_rarity("Epic")
 
 
-def _read_slot_tiers(data: bytes) -> list[int]:
-    """Helper: read the 10-u32 slot.tier array from the talent record."""
+def test_parse_rarity_rejects_unknown() -> None:
+    with pytest.raises(TalentEditError, match="must be one of"):
+        parse_rarity("mythic")
+
+
+def _read_slot_rarities(data: bytes) -> list[int]:
+    """Helper: read the 10-u32 slot.rarity array from the talent record."""
     rec_off = find_talent_record(data, TALENT_RECORD_GUID_15)
-    arr_off = rec_off + SLOT_TIERS_OFFSET_FROM_RECORD
+    arr_off = rec_off + SLOT_RARITY_ARRAY_OFFSET
     return [
         int.from_bytes(data[arr_off + i * 4 : arr_off + (i + 1) * 4], "little")
-        for i in range(SLOT_TIERS_COUNT)
+        for i in range(SLOT_COUNT)
     ]
 
 
-def test_slot_tiers_recovered_from_epilogue_proof(
+def test_slot_rarities_recovered_from_epilogue_proof(
     epilogue_bytes: bytes,
 ) -> None:
-    """The on-disk slot.tier array shape: 10 entries each in [0..4]."""
-    vals = _read_slot_tiers(epilogue_bytes)
+    """The on-disk slot.rarity array shape: 10 entries each in [0..4]."""
+    vals = _read_slot_rarities(epilogue_bytes)
     assert len(vals) == 10
     assert all(0 <= v <= 4 for v in vals)
     # Empirically verified for the laser-lenses_1 epilogue lineage.
     assert vals == [0, 3, 3, 0, 4, 3, 0, 1, 3, 3]
 
 
-def test_write_all_slot_tiers_skips_ult_markers(
+def test_write_all_slot_rarities_skips_ult_index(
     epilogue_bytes: bytes,
 ) -> None:
-    """Bulk-set to legendary preserves entries currently at ult-marker (4)."""
+    """Bulk-set writes 9 entries — index-based skip preserves only the ult slot."""
     data = bytearray(epilogue_bytes)
-    src_vals = _read_slot_tiers(epilogue_bytes)
-    ult_count = sum(1 for v in src_vals if v == 4)
+    src_vals = _read_slot_rarities(epilogue_bytes)
 
-    modified = write_all_slot_tiers(data, tier=3, record_guid_15=TALENT_RECORD_GUID_15)
-    assert modified == 10 - ult_count
+    modified = write_all_slot_rarities(
+        data, rarity=3, record_guid_15=TALENT_RECORD_GUID_15
+    )
+    # Index-based: skip exactly one entry (slot index 4 = user slot 5).
+    assert modified == SLOT_COUNT - 1
 
-    out_vals = _read_slot_tiers(bytes(data))
-    # Entries that were 4 stay at 4; everything else becomes 3.
-    for src_v, out_v in zip(src_vals, out_vals):
-        if src_v == 4:
-            assert out_v == 4
+    out_vals = _read_slot_rarities(bytes(data))
+    # Slot index 4 (ult) preserved; all others overwritten to 3.
+    for i, (src_v, out_v) in enumerate(zip(src_vals, out_vals)):
+        if i == ULT_SLOT_INDEX:
+            assert out_v == src_v
         else:
             assert out_v == 3
 
 
-def test_write_all_slot_tiers_no_skip_overrides_ult(
-    epilogue_bytes: bytes,
-) -> None:
-    """With skip_ult_marker=False, all 10 slot tiers get rewritten."""
-    data = bytearray(epilogue_bytes)
-    modified = write_all_slot_tiers(
-        data,
-        tier=3,
-        record_guid_15=TALENT_RECORD_GUID_15,
-        skip_ult_marker=False,
-    )
-    assert modified == 10
-    assert _read_slot_tiers(bytes(data)) == [3] * 10
-
-
-def test_write_all_slot_tiers_each_value(epilogue_bytes: bytes) -> None:
-    """Every rarity value writes correctly; original ult-markers preserved."""
-    src_vals = _read_slot_tiers(epilogue_bytes)
-    ult_indices = [i for i, v in enumerate(src_vals) if v == 4]
-    for tier_int in (0, 1, 2, 3):
+def test_write_all_slot_rarities_each_value(epilogue_bytes: bytes) -> None:
+    """Every rarity value 0..3 writes correctly to all 9 non-ult slots."""
+    src_vals = _read_slot_rarities(epilogue_bytes)
+    for rarity_int in (0, 1, 2, 3):
         data = bytearray(epilogue_bytes)
-        write_all_slot_tiers(
-            data, tier=tier_int, record_guid_15=TALENT_RECORD_GUID_15
+        write_all_slot_rarities(
+            data, rarity=rarity_int, record_guid_15=TALENT_RECORD_GUID_15
         )
-        out = _read_slot_tiers(bytes(data))
-        for i in range(SLOT_TIERS_COUNT):
-            if i in ult_indices:
-                assert out[i] == 4
+        out = _read_slot_rarities(bytes(data))
+        for i in range(SLOT_COUNT):
+            if i == ULT_SLOT_INDEX:
+                assert out[i] == src_vals[i]
             else:
-                assert out[i] == tier_int
+                assert out[i] == rarity_int
 
 
-def test_write_all_slot_tiers_rejects_out_of_range() -> None:
+def test_write_all_slot_rarities_rejects_out_of_range() -> None:
     data = bytearray(b"\x00" * 1024)
     with pytest.raises(TalentEditError, match="must be a u8"):
-        write_all_slot_tiers(
-            data, tier=-1, record_guid_15=TALENT_RECORD_GUID_15
+        write_all_slot_rarities(
+            data, rarity=-1, record_guid_15=TALENT_RECORD_GUID_15
         )
 
 
-def test_write_all_slot_tiers_raises_when_record_missing() -> None:
+def test_write_all_slot_rarities_raises_when_record_missing() -> None:
     data = bytearray(b"\x00" * 1024)
     with pytest.raises(TalentEditError, match="not found"):
-        write_all_slot_tiers(
-            data, tier=3, record_guid_15=TALENT_RECORD_GUID_15
+        write_all_slot_rarities(
+            data, rarity=3, record_guid_15=TALENT_RECORD_GUID_15
         )
