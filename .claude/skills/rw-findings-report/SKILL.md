@@ -20,7 +20,9 @@ Trigger on phrases like:
 
 2. **Determine filename.** Use a kebab-case slug describing the subject (e.g., `geppetto-save-format.md`, `entity-binary-strings.md`). Ask if not obvious.
 
-3. **Create the file** at `rw/findings/<slug>.md`. Required sections only — omit any section without real content:
+3. **Check for slug collision.** Before creating the file, verify `rw/findings/<slug>.md` does not already exist. If it does, **stop and surface the collision** — do NOT overwrite. Findings docs are topic-focused; if a topic already has a doc, the right action is to edit it in place (or extend its `## Unresolved` / `## Notes` sections), not to create a sibling. Tell the user the existing doc's path and its current `**Status:**` line, then ask whether to (a) update the existing doc, (b) pick a different slug for a genuinely separate topic, or (c) abort. Never silently clobber.
+
+4. **Create the file** at `rw/findings/<slug>.md`. Required sections only — omit any section without real content:
 
 **Always include:**
 
@@ -46,9 +48,9 @@ The `**Status:**` line MUST match `^\*\*Status:\*\* (in-progress|confirmed|archi
 
 A finding doc with only confirmed observations is fine. A doc with only unresolved questions is fine. Don't pad sections to fit a template.
 
-4. **Fill in only the sections with real content** based on the conversation. Be honest about what's confirmed vs speculative — that's the whole point of a status-tracked finding.
+5. **Fill in only the sections with real content** based on the conversation. Be honest about what's confirmed vs speculative — that's the whole point of a status-tracked finding.
 
-5. **Use relative paths** for sources (relative to repo root), so they remain valid as files move.
+6. **Use relative paths** for sources (relative to repo root), so they remain valid as files move.
 
 ## Workflow context
 
