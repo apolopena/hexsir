@@ -12,6 +12,7 @@ Source of truth: the `**Status:**` line at the top of each `rw/findings/<name>.m
 | in-progress | [random-seed-system.md](random-seed-system.md) | Random seed system — locate and edit |
 | in-progress | [save-guid-hash-tail.md](save-guid-hash-tail.md) | Save-record GUID hash-tail reversal |
 | in-progress | [save-mint-status.md](save-mint-status.md) | Save Mint — Status and Known Issues |
+| in-progress | [talent-picker-weighting.md](talent-picker-weighting.md) | Talent picker — count override + rarity-weighting pipeline |
 | confirmed | [held-dream-shards.md](held-dream-shards.md) | Held Dream Shards — bytefield reference |
 | confirmed | [hero-swaps.md](hero-swaps.md) | Save: hero swap |
 | confirmed | [hero-table.md](hero-table.md) | Hero asset table |
