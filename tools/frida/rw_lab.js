@@ -134,6 +134,156 @@
 //   - slotTiers is the 10 × u32 persistent slot tier array (engine offset
 //     param_1+0x1d48 -> persistent block +0x18). One short line; can't be
 //     disabled — it's a primary signal for picker state.
+//
+// SAVE-WRITE PREP-CHAIN PROBE (chapter-end / Save-and-Quit)
+// ---------------------------------------------------------
+// probeForBossKillSave()
+//   Arms a one-shot probe of session_finalize_and_save (image+0x28d6a0,
+//   GameSessionGs::vtable[6]). On the NEXT call to that function (any
+//   route, e.g., chapter-end Save and Quit, settings-side save), walks
+//   the prep chain documented in rw/findings/save-subsystem.md
+//   §"Prep-chain dig — narrowed to factory+serialize on GameModeDefault"
+//   and verified by Ghidra decompile 2026-05-04 (plate comment on the
+//   function records the verified offsets).
+//
+//   Verified chain (single, no candidate logic — decompile-confirmed):
+//     session                       (RCX, GameSessionGs*)
+//       *(session + 0x20)           = scene_mgr_outer
+//         *(... + 0x18)             = scene_manager
+//           *(... + 0x708)          = GameModeDefault*
+//             *(... + 0x38)         = serializer-factory subsystem*
+//               *factory            = factory vtable
+//                 [+0xf8]           = create_serializer  ★ phase 2 hooks here
+//                 (returns serializer)
+//                   *serializer     = serializer vtable
+//                     [+0x40]       = serialize(GameMode)  ★ phase 3 hooks here
+//
+//   Phase 1 (onEnter): walk the chain, log each step's pointer and the
+//     factory's create_serializer RVA. Bail with a clear log line at
+//     whichever step fails (chain may have shifted in a future patch).
+//   Phase 2 (one-shot Interceptor on create_serializer.onLeave):
+//     capture returned serializer, deref vtable, read +0x40 = serialize.
+//   Phase 3 (one-shot Interceptor on serialize.onEnter): log args and
+//     8-frame backtrace to confirm the call site, then auto-detach.
+//
+//   Also logs session+0xa5 (saves-enabled gate). If 0, the engine skips
+//   the prep block — phase 2/3 won't fire, but phase 1 still captures
+//   the structural offsets.
+//
+//   Anti-debug safe: pure Frida hooks. NOT subject to the boss-spawn /
+//   boss-kill STATUS_BREAKPOINT tripwire that terminates WinDbg sessions
+//   (rw/findings/save-subsystem.md §"Empirical: WinDbg anti-debug
+//   behavior"). The session_finalize_and_save hook is permanent but
+//   inert when unarmed.
+//
+//   IMPORTANT (2026-05-04 finding): the captured RVAs from this probe
+//   (factory.vtable[0xf8] = 0xc6ea0, GameModeDefault.vtable[0x40] = 0x31bc40)
+//   are NOT a save-buffer serializer. The "prep block" actually performs
+//   chapter-snapshot bookkeeping. See plate comment on session_finalize_
+//   and_save and rw/findings/frida-pipeline-hardware-breakpoint.md
+//   §"MAJOR CORRECTION".
+//
+// SAVE-BUFFER STATE DIAGNOSTIC (incremental-vs-single-serialize hypothesis test)
+// -----------------------------------------------------------------------------
+// Goal: determine whether the save buffer at data_source+0x1948 is populated
+// (a) incrementally during gameplay (many small Write calls per state change),
+// or (b) all at once during Save-and-Quit by a single serialize function.
+// Outcome decides whether mid-run Frida saves are achievable.
+//
+// findSaveBuffer()
+//   One-shot heap scan to locate the live oCDtRootGs instance and cache it.
+//   Modeled on tools/frida/save_now.js (empirically validated). Scan takes
+//   ~10-80s. Call once after a profile/run is loaded. Cached pointer is
+//   reused by logSaveBuffer() and the probe. Caveat: if you fully reload
+//   the profile (return to main menu and back into a run), the heap address
+//   may change — call again.
+//
+// logSaveBuffer(label)
+//   Read the cached data_source's embedded oCMemoryBinaryStream and log a
+//   single line:
+//     [T+...s] [BUFFER/<label>] ds=0x... bufPtr=0x... size=N capacity=N
+//   Where:
+//     bufPtr   = qword at data_source+0x1958 (the buffer pointer)
+//     size     = u32  at data_source+0x1960 (current data length, what
+//                save_atomic_orchestrator writes to disk)
+//     capacity = u32  at data_source+0x1964 (allocated buffer capacity)
+//
+//   Field offsets verified via Ghidra decompile of
+//   oCMemoryBinaryStream_grow_buffer (image+0x24e700) which shows the
+//   memstream layout: *param_1 = buffer ptr, param_1[1] = size,
+//   (longlong)param_1+0xc = capacity. The memstream is embedded at
+//   job+0x30 = data_source+0x1958.
+//
+// USAGE PROTOCOL (the 20-minute experiment)
+// -----------------------------------------
+// One chapter-end run; ~20 min of focused play. Goal: get a buffer-size
+// time series from chapter start through Save-and-Quit.
+//
+//   1. Launch game, attach Frida with this script. Reach the run-start
+//      menu (any character). Start a chapter-1 run.
+//   2. As soon as you have control: findSaveBuffer()
+//      Wait for the cache hit (one log line). If multiple instances
+//      reported, inspect manually before continuing.
+//   3. logSaveBuffer("chapter1-start")
+//   4. Play. After clearing room 1: logSaveBuffer("chapter1-room1-clear")
+//   5. After room 2-3: logSaveBuffer("chapter1-mid")
+//   6. Right before entering boss room: logSaveBuffer("chapter1-pre-boss")
+//   7. After killing boss, BEFORE clicking save dialog:
+//        logSaveBuffer("chapter1-post-boss")
+//   8. Arm the probe: probeForBossKillSave()
+//   9. Click Save and Quit. Probe fires; auto-logs buffer state at
+//      session_finalize_and_save entry as [PROBE/sfas/buffer].
+//   10. Quit Frida. Read frida_seed_diag.log.
+//
+// INTERPRETATION
+// --------------
+// Compare the size values across the [BUFFER/...] log lines:
+//   - Monotonic growth across "start" → "room1" → "mid" → "pre-boss"
+//     → "post-boss" → [PROBE/sfas/buffer]: INCREMENTAL model confirmed.
+//     The engine writes records as gameplay events occur. Mid-run Frida
+//     saves are fundamentally impossible without replicating the per-event
+//     Write sites.
+//   - Size near-zero or constant until Save-and-Quit, then large at probe:
+//     SINGLE-SERIALIZER model. There IS a single big serialize call we
+//     missed; it runs inside session_finalize_and_save (or downstream of
+//     it) and is the missing prep we want to hook.
+//   - Mostly flat with a big jump at "post-boss": HYBRID — most state is
+//     incremental but boss-kill triggers a final serialize. Hooking the
+//     post-boss serializer would be sufficient for chapter-end Frida
+//     saves.
+//
+// BOSS-TIMER TRIGGER (force chapter-end boss arrival on demand)
+// -------------------------------------------------------------
+// Goal: collapse the ~20-min chapter-end iteration loop. The engine only
+// emits a new save on chapter-boss kill (CLAUDE.md "Saves are only generated
+// at chapter-boss kills"). The boss arrival is gated by a single float
+// comparison in BossTimer_update at image+0x1e9d50:
+//
+//     if (this->elapsed (+0x12c) >= this->boss_time (+0x144)) {
+//         this->is_boss_awaken = 1;
+//         fire_named_event(scene, 0x17d8d901);   // "Boss time start"
+//     }
+//
+// The named event's existing subscribers handle the actual portal/arena
+// spawn — we don't reverse-engineer them. Per
+// rw/findings/chapter-boss-portal-trigger.md.
+//
+// forceBossSpawn()
+//   Write *(float*)(timer + 0x12c) = *(float*)(timer + 0x144). On the next
+//   frame the engine's own Update logic fires 0x17d8d901 and the boss
+//   content spawns identically to natural progression. Requires the
+//   BossTimer instance to be captured first (any in-game frame ticks the
+//   Update hook and captures args[0]).
+//
+// bossTimerStatus()
+//   Dump the runtime state: elapsed, boss_time, remaining seconds, cycle
+//   count, day/night durations, all gating booleans. Use to verify the
+//   harness sees a live timer before forcing.
+//
+// bossTimerSetElapsed(seconds)
+//   Write any arbitrary elapsed value. Useful for testing intermediate
+//   thresholds (cross the warning offset ~30s before boss_time, observe
+//   the "Boss warning start" event fire, without triggering awakening).
 
 'use strict';
 
@@ -162,6 +312,57 @@ let dumpSlotsOnce = false;       // one-shot: dump 10×0x20 slot records on
                                  // NEXT picker entry
 let dumpPoolOnce = false;        // one-shot: dump unpruned pool array on
                                  // NEXT picker entry
+let probeArmed = false;          // one-shot: dump save prep-chain on
+                                 // NEXT call to session_finalize_and_save
+
+const SESSION_FINALIZE_RVA = 0x28d6a0;
+
+// BossTimer trigger. See header §"BOSS-TIMER TRIGGER" and
+// rw/findings/chapter-boss-portal-trigger.md for the field map.
+const BOSS_TIMER_UPDATE_RVA   = 0x1e9d50;
+const BT_DAY_DURATION_OFF     = 0xac;
+const BT_NIGHT_DURATION_OFF   = 0xb0;
+const BT_ARRIVAL_ENABLED_OFF  = 0xb8;
+const BT_WARN_OFF             = 0xbc;
+const BT_OVERTIME_OFF         = 0xc0;
+const BT_TIMER_ENABLED_OFF    = 0x129;
+const BT_ELAPSED_OFF          = 0x12c;
+const BT_SPEED_MULT_OFF       = 0x130;
+const BT_PHASE_INDICATOR_OFF  = 0x134;
+const BT_CYCLE_COUNT_OFF      = 0x138;
+const BT_PHASE_REMAINING_OFF  = 0x13c;
+const BT_BOSS_TIME_OFF        = 0x144;
+const BT_IS_BOSS_AWAKEN_OFF   = 0x148;
+const BT_IS_OVERTIME_OFF      = 0x149;
+const BT_BOSS_DISABLED_OFF    = 0x14b;
+
+// Save-buffer diagnostic. See header §"SAVE-BUFFER STATE DIAGNOSTIC".
+// Field offsets within the live oCDtRootGs instance, validated via
+// tools/frida/save_now.js (empirically) and Ghidra decompile of
+// oCMemoryBinaryStream_grow_buffer (image+0x24e700) which shows the
+// embedded memstream layout.
+const DS_VTABLE0_RVA   = 0x1c6830;  // typedesc-getter — vtable[0] of every oCDtRootGs
+const DS_BUF_PTR_OFF   = 0x1958;    // qword: data buffer pointer
+const DS_BUF_SIZE_OFF  = 0x1960;    // u32:   current size (what gets written to disk)
+const DS_BUF_CAP_OFF   = 0x1964;    // u32:   allocated capacity
+const DS_JOB_PEND_OFF  = 0x19a4;    // u32:   pending sequence
+const DS_JOB_DONE_OFF  = 0x19a8;    // u32:   completed sequence
+const DS_JOB_RESULT_OFF = 0x19ac;   // u8:    last result code
+const DS_SAVES_DISABLED_OFF = 0x1ef4; // u8:  saves-disabled silencer flag
+
+// Heap-scan tuning (mirrors tools/frida/save_now.js).
+const HEAP_SCAN_MIN_RANGE_SIZE = 0x4000;
+const HEAP_SCAN_CHUNK = 16 * 1024 * 1024;
+const HEAP_SCAN_OVERLAP = 0x4000;
+
+let cachedDataSource = null;     // NativePointer to the live oCDtRootGs.
+                                 // Set by findSaveBuffer() or auto-cached
+                                 // on probe entry. Read by logSaveBuffer().
+
+let capturedBossTimer = null;    // NativePointer to the live BossTimer
+                                 // entity. Set on every BossTimer_update
+                                 // entry; tracks the current chapter's
+                                 // timer across chapter transitions.
 
 function ts() {
     return '[T+' + ((Date.now() - startedAt) / 1000).toFixed(2) + 's]';
@@ -553,7 +754,501 @@ if (mod === null) {
         pickerOriginal = null;
     };
 
+    // ============================================================
+    // SAVE-WRITE PREP-CHAIN PROBE
+    // See header comment §"SAVE-WRITE PREP-CHAIN PROBE" for design.
+    // ============================================================
+    function _hex(v) { return '0x' + v.toString(16); }
+
+    // Cheap "ptr in user-mode space" check. Doesn't guarantee mapped.
+    function _validatePtr(p) {
+        if (p === null || p.isNull()) return false;
+        return p.compare(ptr('0x10000')) > 0
+            && p.compare(ptr('0x7fffffffffff')) < 0;
+    }
+
+    // Vtable sanity: pointer lives inside the loaded image.
+    function _vtableInImage(p) {
+        if (!_validatePtr(p)) return false;
+        const end = mod.base.add(mod.size);
+        return p.compare(mod.base) >= 0 && p.compare(end) < 0;
+    }
+
+    globalThis.probeForBossKillSave = function () {
+        probeArmed = true;
+        logLine(ts() + ' === PROBE-BOSS-KILL-SAVE armed: next call to ' +
+                'session_finalize_and_save (image+' + _hex(SESSION_FINALIZE_RVA) +
+                ') will dump the prep chain ===');
+    };
+
+    Interceptor.attach(mod.base.add(SESSION_FINALIZE_RVA), {
+        onEnter(args) {
+            if (!probeArmed) return;
+            probeArmed = false;
+            const tag = ' [PROBE/sfas]';
+            try {
+                const session = this.context.rcx;
+                logLine(ts() + tag + ' enter session=' + session);
+
+                // Auto-cache data_source via the linked-list walk. This is
+                // cheap and gives us a fresh pointer at save time without
+                // requiring the user to run findSaveBuffer() first.
+                try {
+                    const ds = _walkAndCacheDataSource(session);
+                    if (ds !== null) {
+                        cachedDataSource = ds;
+                        const state = _readBufferState(ds);
+                        if (state !== null) {
+                            logLine(ts() + tag + '/buffer ds=' + ds + ' ' + _formatBufferState(state));
+                        } else {
+                            logLine(ts() + tag + '/buffer ds=' + ds + ' state-read FAIL');
+                        }
+                    } else {
+                        logLine(ts() + tag + '/buffer no oCDtRootGs found in data_source list');
+                    }
+                } catch (e) {
+                    logLine(ts() + tag + '/buffer walk ERR ' + e.message);
+                }
+
+                let gate = '?';
+                try { gate = '0x' + session.add(0xa5).readU8().toString(16); }
+                catch (e) { gate = 'ERR:' + e.message; }
+                logLine(ts() + tag + ' session+0xa5 (saves-enabled gate) = ' + gate);
+
+                // Verified chain (Ghidra decompile of session_finalize_and_save,
+                // 2026-05-04): scene_manager = *(*(session+0x20)+0x18). The
+                // earlier "two candidates" logic was speculative; the decompile
+                // pins it to this single path.
+                let outer = null, sceneManager = null, gameMode = null,
+                    factory = null, factoryVT = null, createFn = null;
+                try { outer = session.add(0x20).readPointer(); } catch (e) {
+                    logLine(ts() + tag + ' *(session+0x20) read fail ' + e.message);
+                    return;
+                }
+                logLine(ts() + tag + ' *(session+0x20)        = ' + outer);
+
+                try { sceneManager = outer.add(0x18).readPointer(); } catch (e) {
+                    logLine(ts() + tag + ' scene_manager (+0x18) read fail ' + e.message);
+                    return;
+                }
+                logLine(ts() + tag + ' scene_manager          = ' + sceneManager);
+
+                try { gameMode = sceneManager.add(0x708).readPointer(); } catch (e) {
+                    logLine(ts() + tag + ' GameModeDefault (+0x708) read fail ' + e.message);
+                    return;
+                }
+                let gmVT = null;
+                try { gmVT = gameMode.readPointer(); } catch (e) {}
+                const gmVtInImage = _vtableInImage(gmVT);
+                logLine(ts() + tag + ' GameModeDefault        = ' + gameMode +
+                        ' vt=' + gmVT +
+                        (gmVtInImage ? ' (RVA +' + _hex(gmVT.sub(mod.base).toUInt32()) + ')'
+                                     : ' (NOT in image — chain may have shifted)'));
+
+                try { factory = gameMode.add(0x38).readPointer(); } catch (e) {
+                    logLine(ts() + tag + ' factory (+0x38) read fail ' + e.message);
+                    return;
+                }
+                if (!_validatePtr(factory)) {
+                    logLine(ts() + tag + ' factory invalid: ' + factory + ' — aborting phase 2');
+                    return;
+                }
+
+                try { factoryVT = factory.readPointer(); } catch (e) {
+                    logLine(ts() + tag + ' factory vtable read fail ' + e.message);
+                    return;
+                }
+                try { createFn = factoryVT.add(0xf8).readPointer(); } catch (e) {
+                    logLine(ts() + tag + ' factoryVT+0xf8 read fail ' + e.message);
+                    return;
+                }
+                const factoryVtRVA = _vtableInImage(factoryVT)
+                    ? _hex(factoryVT.sub(mod.base).toUInt32()) : 'NOT-IN-IMAGE';
+                const createRVA = _vtableInImage(createFn)
+                    ? _hex(createFn.sub(mod.base).toUInt32()) : 'NOT-IN-IMAGE';
+                logLine(ts() + tag + ' factory_vtable=' + factoryVT + ' (RVA +' + factoryVtRVA + ')' +
+                        ' create_serializer=' + createFn + ' (RVA +' + createRVA + ')');
+
+                if (!_vtableInImage(createFn)) {
+                    logLine(ts() + tag + ' create_serializer not in image; aborting phase 2');
+                    return;
+                }
+
+                const phase2 = Interceptor.attach(createFn, {
+                    onLeave(retval) {
+                        try {
+                            const serializer = retval;
+                            logLine(ts() + tag + ' phase2 create_serializer returned ' + serializer);
+                            if (!_validatePtr(serializer)) {
+                                logLine(ts() + tag + ' phase2 retval invalid; aborting phase 3');
+                                return;
+                            }
+                            const serialVT = serializer.readPointer();
+                            if (!_vtableInImage(serialVT)) {
+                                logLine(ts() + tag + ' phase2 serializer vtable NOT in image: ' + serialVT);
+                                return;
+                            }
+                            const serializeFn = serialVT.add(0x40).readPointer();
+                            const serialVtRVA = _hex(serialVT.sub(mod.base).toUInt32());
+                            const serializeRVA = _vtableInImage(serializeFn)
+                                ? _hex(serializeFn.sub(mod.base).toUInt32()) : 'NOT-IN-IMAGE';
+                            logLine(ts() + tag + ' phase2 serializer_vtable=' + serialVT +
+                                    ' (RVA +' + serialVtRVA + ')' +
+                                    ' serialize=' + serializeFn + ' (RVA +' + serializeRVA + ')');
+
+                            if (!_vtableInImage(serializeFn)) return;
+
+                            const phase3 = Interceptor.attach(serializeFn, {
+                                onEnter(args3) {
+                                    try {
+                                        logLine(ts() + tag + ' phase3 serialize enter rcx=' +
+                                                this.context.rcx + ' rdx=' + this.context.rdx);
+                                        const bt = Thread.backtrace(this.context, Backtracer.ACCURATE)
+                                            .slice(0, 8)
+                                            .map(a => {
+                                                const inImg = a.compare(mod.base) >= 0
+                                                    && a.compare(mod.base.add(mod.size)) < 0;
+                                                return a + (inImg
+                                                    ? ' (img+' + _hex(a.sub(mod.base).toUInt32()) + ')'
+                                                    : '');
+                                            })
+                                            .join(' | ');
+                                        logLine(ts() + tag + ' phase3 backtrace: ' + bt);
+                                    } catch (e) {
+                                        logLine(ts() + tag + ' phase3 onEnter ERR ' + e.message);
+                                    }
+                                    phase3.detach();
+                                }
+                            });
+                        } catch (e) {
+                            logLine(ts() + tag + ' phase2 onLeave ERR ' + e.message);
+                        }
+                        phase2.detach();
+                    }
+                });
+            } catch (e) {
+                logLine(ts() + tag + ' onEnter ERR ' + e.message);
+            }
+        }
+    });
+
+    // ============================================================
+    // SAVE-BUFFER STATE DIAGNOSTIC
+    // See header §"SAVE-BUFFER STATE DIAGNOSTIC" for design and
+    // §"USAGE PROTOCOL" for the 20-minute experiment recipe.
+    // ============================================================
+
+    // Convert a NativePointer to a "byte byte byte ..." pattern for Memory.scanSync.
+    function _ptrToBytes(p) {
+        const big = BigInt(p.toString());
+        const out = [];
+        for (let i = 0; i < 8; i++) {
+            out.push(Number((big >> BigInt(i * 8)) & 0xffn).toString(16).padStart(2, '0'));
+        }
+        return out.join(' ');
+    }
+
+    // Read buffer state from an oCDtRootGs pointer. Returns null on read fail.
+    function _readBufferState(ds) {
+        if (!_validatePtr(ds)) return null;
+        try {
+            return {
+                bufPtr:   ds.add(DS_BUF_PTR_OFF).readPointer(),
+                size:     ds.add(DS_BUF_SIZE_OFF).readU32(),
+                capacity: ds.add(DS_BUF_CAP_OFF).readU32(),
+                pend:     ds.add(DS_JOB_PEND_OFF).readU32(),
+                done:     ds.add(DS_JOB_DONE_OFF).readU32(),
+                result:   ds.add(DS_JOB_RESULT_OFF).readU8(),
+                flag:     ds.add(DS_SAVES_DISABLED_OFF).readU8(),
+            };
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function _formatBufferState(s) {
+        return 'bufPtr=' + s.bufPtr +
+               ' size=' + s.size +
+               ' capacity=' + s.capacity +
+               ' pend=' + s.pend + ' done=' + s.done +
+               ' result=0x' + s.result.toString(16) +
+               ' flag=' + s.flag;
+    }
+
+    // Heap-scan for the live oCDtRootGs. Mirrors tools/frida/save_now.js.
+    // Phase 1: find every qword in image with value == image+0x1c6830 (the
+    //   typedesc-getter that occupies vtable[0] of every oCDtRootGs class).
+    //   Each match is a vtable address.
+    // Phase 2: scan rw- ranges for any qword equal to one of those vtable
+    //   addresses. Each match is a candidate instance. Validate via
+    //   structural fields (saves-disabled flag, sequence invariants).
+    globalThis.findSaveBuffer = function () {
+        const tag = ' [findSaveBuffer]';
+        const expectedFn = mod.base.add(DS_VTABLE0_RVA);
+        logLine(ts() + tag + ' scanning image for vtable[0]=' + expectedFn);
+
+        let vtblHits;
+        try {
+            vtblHits = Memory.scanSync(mod.base, mod.size, _ptrToBytes(expectedFn));
+        } catch (e) {
+            logLine(ts() + tag + ' image scan ERR ' + e.message);
+            return null;
+        }
+        const vtables = vtblHits.filter(h => {
+            const big = BigInt(h.address.toString());
+            return Number(big & 7n) === 0;
+        }).map(h => h.address);
+        logLine(ts() + tag + ' vtable candidates: ' + vtables.length);
+        if (vtables.length === 0) {
+            logLine(ts() + tag + ' no vtables; engine state may be uninitialized');
+            return null;
+        }
+
+        const ranges = Process.enumerateRanges({ protection: 'rw-', coalesce: false });
+        logLine(ts() + tag + ' scanning ' + ranges.length + ' rw- ranges');
+        const t0 = Date.now();
+        const candidates = [];
+
+        for (const r of ranges) {
+            if (r.size < HEAP_SCAN_MIN_RANGE_SIZE) continue;
+            let off = 0;
+            while (off < r.size) {
+                const sz = Math.min(HEAP_SCAN_CHUNK, r.size - off);
+                const cbase = r.base.add(off);
+                let bytes;
+                try { bytes = cbase.readByteArray(sz); }
+                catch (_) { off += HEAP_SCAN_CHUNK - HEAP_SCAN_OVERLAP; continue; }
+                if (!bytes || bytes.byteLength === 0) {
+                    off += HEAP_SCAN_CHUNK - HEAP_SCAN_OVERLAP; continue;
+                }
+                const view = new DataView(bytes);
+                const limit = bytes.byteLength - 8;
+                for (let p = 0; p < limit; p += 8) {
+                    const lo = view.getUint32(p, true);
+                    const hi = view.getUint32(p + 4, true);
+                    for (const vt of vtables) {
+                        const vbig = BigInt(vt.toString());
+                        const vlo = Number(vbig & 0xffffffffn);
+                        const vhi = Number(vbig >> 32n);
+                        if (lo !== vlo || hi !== vhi) continue;
+                        const addr = cbase.add(p);
+                        const state = _readBufferState(addr);
+                        if (state === null) break;  // unreadable past +0x1ef4 — not an oCDtRootGs
+                        // Sanity: flag is 0/1, done<=pend, result is small or sentinel.
+                        if (state.flag <= 1 && state.done <= state.pend &&
+                            (state.result < 16 || state.result === 0xff)) {
+                            candidates.push({ addr, vtbl: vt, state });
+                        }
+                        break;
+                    }
+                }
+                if (sz === r.size - off) break;
+                off += HEAP_SCAN_CHUNK - HEAP_SCAN_OVERLAP;
+            }
+        }
+        const dt = Date.now() - t0;
+        logLine(ts() + tag + ' scan complete in ' + dt + 'ms; ' +
+                candidates.length + ' candidate(s)');
+        for (const c of candidates) {
+            logLine(ts() + tag + '   ' + c.addr + '  ' + _formatBufferState(c.state));
+        }
+
+        if (candidates.length === 0) {
+            logLine(ts() + tag + ' no oCDtRootGs found — is a profile/run loaded?');
+            return null;
+        }
+        if (candidates.length > 1) {
+            logLine(ts() + tag + ' MULTIPLE candidates — refusing to auto-pick. ' +
+                    'Inspect log and call cachedDataSource manually if needed.');
+            return null;
+        }
+        cachedDataSource = candidates[0].addr;
+        logLine(ts() + tag + ' cached data_source = ' + cachedDataSource);
+        return cachedDataSource;
+    };
+
+    // Read the cached data_source's buffer state and log one labeled line.
+    // Call at gameplay checkpoints: logSaveBuffer("chapter1-room1-clear"), etc.
+    globalThis.logSaveBuffer = function (label) {
+        if (!label || typeof label !== 'string') {
+            logLine(ts() + ' [logSaveBuffer] usage: logSaveBuffer("label-string")');
+            return;
+        }
+        if (cachedDataSource === null) {
+            logLine(ts() + ' [BUFFER/' + label + '] no cached data_source — call findSaveBuffer() first');
+            return;
+        }
+        const state = _readBufferState(cachedDataSource);
+        if (state === null) {
+            logLine(ts() + ' [BUFFER/' + label + '] cache=' + cachedDataSource +
+                    ' — read FAIL (heap may have changed; re-run findSaveBuffer)');
+            return;
+        }
+        logLine(ts() + ' [BUFFER/' + label + '] ds=' + cachedDataSource +
+                ' ' + _formatBufferState(state));
+    };
+
+    // ============================================================
+    // PROBE EXTENSION: walk the data_source list at probe entry,
+    // auto-cache, and log buffer state. This gives one buffer
+    // sample per Save-and-Quit fire automatically.
+    // ============================================================
+    function _walkAndCacheDataSource(session) {
+        // session+0x8 is the head of the data_source linked list (each node's
+        // +0x08 is the next pointer per session_finalize_and_save's loop).
+        // We avoid calling vtable[0]() — instead match the function-pointer
+        // literal at vtable[0] against image+0x1c6830 (the typedesc-getter).
+        // Per save_now.js / save-subsystem.md, that pattern can match both
+        // oCDtRootGs and a sibling class; discriminate via structural fields
+        // (saves-disabled flag in {0,1}, done <= pend, result valid).
+        const expectedFn = mod.base.add(DS_VTABLE0_RVA);
+        try {
+            let node = session.add(0x08).readPointer();
+            for (let i = 0; i < 32 && _validatePtr(node); i++) {
+                let vt = null;
+                try { vt = node.readPointer(); } catch (_) {}
+                if (vt && _vtableInImage(vt)) {
+                    let slot0 = null;
+                    try { slot0 = vt.readPointer(); } catch (_) {}
+                    if (slot0 && slot0.equals(expectedFn)) {
+                        // Structural validation — same discriminator as save_now.js.
+                        const state = _readBufferState(node);
+                        if (state !== null
+                            && state.flag <= 1
+                            && state.done <= state.pend
+                            && (state.result < 16 || state.result === 0xff)) {
+                            return node;
+                        }
+                    }
+                }
+                try { node = node.add(0x08).readPointer(); } catch (_) { break; }
+            }
+        } catch (e) {}
+        return null;
+    }
+
+    // ============================================================
+    // BOSS-TIMER TRIGGER
+    // See header §"BOSS-TIMER TRIGGER" for design and
+    // rw/findings/chapter-boss-portal-trigger.md for the field map.
+    // ============================================================
+    Interceptor.attach(mod.base.add(BOSS_TIMER_UPDATE_RVA), {
+        onEnter(args) {
+            // Capture (or refresh) the instance pointer on every entry.
+            // Cheap assignment; tracks the live BossTimer across chapter
+            // transitions in case the entity is recreated per-chapter.
+            capturedBossTimer = args[0];
+        }
+    });
+    logLine('[diag] hooked BossTimer_update @ ' +
+            mod.base.add(BOSS_TIMER_UPDATE_RVA) +
+            ' (rva 0x' + BOSS_TIMER_UPDATE_RVA.toString(16) + ')');
+
+    // forceBossSpawn() — write elapsed = boss_time. On the next frame the
+    // engine's own Update logic fires named event 0x17d8d901 ("Boss time
+    // start" / "Triggered when boss awakens") and the subscribers spawn
+    // boss content identically to natural progression.
+    globalThis.forceBossSpawn = function () {
+        if (capturedBossTimer === null) {
+            console.log('[diag] BossTimer not captured yet — wait until in-game ' +
+                        '(BossTimer_update must tick at least once)');
+            return;
+        }
+        try {
+            const t = capturedBossTimer;
+            const bossTime = t.add(BT_BOSS_TIME_OFF).readFloat();
+            const elapsedBefore = t.add(BT_ELAPSED_OFF).readFloat();
+            const isAwaken = t.add(BT_IS_BOSS_AWAKEN_OFF).readU8();
+            if (isAwaken !== 0) {
+                logLine(ts() + ' === FORCE-BOSS-SPAWN: already awakened ' +
+                        '(is_boss_awaken=' + isAwaken + '); no-op ===');
+                return;
+            }
+            t.add(BT_ELAPSED_OFF).writeFloat(bossTime);
+            logLine(ts() + ' === FORCE-BOSS-SPAWN: instance=' + t +
+                    ' elapsed ' + elapsedBefore.toFixed(2) +
+                    ' -> ' + bossTime.toFixed(2) +
+                    ' (boss_time). Next frame fires 0x17d8d901. ===');
+        } catch (e) {
+            logLine(ts() + ' === FORCE-BOSS-SPAWN: write FAILED ' + e.message + ' ===');
+        }
+    };
+
+    // bossTimerStatus() — read and log the BossTimer's runtime state.
+    // Use to verify the harness sees a live timer before forcing.
+    globalThis.bossTimerStatus = function () {
+        if (capturedBossTimer === null) {
+            console.log('[diag] BossTimer not captured yet — wait until in-game');
+            return;
+        }
+        try {
+            const t = capturedBossTimer;
+            const elapsed     = t.add(BT_ELAPSED_OFF).readFloat();
+            const bossTime    = t.add(BT_BOSS_TIME_OFF).readFloat();
+            const warnOff     = t.add(BT_WARN_OFF).readFloat();
+            const overtimeOff = t.add(BT_OVERTIME_OFF).readFloat();
+            const dayDur      = t.add(BT_DAY_DURATION_OFF).readFloat();
+            const nightDur    = t.add(BT_NIGHT_DURATION_OFF).readFloat();
+            const speedMult   = t.add(BT_SPEED_MULT_OFF).readFloat();
+            const phaseRem    = t.add(BT_PHASE_REMAINING_OFF).readFloat();
+            const cycleCount  = t.add(BT_CYCLE_COUNT_OFF).readInt();
+            const arrivalOn   = t.add(BT_ARRIVAL_ENABLED_OFF).readInt();
+            const timerOn     = t.add(BT_TIMER_ENABLED_OFF).readU8();
+            const isAwaken    = t.add(BT_IS_BOSS_AWAKEN_OFF).readU8();
+            const isOvertime  = t.add(BT_IS_OVERTIME_OFF).readU8();
+            const isDisabled  = t.add(BT_BOSS_DISABLED_OFF).readU8();
+            const phase       = t.add(BT_PHASE_INDICATOR_OFF).readU8();
+            const remaining   = bossTime - elapsed;
+            logLine(ts() + ' [BOSS-TIMER] instance=' + t +
+                    ' elapsed='      + elapsed.toFixed(2) +
+                    ' boss_time='    + bossTime.toFixed(2) +
+                    ' remaining='    + remaining.toFixed(2) + 's' +
+                    ' speedMult='    + speedMult.toFixed(2) +
+                    ' warnOff='      + warnOff.toFixed(2) +
+                    ' overtimeOff='  + overtimeOff.toFixed(2));
+            logLine(ts() + ' [BOSS-TIMER] phase=' + phase +
+                    ' phaseRemaining=' + phaseRem.toFixed(2) +
+                    ' cycleCount='     + cycleCount +
+                    ' dayDur='         + dayDur.toFixed(2) +
+                    ' nightDur='       + nightDur.toFixed(2) +
+                    ' arrivalEnabled=' + arrivalOn +
+                    ' timerEnabled='   + timerOn +
+                    ' isAwaken='       + isAwaken +
+                    ' isOvertime='     + isOvertime +
+                    ' isDisabled='     + isDisabled);
+        } catch (e) {
+            logLine(ts() + ' [BOSS-TIMER] read FAIL ' + e.message);
+        }
+    };
+
+    // bossTimerSetElapsed(seconds) — write any arbitrary elapsed value.
+    // For testing intermediate thresholds (e.g., cross the warning offset
+    // ~30s before boss_time to observe 0x17d8d900 fire without triggering
+    // awakening). Capped check is upstream — caller's responsibility.
+    globalThis.bossTimerSetElapsed = function (seconds) {
+        if (typeof seconds !== 'number') {
+            console.log('[diag] usage: bossTimerSetElapsed(seconds)');
+            return;
+        }
+        if (capturedBossTimer === null) {
+            console.log('[diag] BossTimer not captured yet — wait until in-game');
+            return;
+        }
+        try {
+            const t = capturedBossTimer;
+            const before = t.add(BT_ELAPSED_OFF).readFloat();
+            t.add(BT_ELAPSED_OFF).writeFloat(seconds);
+            logLine(ts() + ' === BOSS-TIMER-SET-ELAPSED: ' +
+                    before.toFixed(2) + ' -> ' + seconds.toFixed(2) + ' ===');
+        } catch (e) {
+            logLine(ts() + ' === BOSS-TIMER-SET-ELAPSED FAIL ' + e.message + ' ===');
+        }
+    };
+
     console.log('[diag] ready. REPL: force(seed) | forceFresh(seed) | unforce() | mark("label")');
     console.log('[diag]        dumpTalentSlotsNext() | dumpTalentPoolNext() | clearHeldTalentNext(idx?)');
     console.log('[diag]        pickerCount(n) | unpatchPickerCount()');
+    console.log('[diag]        probeForBossKillSave()');
+    console.log('[diag]        findSaveBuffer() | logSaveBuffer("label")');
+    console.log('[diag]        forceBossSpawn() | bossTimerStatus() | bossTimerSetElapsed(s)');
 }

@@ -21,7 +21,6 @@ Future-work ideas that come up mid-session and shouldn't drift into the void. No
 - **GUID hash-tail reversal.** The 4-byte tails of save-record keys (Level: `5793e600`, etc.) are likely a hash. Crack the hash function so we can mint arbitrary save-record keys for asset paths. Per `rw/findings/save-guid-hash-tail.md`.
 - **Live source-of-truth pin identity.** All known stat pins are mirrors, not authoritative. Trace `IDynamicValueListenerData` callback chain backwards from any listener instance. Per `rw/findings/pin-identity-uncertain.md`.
 - **Remaining held resources.** Wood, bean, and other ingredient-type held resources don't have located fields. Walk HC/CRP serde to find them. Per `rw/findings/save-mint-status.md` item 2.
-- **Slot 6–10 controller GUID → talent-name cross-reference.** The dig captured 5 raw GUIDs from the epilogue picks block. Mechanical lookup against `data/heroes/geppetto.yaml` would map them to talent names. Useful for documentation and as a sanity check on the locator.
 - **Per-hero verification of the talent record format.** Currently verified only for Geppetto. Run the lab-build / verification cycle on a non-Geppetto save to confirm the structure generalizes (talent-records.md notes this is presumed but unverified).
 
 ## Documentation / housekeeping

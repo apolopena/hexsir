@@ -830,6 +830,75 @@ buffer slot. The first non-NULL write to that field IS the registry handler's
 `vtable[0x18]` storing the concrete subsystem — its call stack reveals the
 class that owns the prep methods.
 
+### Live-capture path (2026-05-03)
+
+The WinDbg hardware-watchpoint plan above is **retired** — see "Empirical:
+WinDbg anti-debug behavior at game-state transitions" below. Boss-spawn and
+boss-kill self-terminate the moment a Windows debugger is attached, which
+makes the watchpoint pipeline unreliable. Replacement is a pure-Frida hook:
+`probeForBossKillSave()` in `tools/frida/rw_lab.js` attaches
+`session_finalize_and_save` (image+0x28d6a0), walks the verified chain
+(`*(*(session+0x20)+0x18)+0x708 = GameModeDefault`, `+0x38 = factory`)
+to locate the factory subsystem, then chains one-shot `Interceptor.attach`s
+on `factoryVT[0xf8]`.onLeave and `result.vtable[0x40]`.onEnter. Frida is
+unaffected by the anti-debug tripwire. Operational doc lives in
+`rw/findings/frida-pipeline-hardware-breakpoint.md` §"Next task: probe
+capture via `probeForBossKillSave()`".
+
+### CORRECTION (2026-05-04): the "factory + serialize" pair is NOT the save-buffer prep
+
+The hypothesis above stated that `factory.vtable[0xf8] = create_serializer` and
+the returned object's `vtable[0x40] = serialize(GameMode)` is the function that
+populates the embedded `oCMemoryBinaryStream` at `data_source+0x1948`. **Wrong.**
+
+Decompile-confirmed (2026-05-04):
+
+- `factory.vtable[0xf8]` = `factory_alloc_GameModeDefault_thunk` (image+0xc6ea0) — a
+  2-instruction thunk (`MOV RDX,RCX; JMP allocate_GameModeDefault_with_kind`)
+  that allocates a fresh `GameModeDefault` instance (sizeof 0x48). NOT a
+  serializer factory.
+- `GameModeDefault.vtable[0x40]` = `GameModeDefault_copy_chapter_index`
+  (image+0x31bc40) — one-line: `*(p1+0x40) = *(p2+0x40)`. NOT a serializer;
+  copies one u32 (chapter index) between two GameModeDefault instances.
+
+What the prep block actually does: allocate a fresh GameModeDefault, copy
+the chapter index from the running GameModeDefault, cache the new instance
+at `*(profile_data_manager + 0x1e0)`. **Chapter-snapshot bookkeeping**, not
+save-buffer serialization. The actual buffer-population call site remains
+unidentified; the doc's "registry-resolved factory + serialize pair" framing
+should be treated as misleading.
+
+`save_request_sync` only enqueues bytes already at IO_job+0x30 — it does not
+serialize. So the question "what writes to `data_source+0x1948`?" is still
+open and is **not** answered by the chain documented above.
+
+Plausible next directions:
+
+1. Frida `Interceptor.attach` on `oCMemoryBinaryStream::Write` (image+0x5257d0)
+   filtered to `this == data_source+0x1948`, run during a real save event.
+2. Trace readers of `profile_data_manager+0x1e0` — whatever consumes the
+   cached GameModeDefault snapshot is downstream of the prep, and likely
+   sits between this and the actual buffer write.
+
+Plate comment on `0x14028d6a0` in Ghidra records the corrected interpretation.
+
+**Stronger hypothesis (requires empirical verification): incremental serialization model.**
+There may not be a single prep function. The save buffer is populated by many
+small oCMemoryBinaryStream::Write calls distributed across the gameplay code,
+each emitting one record when the corresponding state changes. Save-and-Quit
+just flushes. Chapter-boss-kill saves work because by then all expected
+records have been emitted. **Mid-run Frida triggers cannot produce a
+complete save** in this model — the buffer is incomplete by design until
+specific events occur. Static evidence supporting this: oCMemoryBinaryStream
+::Write has only a handful of xrefs (all DATA/COMPUTED_CALL on local
+streams), oCDtRootGs::vftable (0x140ef49d8, ~26 slots) has no
+serialize-entire-state-shaped slot, session_finalize_and_save calls no
+serializer between scene-context cleanup and `save_request_sync`. Cheap
+verification: extend `probeForBossKillSave()` to log buffer size at
+checkpoints (chapter start, mid-chapter, pre-save, post-save) and watch
+for monotonic growth tied to game events. Full discussion in
+`rw/findings/frida-pipeline-hardware-breakpoint.md`.
+
 ---
 
 ## Modal_Save_Or_Quit.entity.ot decoded (2026-04-30 night)

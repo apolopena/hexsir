@@ -5,14 +5,16 @@ Source of truth: the `**Status:**` line at the top of each `rw/findings/<name>.m
 
 | Status | File | Topic |
 |---|---|---|
-| in-progress | [frida-pipeline-hardware-breakpoint.md](frida-pipeline-hardware-breakpoint.md) | Frida save-trigger pipeline — hardware breakpoint task |
+| in-progress | [frida-pipeline-hardware-breakpoint.md](frida-pipeline-hardware-breakpoint.md) | Frida save-trigger pipeline — prep-chain capture task |
 | in-progress | [ghidra-rule-c-investigation.md](ghidra-rule-c-investigation.md) | Ghidra dive — Rule C cap source investigation |
 | in-progress | [items-add-primitive-cap.md](items-add-primitive-cap.md) | Items ADD primitive — save-load cap discovery |
 | in-progress | [pin-identity-uncertain.md](pin-identity-uncertain.md) | Pin Identity: What Are the Pinned Addresses Actually? |
 | in-progress | [random-seed-system.md](random-seed-system.md) | Random seed system — locate and edit |
 | in-progress | [save-guid-hash-tail.md](save-guid-hash-tail.md) | Save-record GUID hash-tail reversal |
 | in-progress | [save-mint-status.md](save-mint-status.md) | Save Mint — Status and Known Issues |
+| in-progress | [starting-talent-bias.md](starting-talent-bias.md) | Starting-talent bias — does elevated rarity steer subsequent rolls? |
 | in-progress | [talent-picker-weighting.md](talent-picker-weighting.md) | Talent picker — count override + rarity-weighting pipeline |
+| confirmed | [chapter-boss-portal-trigger.md](chapter-boss-portal-trigger.md) | Chapter boss-arrival trigger — force the portal on demand |
 | confirmed | [held-dream-shards.md](held-dream-shards.md) | Held Dream Shards — bytefield reference |
 | confirmed | [hero-swaps.md](hero-swaps.md) | Save: hero swap |
 | confirmed | [hero-table.md](hero-table.md) | Hero asset table |
@@ -37,3 +39,4 @@ Source of truth: the `**Status:**` line at the top of each `rw/findings/<name>.m
 | archived | [save-chapter-counter.md](save-chapter-counter.md) | Save: Chapter Counter |
 | archived | [save-event-not-firing.md](save-event-not-firing.md) | Boss-kill save dialog — disk write not occurring |
 | archived | [talent-record-discovery.md](talent-record-discovery.md) | Talent record discovery in Geppetto chapter 2 saves |
+| ? | [frida-buffer-diagnostic-runbook.md](frida-buffer-diagnostic-runbook.md) | Frida buffer-diagnostic runbook — _no canonical Status line_ |
