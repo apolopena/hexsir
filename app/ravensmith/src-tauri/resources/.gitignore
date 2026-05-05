@@ -1,0 +1,6 @@
+# Bundled resources (currently the staged copy of tools/frida/rw_lab.js
+# under Superpowers builds). Source of truth lives at tools/frida/rw_lab.js;
+# the staged copy here is a build artifact.
+*
+!.gitignore
+!.gitkeep

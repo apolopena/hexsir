@@ -1,0 +1,19 @@
+{
+  "bundle": {
+    "externalBin": ["binaries/rerw", "binaries/frida"],
+    "resources": ["resources/rw_lab.js"]
+  },
+  "app": {
+    "security": {
+      "capabilities": [
+        "default",
+        {
+          "identifier": "superpowers",
+          "description": "Frida sidecar grants for the Dev Console (Superpowers builds only)",
+          "windows": ["main"],
+          "permissions": []
+        }
+      ]
+    }
+  }
+}

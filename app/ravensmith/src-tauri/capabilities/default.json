@@ -1,9 +1,22 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the main window",
+  "description": "Baseline Ravensmith grants (rerw sidecar + file dialog)",
   "windows": ["main"],
   "permissions": [
-    "core:default"
+    "core:default",
+    "dialog:allow-open",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [{ "name": "binaries/rerw", "sidecar": true }]
+    },
+    {
+      "identifier": "shell:allow-spawn",
+      "allow": [{ "name": "binaries/rerw", "sidecar": true }]
+    },
+    {
+      "identifier": "shell:allow-kill",
+      "allow": [{ "name": "binaries/rerw", "sidecar": true }]
+    }
   ]
 }
