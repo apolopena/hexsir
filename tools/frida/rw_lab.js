@@ -355,6 +355,30 @@ const HEAP_SCAN_MIN_RANGE_SIZE = 0x4000;
 const HEAP_SCAN_CHUNK = 16 * 1024 * 1024;
 const HEAP_SCAN_OVERLAP = 0x4000;
 
+// Dream Shards — canonical-function hook + direct write.
+// See rw/findings/multiplayer-host-authority.md and Ghidra plate comment
+// at HC_change_dream_shards (image+0x38c2b0) for full architecture.
+//
+// HC_change_dream_shards(HC*, float delta, oCCustomFlagList* src) is the
+// single canonical gain/loss function. param_1 IS the HeroController-
+// persistent (HC) pointer; hooking entry captures HC for free.
+// The HUD reads HC+0x1590 each frame, so a raw write is enough to
+// update the displayed shard count.
+//
+// HC body field offsets (runtime memory, 4-aligned — distinct from
+// the byte-packed save-file offsets in held-dream-shards.md, where
+// the same field is at the odd offset +0x1d):
+//   +0x1590  held_dream_shards (float32) ★
+//   +0x1598  derived ratio
+//   +0x15d8  subscriber list head
+//   +0x1d48  stat tracker A*
+//   +0x1d78  stat tracker B*
+const HC_CHANGE_DREAM_SHARDS_RVA = 0x38c2b0;
+const HC_HELD_SHARDS_OFF         = 0x1590;
+const HC_HELD_RATIO_OFF          = 0x1598;
+const HC_STAT_TRACKER_A_OFF      = 0x1d48;
+const HC_STAT_TRACKER_B_OFF      = 0x1d78;
+
 let cachedDataSource = null;     // NativePointer to the live oCDtRootGs.
                                  // Set by findSaveBuffer() or auto-cached
                                  // on probe entry. Read by logSaveBuffer().
@@ -363,6 +387,7 @@ let capturedBossTimer = null;    // NativePointer to the live BossTimer
                                  // entity. Set on every BossTimer_update
                                  // entry; tracks the current chapter's
                                  // timer across chapter transitions.
+
 
 function ts() {
     return '[T+' + ((Date.now() - startedAt) / 1000).toFixed(2) + 's]';
@@ -1245,10 +1270,89 @@ if (mod === null) {
         }
     };
 
+    // ============================================================
+    // SHARDS — capture HC via HC_change_dream_shards entry hook.
+    // The decompile of image+0x38c2b0 (renamed in Ghidra) showed it
+    // takes (HC, delta, source_flags). args[0] is HC; we cache it.
+    // ============================================================
+
+    let capturedHC = null;          // NativePointer to live HC, refreshed
+                                    // on every gain/loss event.
+
+    Interceptor.attach(mod.base.add(HC_CHANGE_DREAM_SHARDS_RVA), {
+        onEnter(args) {
+            // args[0] = param_1 = HC pointer (HeroController-persistent).
+            // Tracks across chapter transitions if HC is recreated;
+            // hot path so the assignment is the only work done here.
+            capturedHC = args[0];
+        }
+    });
+    logLine('[diag] hooked HC_change_dream_shards @ ' +
+            mod.base.add(HC_CHANGE_DREAM_SHARDS_RVA) +
+            ' (rva 0x' + HC_CHANGE_DREAM_SHARDS_RVA.toString(16) + ')');
+
+    // shardsHc() — return the captured HC pointer (or null).
+    globalThis.shardsHc = function () { return capturedHC; };
+
+    // shardsStatus() — dump HC and the field block around held_shards.
+    globalThis.shardsStatus = function () {
+        if (capturedHC === null) {
+            console.log('[diag] HC not captured yet — earn or spend a ' +
+                        'shard in-game first (any shard event populates ' +
+                        'capturedHC via the entry hook)');
+            return;
+        }
+        const h = capturedHC;
+        try {
+            const held  = h.add(HC_HELD_SHARDS_OFF).readFloat();
+            const ratio = h.add(HC_HELD_RATIO_OFF).readFloat();
+            const ta    = h.add(HC_STAT_TRACKER_A_OFF).readPointer();
+            const tb    = h.add(HC_STAT_TRACKER_B_OFF).readPointer();
+            const taMir = ta.isNull() ? '?' :
+                          ta.readFloat().toFixed(2);
+            logLine(ts() + ' [SHARDS] HC=' + h +
+                    '  held(+0x1590)=' + held.toFixed(2) +
+                    '  ratio(+0x1598)=' + ratio.toFixed(4) +
+                    '  trkA=' + ta + ' (*=' + taMir + ')' +
+                    '  trkB=' + tb);
+        } catch (e) {
+            logLine(ts() + ' [SHARDS] read FAIL ' + e.message);
+        }
+    };
+
+    // gainShards(n) — direct write to HC+0x1590. Confirmed working
+    // 2026-05-04: HUD updates in real time. If MP replication or
+    // modifier ticks (Hope Diamond, Heal-on-gain) turn out to need the
+    // natural event chain, wire a NativeFunction call to
+    // HC_change_dream_shards directly — but param_3 (an
+    // oCCustomFlagList*) must be a live one captured from args[2] in
+    // the entry hook on a natural shard event.
+    globalThis.gainShards = function (n) {
+        if (typeof n !== 'number') {
+            console.log('[diag] usage: gainShards(deltaInt) — direct +0x1590 write');
+            return;
+        }
+        if (capturedHC === null) {
+            console.log('[diag] HC not captured — earn/spend a shard first');
+            return;
+        }
+        try {
+            const cur  = capturedHC.add(HC_HELD_SHARDS_OFF).readFloat();
+            const next = Math.max(0, cur + n);
+            capturedHC.add(HC_HELD_SHARDS_OFF).writeFloat(next);
+            logLine(ts() + ' === GAIN-SHARDS: HC=' + capturedHC +
+                    '  +0x1590  ' + cur.toFixed(2) + ' -> ' + next.toFixed(2) +
+                    ' (delta=' + n + ') ===');
+        } catch (e) {
+            logLine(ts() + ' === GAIN-SHARDS FAIL ' + e.message + ' ===');
+        }
+    };
+
     console.log('[diag] ready. REPL: force(seed) | forceFresh(seed) | unforce() | mark("label")');
     console.log('[diag]        dumpTalentSlotsNext() | dumpTalentPoolNext() | clearHeldTalentNext(idx?)');
     console.log('[diag]        pickerCount(n) | unpatchPickerCount()');
     console.log('[diag]        probeForBossKillSave()');
     console.log('[diag]        findSaveBuffer() | logSaveBuffer("label")');
     console.log('[diag]        forceBossSpawn() | bossTimerStatus() | bossTimerSetElapsed(s)');
+    console.log('[diag]        shardsStatus() | gainShards(delta) | shardsHc()');
 }
