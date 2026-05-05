@@ -18,10 +18,9 @@ AI-assisted development infrastructure for Claude Code. Slash commands, agents, 
 
 | Command | Purpose |
 |---------|---------|
-| `/generate-prp` | Generate implementation specs from proposals or planning docs |
+| `/generate-prp` | Generate an implementation spec from a proposal |
 | `/execute-prp` | Implement features following a spec |
 | `/peer-review-plan` | Rigorous review of proposals and specs |
-| `/convert-planning` | Convert freeform plans into PLANNING.md format |
 | `/prime-prp-workflow` | Quick explanation of the PRP workflow |
 | `/prime-full` | Generate full codebase context (dispatches Atlas agent) |
 | `/prime-quick` | Read existing context for fast orientation |
@@ -41,7 +40,6 @@ AI-assisted development infrastructure for Claude Code. Slash commands, agents, 
 | File | Role |
 |------|------|
 | `.ai/AGENTS.md` | Planning workflow directives (AI-facing) |
-| `.ai/planning/prd/PLANNING.md` | Active Work Table (tracked) |
 | `.ai/TASKS.md` | Work ledger (untracked) |
 | `CLAUDE.md` | Root-level AI directives |
 | `scripts/git-ai.sh` | SSH-safe git wrapper with AI attribution |

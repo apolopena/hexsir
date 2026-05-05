@@ -19,11 +19,6 @@ Implement a feature using the PRP file.
    - Follow all instructions in the PRP and extend the research if needed
    - Ensure you have all needed context to implement the PRP fully
    - Do more web searches and codebase exploration as needed
-   - **Add Work Table row to PLANNING.md** (`.ai/planning/prd/PLANNING.md`):
-     - Check if a row with this PRP's ID already exists — skip if so
-     - If not, append a row to the Work Table: `| ID | Title | Outcome summary from PRP Purpose section |`
-     - Append AFTER the frozen initial build rows, maintaining ID sequence
-     - This happens at execute time (not generate time) so the row reflects the reviewed, finalized PRP
 
 2. **ULTRATHINK**
    - Think hard before you execute the plan. Create a comprehensive plan addressing all requirements.

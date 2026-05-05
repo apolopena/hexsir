@@ -63,9 +63,6 @@ Example: `POST-IMPL-57_deterministic-md-converter.md`
 
 ### 📁 Key Files
 
-📋 `PLANNING.md`
-   Founding doc: vision, goals, constraints + master work table for PRP generation
-
 📝 `TASKS.md`
    Running ledger: all work completed or in progress — PRP packages and non-PRP tasks (MAINT-X, fixes, tweaks)
 

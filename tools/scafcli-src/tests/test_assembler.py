@@ -94,7 +94,6 @@ class TestScaffoldToDir:
         scaffold_to_dir(manifest, modules, source_repo, tmp_path)
 
         assert (tmp_path / ".ai" / "scratch").is_dir()
-        assert (tmp_path / ".ai" / "planning" / "prd").is_dir()
         assert (tmp_path / ".ai" / "planning" / "prp" / "instances").is_dir()
         assert (tmp_path / ".ai" / "planning" / "prp" / "proposals").is_dir()
         assert (tmp_path / ".github" / "workflows").is_dir()

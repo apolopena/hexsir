@@ -66,22 +66,9 @@ Dispatch Pedro (`update changelog`) to add entries for the completed work.
 | `MAINT-X` | Maintenance (fixes, tweaks, small enhancements) |
 | `REFACT-X` | Refactors (architectural changes, decoupling) |
 
-Check `.ai/TASKS.md` and `.ai/planning/prd/PLANNING.md` for the next available number.
+Check `.ai/TASKS.md` for the next available number.
 
 See [Plan-Driven Development](../procedures/plan-driven-development.md) for the methodology and philosophy behind this system.
-
-## WP Codes (Work Packages)
-
-For initial build planning using PLANNING.md Work Table:
-
-| Block | Engineer |
-|-------|----------|
-| WP-1 to WP-9 | Initial build (frozen after Mode 1) |
-| WP-10 to WP-19 | Engineer A |
-| WP-20 to WP-29 | Engineer B |
-| WP-30 to WP-39 | Engineer C |
-
-Check existing proposals and Work Table for the next available ID in your block.
 
 ## When to Skip PRP
 
@@ -95,7 +82,7 @@ Not all work requires the full cycle.
 **Direct execution workflow:**
 1. Do the work
 2. Commit and push
-3. Update both tracking files: `.ai/TASKS.md` (Done section) and `.ai/planning/prd/PLANNING.md` (Work Table)
+3. Update `.ai/TASKS.md` (Done section)
 
 **Examples:** bug fixes with obvious solutions, small refactors, config changes, documentation updates.
 
@@ -106,8 +93,7 @@ Not all work requires the full cycle.
 
 ## Idempotency
 
-- Mode 1 (`/generate-prp` from PLANNING.md) skips rows with existing PRPs
-- Mode 2 (`/generate-prp` from proposal) skips adding Work Table row if ID exists
+- `/generate-prp` skips rows with existing PRP instances
 - Safe to re-run commands
 
 ## Validation Pattern

@@ -20,7 +20,7 @@ Lightweight template for implementing individual features, enhancements, bug fix
 
 ## Success Criteria
 - [ ] Work item completed as specified
-- [ ] Implementation matches specifications (reference PLANNING.md Detailed Specifications if applicable)
+- [ ] Implementation matches the proposal's detailed specifications
 - [ ] Unit tests added/updated and passing
 - [ ] Code passes linting/style checks
 - [ ] No regressions introduced

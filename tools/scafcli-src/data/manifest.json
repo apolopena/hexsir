@@ -19,20 +19,16 @@
       "files": [
         {"src": ".claude/commands/generate-prp.md", "dest": ".claude/commands/generate-prp.md"},
         {"src": ".claude/commands/execute-prp.md", "dest": ".claude/commands/execute-prp.md"},
-        {"src": ".claude/commands/convert-planning.md", "dest": ".claude/commands/convert-planning.md"},
         {"src": ".claude/commands/peer-review-plan.md", "dest": ".claude/commands/peer-review-plan.md"},
         {"src": ".claude/commands/prime-prp-workflow.md", "dest": ".claude/commands/prime-prp-workflow.md"},
         {"src": ".ai/AGENTS.md", "dest": ".ai/AGENTS.md"},
-        {"src": ".ai/planning/templates/PLANNING_TEMPLATE.md", "dest": ".ai/planning/templates/PLANNING_TEMPLATE.md"},
         {"src": ".ai/planning/templates/TASKS_TEMPLATE.md", "dest": ".ai/planning/templates/TASKS_TEMPLATE.md"},
-        {"src": ".ai/planning/prp/templates/prp_bulk.md", "dest": ".ai/planning/prp/templates/prp_bulk.md"},
         {"src": ".ai/planning/prp/templates/prp_standalone.md", "dest": ".ai/planning/prp/templates/prp_standalone.md"},
         {"src": ".ai/planning/prp/templates/proposal_standalone.md", "dest": ".ai/planning/prp/templates/proposal_standalone.md"}
       ],
       "templates": [],
       "template_dirs": [],
       "dirs": [
-        ".ai/planning/prd/",
         ".ai/planning/prp/instances/",
         ".ai/planning/prp/proposals/",
         ".ai/planning/prp/proposals/backlog/",

@@ -1,9 +1,7 @@
 # Planning System Directives
 
 ## File Locations
-- **Planning template**: `.ai/planning/templates/PLANNING_TEMPLATE.md`
 - **Tasks template**: `.ai/planning/templates/TASKS_TEMPLATE.md`
-- **Active planning**: `.ai/planning/prd/PLANNING.md` (tracked)
 - **Work ledger**: `.ai/TASKS.md` (untracked, created from TASKS_TEMPLATE.md if missing)
 - **PRP templates**: `.ai/planning/prp/templates/` (tracked)
 - **Generated PRPs**: `.ai/planning/prp/instances/` (untracked)
@@ -19,12 +17,6 @@
 4. [HUMAN] Peer review instance with `/peer-review-plan` — repeat until no issues
 5. [HUMAN] Run `/execute-prp` — agent implements features from instance file
 6. [AI] Update work ledger per `.ai/planning/templates/TASKS_TEMPLATE.md`
-
-## PLANNING.md Work Table Rules
-- **Initial build rows** (WP-1 to WP-N for MVP): FROZEN after `/generate-prp` Mode 1 completes
-- **Never modify or delete** frozen rows
-- **Post-MVP rows** (WP-10+): Growing section, added by `/execute-prp` (not `/generate-prp`)
-- `/generate-prp` must NOT write to PLANNING.md — the Work Table row is created at execution time so it reflects the reviewed, finalized PRP
 
 ## Execution Discipline
 - Use only dependencies present in the repo configuration or current PRP context
