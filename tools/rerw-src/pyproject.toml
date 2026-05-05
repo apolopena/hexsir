@@ -18,6 +18,7 @@ rerw = "cli:cli"
 
 [dependency-groups]
 dev = [
+    "pyinstaller>=6.10,<7",
     "pytest>=8.2,<9",
     "ruff>=0.4,<1",
     "test-lib>=0.1.0,<1",
