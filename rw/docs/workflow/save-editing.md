@@ -215,9 +215,17 @@ See [`magical-objects.md`](../../findings/magical-objects.md) and [`items-add-pr
 
 SWAP's safe domain is rigorously Legendary↔Legendary or Cursed↔Cursed where neither item is currently in inventory. Swapping into a stacked Common/Rare/Epic slot would split the stack with unverified engine-side behavior.
 
-### Inserting a Nightmare Keys record into a zero-keys save
+### Source must already contain the record type you want to edit
 
-The CLI's `keys <N>` errors for `N>0` on a save with no existing keys record. Implementing this requires inserting a 20-byte framed `oSDtHeroIngredient` record into the HC body's HeroIngredient vector, incrementing the vec count u32, and (for fully empty saves with no class entry) adding `oSDtHeroIngredient` to the class registry. Class-registry insertion is untested. Workaround: layer on a save that already has at least one keys record (e.g. test3-mint).
+The `rerw write savefile` writer only mutates existing records — it cannot bootstrap a brand-new record into a save that has none of that type. This is a CLI gap (records-array insertion + class-registry insertion are untested or unimplemented), not an engine limitation. Practical effect:
+
+- **Items.** `item add` errors on a source with zero magical-object records ("Cannot ADD on a save with zero existing item records: no base counter available."). The new record's counter is derived from an existing one. A clean chapter-1 save with no MOs picked up yet has zero records and is not a valid item-add source.
+- **Nightmare Keys.** `keys <N>` for `N>0` errors on a source with no `oSDtHeroIngredient` keys record. Inserting one requires a 20-byte framed record into the HC body's HeroIngredient vector, incrementing the vec count u32, and (for fully empty saves with no class entry) registering `oSDtHeroIngredient` in the class registry. Class-registry insertion is untested.
+- **Likely others.** Any field backed by an optional record type is subject to the same gap — talents, hero-specific blocks, etc. Not exhaustively mapped.
+
+**Workaround:** pick a source proof from a run where the player actually used / picked up the resource you want to edit, so the record exists and the writer just mutates it. For keys specifically, `test3-mint` works.
+
+**Why this matters for lab planning:** clean saves and very-early-chapter saves are weak lab sources. Prefer mid- or late-run proofs where most record types are already populated.
 
 ### Genuinely unmapped fields
 

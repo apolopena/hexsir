@@ -107,6 +107,9 @@ When you identify what a function/struct/global does — even partially — anno
 ### Save-edit lab base rule — never layer on a failed experiment
 New save edits MUST layer on top of a golden, a proof, or a verified-success lab. Never layer on a failed lab variant. If unsure whether a prior lab is a success, ask before using it. Full rationale in `rw/docs/workflow/save-editing.md` §Concepts → "Lab base rule."
 
+### Never source labs from the clean proof
+Push back if asked to build a lab from `rw/saves/proofs/geppetto/clean/Profile_1.ob` — clean saves lack the records required for player-info edits (no item records, no Nightmare Keys record, etc.), so the byte shape triggers rerw writer bootstrap failures. Ask the user to pick a different source proof.
+
 ### Save-edit lab naming convention
 Lab folder names encode lineage: `<edit-name>__from-<source-name>[__<extra-suffix>]/Profile_1.ob`. The `__from-` separator is a literal double-underscore. Use the source directory's leaf name. Examples and full convention live in `rw/docs/workflow/save-editing.md` §Concepts → "Folder taxonomy and naming."
 
