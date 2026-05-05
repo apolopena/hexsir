@@ -68,12 +68,28 @@ Windows game directories, Steam paths, and similar host-specific locations are o
 
 ### "Locating <thing>" subsection convention
 
-Every finding doc that documents a byte-level structure SHOULD include a `## Locating <thing>` subsection that states:
+Every finding doc that pins down a structure or symbol whose absolute position can shift SHOULD include a `## Locating <thing>` subsection that states:
 
-1. The strategy used to find the structure in the byte stream.
+1. The strategy used to find the structure / symbol.
 2. The assumptions that strategy makes.
 3. Known failure modes when those assumptions break.
 
+The convention exists because locator logic that lived only in lib code historically rotted silently when fixes landed in code without being back-propagated to docs. Putting the locator strategy next to the structure / symbol description keeps both in sync.
+
+#### Two flavors
+
+Findings come in two flavors and the locator section follows the matching template.
+
+**Byte-stream locator** — for findings that document save-file or other on-disk byte structures. Anchors are usually byte sentinels, structural neighbours (e.g. "first u32 after the items + tracker block"), or fixed-size headers. Failure modes are byte-level — a structure shape changes, a sentinel becomes a coincidence in a different state, etc.
+
 Reference template: [`../findings/talent-records.md`](../findings/talent-records.md) §"Picks-block locator (generalized)" — strategy (walk run-state forward through items + tracker, read the next u32 as picks count), assumptions (set-bonus tracker is contiguous; trailing close shape is fixed), failure modes (chapter-2 `00 00 00 00 05 00 00 00` sentinel is a coincidence and stops working in chapters with N > 0 set-bonus items).
 
-The convention exists because locator logic that lived only in lib code historically rotted silently when fixes landed in code without being back-propagated to docs. Putting the locator strategy next to the byte-format description keeps both in sync.
+**RE-side locator** — for findings that pin down RVAs in `Ravenswatch.exe`, struct offsets at runtime, or Ghidra-named symbols. Absolute RVAs shift on every recompile; struct offsets usually survive patches but can shift on major engine updates. Anchors are stable artifacts: literal strings, RTTI symbols, content-derived hashes (FNV of asset names), distinctive byte patterns, or vtable indices.
+
+Reference template: [`../findings/chapter-map-and-boss-spawn-architecture.md`](../findings/chapter-map-and-boss-spawn-architecture.md) §"Locating these symbols on a new build" — five strategies (strings → xrefs, RTTI → vtables, content-derived hashes, byte-pattern search for hash constants, vtable indices and struct offsets), each with a table of which symbols it covers, plus an executable "re-anchoring quick recipe."
+
+Findings that touch both worlds (save-format docs that also reference RE entry points, or RE digs that produce save-relevant offsets) include both subsections.
+
+#### Why this matters for AI-driven RE
+
+The locator section is effectively an agent prompt. An AI given "search for string X, walk to its xref, identify the containing function" can execute it directly via Ghidra MCP tools — no human in the loop required. Multiple anchors per symbol provide redundancy; the agent picks whichever is cheapest in the new binary. The RE-side template's strategies map 1:1 onto Ghidra MCP tool calls, which is why the template is shaped the way it is.

@@ -300,6 +300,49 @@ Empirical approach (faster, but requires Frida prep function first OR a hand-cra
 
 Empirical testing requires a faster iteration loop than 20-min chapter playthroughs — which loops back to needing the Frida save trigger to actually work. So the prep-function investigation is the higher-priority blocker.
 
+## Locating these symbols on a new build
+
+Per `rw/docs/README.md` §"Locating <thing>" — RE-side template. The bulk of this finding's RVAs are foundational save-subsystem symbols that are anchored in `save-subsystem.md` §"Locating these symbols on a new build". Re-anchor that finding first; this doc inherits.
+
+### Symbols specific to this finding
+
+| Symbol | Anchor |
+|---|---|
+| `save_request_sync` (image+0x6797b0) | Single-xref guarantee from `session_finalize_and_save` (GameSessionGs `vftable[6]`). |
+| `save_request_async` (image+0x679760) | Adjacent to `save_request_sync` in code; four call sites all dispatch to global save state. |
+| `saves_queue_enqueue` (image+0x6818a0) | Called from both save_request_*; lower-level enqueue. |
+| `g_saves_manager_struct` (image+0x143fcd0) | Static, referenced by all enqueue paths. xrefs from save_request_async. |
+| `g_oCDtRootGs_typedesc` (image+0x14475a0) | Type-descriptor storage; the typedesc-getter at `image+0x1c6830` writes it on first call. |
+| `oCDtRootGs` typedesc-getter (image+0x1c6830) | RTTI: it's `oCDtRootGs::vftable[0]`. The `oCDtRootGs::vftable` is the static recovery anchor. |
+| `oCMemoryBinaryStream::Write` (image+0x5257d0) | RTTI: vtable slot on `oCMemoryBinaryStream`. The only impl that grows the buffer at `+0x30`. |
+| `session_finalize_and_save` (image+0x28d6a0) | GameSessionGs `vftable[6]`. |
+| `chapter_end_work` (image+0x2907e0) | See `chapter-map-and-boss-spawn-architecture.md` and `save-subsystem.md` for the difficulty-mapping anchor. |
+
+### Struct offsets (within `oCDtRootGs`)
+
+The complete `oCDtRootGs` field map is in §"Field offsets within `oCDtRootGs`" above; re-derivation paths:
+
+| Offset | Re-derivation |
+|---|---|
+| `+0x1928` | Constructor of `oCDtRootGs` initializes embedded `oCMemoryBinaryStream` job here |
+| `+0x1928 + 0x7c..0x84` | The `save_atomic_orchestrator` reads/writes these on each request — re-derive by decompiling that function |
+| `+0x1ef4` | The saves-disabled gate — checked at the top of the orchestrator's queue function |
+
+### Discovery primitive (heap scan for `oCDtRootGs` instance)
+
+The runtime discovery technique itself is version-resilient *if* the RTTI-based vtable matching is intact:
+
+1. Find `oCDtRootGs::vftable` in `.rdata` via RTTI (`.?AVoCDtRootGs@@`).
+2. The vtable slot 0 is the typedesc-getter; its address (here `image+0x1c6830`) is the discriminator.
+3. Scan process heap for qwords equal to `image_base + <vtable_offset>`. Each match is an `oCDtRootGs` instance.
+4. The chapter-end instance is the one whose `+0x1ef4` saves-disabled flag is `0`.
+
+This procedure does not depend on any specific RVA; only on RTTI being preserved. Should work across patches.
+
+### Cross-finding anchoring
+
+This finding heavily inherits from `save-subsystem.md`. If a binary update lands, re-anchor `save-subsystem.md` first using its Tier 1 (RTTI) and Tier 2 (string) anchors, then propagate updated RVAs to this finding's tables.
+
 ## Possible future improvements (after prep is solved)
 
 - **Speed up the heap scan.** Currently ~80 seconds dominated by per-pointer reads. Options: reduce ranges scanned (skip very small ones, target the heap arenas where instances live based on prior observation, e.g. the `0x2ba_xxxxxxxx` range). Or use `Memory.scanSync` more cleverly with the exact 8-byte vtable pattern.

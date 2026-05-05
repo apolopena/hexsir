@@ -130,6 +130,44 @@ Talent-pick rarity is stored TWICE in the save and the picker reads either one d
 
 **Tier-roll function** (`talent_roll_tier_weighted` at `image+0x2e7b80`) is invoked only when slot.tier == 4 at picker time — the engine treats 4 as the "uninitialized, roll fresh" sentinel. The roll calls `uniform_float_in_range_pcg` (`image+0x4ffce0`), which inlines the same TLS+0xff3c PCG. Weights are biased by the "Skill better quality chance" modifier (hash `0x1709d22b`, read 3 times in a loop in the picker).
 
+## Locating these symbols on a new build
+
+Per `rw/docs/README.md` §"Locating <thing>" — RE-side template. The PCG / RNG subsystem is anchored by the TLS slot offset and the well-known PCG constants.
+
+### Function anchors
+
+| Symbol | Anchor |
+|---|---|
+| `pcg_step_thread_local_seed` | The PCG-XSL-RR algorithm has a unique constant — `6364136223846793005` (= `0x5851f42d4c957f2d`). Byte-pattern search for `2d 7f 95 4c 2d f4 51 58` finds every PCG step site. The leaf step function is the smallest. |
+| `uniform_float_in_range_pcg` (image+0x4ffce0) | Inlines `pcg_step_thread_local_seed`; one of two functions calling it that returns a float. |
+| `talent_roll_tier_weighted` (image+0x2e7b80) | Calls `uniform_float_in_range_pcg`; reads modifier-stat hash `0x1709d22b` ("Skill better quality chance") in a 3-iteration loop. |
+| `SkillController_roll_proposed_skills` (image+0x39c300) | RTTI: `oCDtEntityCpntSkillController` family. The "roll proposed skills" function is the unique one that loops through 4 proposed-skill slots. |
+| Sync function (image+0x39bc80) | Iterates 10 slots at `+0xff0..+0x1110` stride `0x20`; mirrors talent tiers to runtime slot array at `+0x1d48 + 0x18 + slot*4`. Distinctive iteration pattern. |
+
+### TLS slot
+
+`TLS+0xff3c` is the PCG seed slot. **This offset is per-thread and stable across patches** (it's compiler-managed). Re-verify by:
+
+1. Find any function that calls `pcg_step_thread_local_seed`.
+2. The seed-step function reads/writes a TLS slot — the offset literal `0xff3c` (or shifted equivalent on a new build) is visible in the disassembly.
+3. If the offset shifts, all consumers shift together — re-derivation is one decompile.
+
+### Hash anchors (content-derived)
+
+| Hash | Meaning |
+|---|---|
+| `0x1709d22b` | Modifier-stat: "Skill better quality chance" — biases tier roll weights. Survives recompiles. |
+
+### Other consumers of `TLS+0xff3c` (partial list, §"Other consumers")
+
+Each consumer is anchored by its own behavior. To enumerate fully, do a byte-pattern search for the PCG constant and walk callers; the list in §"Other consumers" was assembled this way.
+
+### Assumptions and known failure modes
+
+- Assumes the engine continues using PCG-XSL-RR with the standard multiplier constant. Changing PCG variants would invalidate the constant anchor (the variant is library-level, very unlikely to change).
+- Assumes the `0x1709d22b` modifier-stat hash matches the registered string `"Skill better quality chance"`. If devs rename the asset, the hash changes — but the registered name→hash map is in the modifier-stat registration code and re-discoverable via the string anchor.
+- Assumes TLS offset `0xff3c` shifts (if at all) atomically — i.e., all consumers shift together because they all read the same TLS slot.
+
 ## References
 
 - Function: `SkillController_roll_proposed_skills` at `image+0x39c300` (renamed from `FUN_14039c300`; previously misnamed `read_extra_skill_choice_modifier`).

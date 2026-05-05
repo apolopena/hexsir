@@ -371,6 +371,79 @@ The signature scan is standard mod/cheat technique. Completes in well under a se
 
 The injector needs no debugger, no breakpoints, and no captured pointers. It runs in-process on game startup, finds the data source, and exposes a hotkey or IPC to trigger saves on demand.
 
+## Locating these symbols on a new build
+
+Per `rw/docs/README.md` §"Locating <thing>" — RE-side template. This finding cites ~170 RVAs spanning the save subsystem. They shift on every recompile of `Ravenswatch.exe`. Re-anchor by tier:
+
+### Tier 1 — Class anchors (most reliable, RTTI-based)
+
+The save subsystem is a class hierarchy. Recover any class via RTTI string `.?AVoCFoo@@`, then walk vtables for member functions.
+
+| Class | RTTI | Members anchored from this |
+|---|---|---|
+| `oCDtRootGs` | `.?AVoCDtRootGs@@` | `oCDtRootGs_constructor`. Sub-object layout (`+0x18`, `+0x1948`, `+0x1958`) recoverable from constructor decompile. |
+| `oCDtGameProfile` | `.?AVoCDtGameProfile@@` | `oCDtGameProfile_constructor`. Inherits `oIGameProfile`. |
+| `oIGameProfile` | `.?AVoIGameProfile@@` | `oIGameProfile_base_constructor` (parent class). |
+| `oCMemoryBinaryStream` | `.?AVoCMemoryBinaryStream@@` | `Write` is `vtable[?]`; the only call inside Write that mallocs is `oCMemoryBinaryStream_grow_buffer`. |
+| `GameSessionGs` | `.?AVGameSessionGs@@` | `session_finalize_and_save` is at `vftable[6]`. |
+| `oCBinarySaver` | `.?AVoCBinarySaver@@` | Profile-save wrapper — wraps `oCFileBinaryStream` internally. Not used for run-state. |
+| `GameModeDefault` | `.?AV?$GameModeDefault@dt@oe@@` | `GameModeDefault_copy_chapter_index = vtable[0x40]` (one-line `*(p1+0x40) = *(p2+0x40)`). The factory at `+0x38` holds the runtime serializer/allocator. |
+
+### Tier 2 — Function anchors (string and structure-based)
+
+| Symbol | Strongest anchor |
+|---|---|
+| `chapter_end_work` | Hardcoded difficulty mapping `chapter==1 → 3`, `chapter==2 → 6`, `chapter==3 → 9` (three-cmp-three-store sequence). Plus `tls_random_modulo` over `scene_manager+0x738` map pool. |
+| `save_request_sync` | **Only** caller in the binary is `session_finalize_and_save`. Single-xref guarantee. |
+| `save_request_async` | Four callers, all writing chapter/profile state. Function itself is uniquely the "request" name. |
+| `session_finalize_and_save` | Two anchors: GameSessionGs `vftable[6]`, AND it's the only function that calls `save_request_sync`. |
+| `profile_mark_chapter_complete_save` | Sets `profile_data->[0x18c] = 1` then enqueues `save_request_async` — distinctive single-byte-write + async-call pair. |
+| `chapter_end_analytics_emit`, `publish_chapter_end_if_in_chapter`, `set_chapter_counter_publish_event` | Strings `"chapter_end"`, `"map.chapter"`, `"map.name"`. See `chapter-map-and-boss-spawn-architecture.md` for cross-anchors. |
+| `oCMemoryBinaryStream_grow_buffer` | Only function called from inside `oCMemoryBinaryStream::Write`'s grow path; only place with `_malloc_base`/`_realloc_base` for the buffer at `+0x30`. |
+| `global_save_modal_init_dispatcher`, `global_save_dispatcher_chapter_state` | Names retain "global save"-related strings; xrefs from any of the four `save_request_async` call sites. |
+
+### Tier 3 — Globals and statics
+
+| Symbol | Anchor |
+|---|---|
+| `g_global_save_dispatcher` | xrefs from any of the four `save_request_async` callers — they share a global dispatcher pointer. |
+| `g_game_profile_data_manager_ptr` | Pervasive. Re-derive via `chapter_end_work`'s difficulty-mapping block — three writes to `*(g_game_profile_data_manager_ptr+0x20)+0x230`. |
+| `oCDtRootGs::vftable` | RTTI for `oCDtRootGs`. |
+| `GameSessionGs::vftable` | RTTI for GameSessionGs (slot 6 = `session_finalize_and_save`). |
+
+### Tier 4 — Struct offsets (within `oCDtRootGs` / `data_source`)
+
+Stable across patch builds, can shift on major engine updates. Re-derive from constructors decompiled here:
+
+| Offset | Field | Re-derivation source |
+|---|---|---|
+| `+0x18` | `oCDtGameProfile` sub-object | `oCDtRootGs_constructor` writes `*(this+0x18) = ...` |
+| `+0x18c` | Chapter-complete byte | `profile_mark_chapter_complete_save` writes 1 here |
+| `+0x1928` | `oCMemoryBinaryStream` job slot | `oCDtRootGs_constructor` |
+| `+0x1948` | Stream's vtable slot (`save_io_job_init_oCMemoryBinaryStream` writes vftable here) | the init function |
+| `+0x1958` | Stream's buffer ptr | `oCMemoryBinaryStream_grow_buffer` writes its result to `*param_1` |
+| `+0x230` | Difficulty score (1→3 / 2→6 / 3→9) | `chapter_end_work`'s mapping block |
+
+### Tier 5 — Vtable slots
+
+| Slot | Class | Purpose |
+|---|---|---|
+| `GameSessionGs::vftable[6]` | GameSessionGs | `session_finalize_and_save` |
+| `GameModeDefault::vftable[0x40]` | GameModeDefault | `copy_chapter_index` |
+| `factory.vtable[0xf8]` | factory at `GameModeDefault+0x38` | `factory_alloc_GameModeDefault_thunk` (2-instruction MOV/JMP) |
+| `oCMemoryBinaryStream::Write` | the stream class | The `Write` virtual; identifiable by the only impl that grows the buffer |
+
+### Assumptions and known failure modes
+
+- Assumes the OEngine `Gs`-family class hierarchy (`oCDtRootGs`, `GameSessionGs`, `oCDtGameProfile`) remains the save root structure. Major engine version changes could rewrite this.
+- Assumes the chapter→difficulty mapping stays hardcoded. If devs add a chapter or change difficulty curves, this anchor breaks for `chapter_end_work` only (the rest stand).
+- Assumes RTTI is preserved. Ravenswatch shipped with full RTTI; if a future build strips it, fall back to byte-pattern signatures.
+- `+0x1958` is the most likely struct offset to shift on a major engine bump. `oCMemoryBinaryStream_grow_buffer` is the canonical re-derivation source.
+
+### Cross-finding anchoring
+
+This finding is the foundational save-subsystem reference. Multiple findings cross-anchor against it: `frida-pipeline-hardware-breakpoint.md`, `chapter-boss-portal-trigger.md`, `save-edit-pipeline.md`, `chapter-map-and-boss-spawn-architecture.md`. Re-anchor this doc first on a binary update; others follow.
+
 ## Open questions
 
 | Question | Status |
@@ -386,6 +459,16 @@ The injector needs no debugger, no breakpoints, and no captured pointers. It run
 - All addresses listed are at image base `0x140000000` (the value Ghidra uses). At runtime, Ravenswatch.exe is ASLR-randomized; you can either compute the actual base from `WinDbg` `lm` output and add the RVA, or break on a known string LEA (e.g., `LEA RAX, [Saved]` near `0x14029140d`) to find the runtime base.
 - The save thread is alive whenever the game is running, regardless of menu/in-game state. So the worker can be prodded any time after engine init.
 - `_Save\Profile_1_Temp.ob` is left on disk only if the orchestrator crashed mid-write. Its presence after a clean shutdown indicates a failed save.
+
+## Non-triggering events (the chapter-boss kill is the only natural save event)
+
+Empirically observed events that do **not** produce a `Profile_1.ob` write:
+
+- Quicksave / autosave (no such systems)
+- Save-on-quit (clean exit from main menu or alt-F4)
+- Save-on-death
+- **Save-on-crash** — process crash mid-run does not flush a save (observed 2026-05-04 in a multiplayer host run that crashed without producing a clean proof). Save state is held in the in-memory buffer until `save_request_sync` is called; an unwinding crash never reaches that call site.
+- Multiplayer (any role: host or peer) — see `multiplayer-host-authority.md`
 
 ## Cross-references
 

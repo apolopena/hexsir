@@ -119,3 +119,15 @@ Renamed and plate-commented.
 - `rw/findings/items-add-primitive-cap.md` — empirical Rule A/B/C data and bisect history.
 - `rw/findings/magical-objects.md` — record format, edit primitives, engine validation summary.
 - Prior Ghidra findings section in `items-add-primitive-cap.md` (Codex's session, dated 2026-04-29 earlier in the day).
+
+## Locating these symbols on a new build
+
+Per `rw/docs/README.md` §"Locating <thing>" — RE-side template. In-progress dig; tight section. Most anchors are on the hero-character (HC) runtime instance and skill-controller subscriber list.
+
+| Symbol | Anchor |
+|---|---|
+| Skill-controller vtables | RTTI: classes named `oCDtEntityCpntSkillController*`. The `vtable[0x10]` slot is the subscriber-registration handler. |
+| HC's `+0x1c00` total-subscribers head | Re-derive: find any function that subscribes to inventory-changed events and walk to its target. |
+| Per-skill-controller fixed-size arrays | Loops bounded by item count are the giveaway — runtime crash on Rule C suggests an array-bounds violation. |
+
+Inherits broader anchors from `multiplayer-host-authority.md` (HC layout patterns), `items-add-primitive-cap.md` (validation crash points), `magical-objects.md` (record-format reference).

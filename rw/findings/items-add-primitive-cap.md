@@ -392,3 +392,28 @@ Lab-confirmed: removed Save A's Philosopher's Stone (Legendary, counter 750) →
 **Safe domain (rigorously):** removing any record from a save where the save's set-bonus tracker doesn't reference that item. For a stripped operation that touches set-bonus-tracked items, the engine re-syncs the tracker on load — no manual cleanup needed (per session observation).
 
 **Untested:** removing records by counter that are NOT the last (mid-array splice). Mechanically should work the same way (splice + count decrement + CRC) but never lab-verified. The Test A "strip all records" probe did this implicitly with batch removal; one-at-a-time mid-array removal not separately tested.
+
+## Locating these symbols on a new build
+
+Per `rw/docs/README.md` §"Locating <thing>" — both flavors apply: byte-stream for the in-save record format, RE-side for any binary-side validators.
+
+### Byte-stream anchors (save-format)
+
+| Structure | Anchor |
+|---|---|
+| Items-records block in save body | Located at `body+0x61` (count u32 LE) followed by 32-byte records starting `body+0x65`. Re-derive: locate via the run-state record marker (tag=0x12 + run_state_guid_15) and walk forward — `talent-records.md` "Picks-block locator (generalized)" describes the same pattern for sibling blocks. |
+| Per-record 32-byte layout | Stable engine-wide; structure documented in this finding's main tables. |
+| Set-bonus tracker | Stable adjacency; engine re-syncs on load. |
+
+### RE-side anchors (binary validators)
+
+| Symbol | Anchor |
+|---|---|
+| Item-count load-time validator (Rule A) | The function that crashes on `count > 9` for Common-only runs. Re-derive via runtime crash backtrace (Frida `process.exceptionHandler`) when triggering the failure case. |
+| Set-bonus rebuild on load | The function that auto-creates tracker entries on load when items at threshold appear — anchor via xrefs to the count field at `body+0x61` reading. |
+
+### Cross-finding anchoring
+
+- `talent-records.md` — sibling block structure; same locator strategy.
+- `magical-objects.md` — record format reference.
+- `save-binary-format.md` — high-level record framing (tags, GUIDs, CRC).

@@ -671,6 +671,43 @@ Data labels also added: `ActivityScore_vftable`, `oCDtPlayerProfileData_vftable`
 
 ---
 
+## Locating these symbols on a new build
+
+Per `rw/docs/README.md` §"Locating <thing>" — RE-side template. Most RVAs in this finding live in the broader save subsystem; re-anchor `save-subsystem.md` first (its Tier 1 RTTI table covers `oCDtRootGs`, `oCDtGameProfile`, `oCMemoryBinaryStream`, `GameSessionGs`, `oCBinarySaver`, `GameModeDefault`).
+
+### Symbols specific to this finding
+
+| Symbol | Anchor |
+|---|---|
+| `ActivityScore` and its vtable | RTTI string `.?AVActivityScore@@`. Heavily decoded in §"Decoded class schemas". |
+| `oCDtPlayerProfileData` and its vtable | RTTI `.?AVoCDtPlayerProfileData@@`. Sub-class of profile data; `Serialize` in vtable. |
+| `oCDtCurrentRunProfileData` and its vtable | RTTI `.?AVoCDtCurrentRunProfileData@@`. The run-state class. |
+| `oCBinaryLoader` and its vtable | RTTI `.?AVoCBinaryLoader@@`. Companion to `oCBinarySaver`. |
+| `oCDtHeroProfileData` (12 instances, one per hero) | RTTI `.?AVoCDtHeroProfileData@@`. Per-hero progression record. |
+
+### Type-descriptor globals
+
+These hold heap pointers to type descriptors set during static class registration. Each has a single static address; if RVAs shift, recover via:
+
+| Global | Recovery |
+|---|---|
+| `g_ActivityScore_typedesc` | xrefs from `ActivityScore::vftable[0]` (typedesc-getter) — that vtable slot is where the global gets written on first call. Same pattern for all other typedescs. |
+| `g_oCDtPlayerProfileData_typedesc`, `g_oCDtCurrentRunProfileData_typedesc` | Same — vtable[0] of the corresponding class. |
+
+### Stat-source mapping (Serialize `vtable[0xa8]`)
+
+The `Serialize` virtuals live at vtable slot 0xa8 on profile-data classes (per §"Architecture findings"). When recovering on a new build:
+
+1. Find the class via RTTI.
+2. Walk vtable to slot 0xa8.
+3. Decompile — the function reads/writes fields by direct offset. Re-derive the offsets from the decompile.
+
+The slot index `0xa8` is stable engine-wide; if it shifts, all profile-data classes shift together and re-derivation is one decompile of any one of them.
+
+### Cross-finding anchoring
+
+This finding extends `save-subsystem.md`. Re-anchor that first; this doc's tables follow.
+
 ## Open work (deferred, not blocking path B's stat-reset use case)
 
 1. **Locate the per-hero cumulative "Level reached" sum.** Per-run input is now controllable (level + XP both editable). The lifetime accumulator that adds each run's effective level into a running total is almost certainly in `oCDtHeroProfileData` (12 top-level instances, one per hero). Approach: dump Geppetto's HeroProfileData body, edit candidate float positions, observe in-game.

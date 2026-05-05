@@ -102,3 +102,30 @@ The catalog is a separate data layer from active-item run-state — see `magical
 - `rw/dumps/items_probe_display_override.py` — probe script that produced the pattern enumeration.
 - `rw/findings/item-table.md` — for cross-referencing catalog GUIDs to item attributes.
 - `rw/findings/save-binary-format.md` — for record format conventions and the type-registry mention of `ObjectCollectionUnlockConditionData`.
+
+## Locating these byte patterns on a new build
+
+Per `rw/docs/README.md` §"Locating <thing>" — byte-stream template. Byte-pattern heavy; anchors are the patterns themselves plus their structural position within `tag=0x05` records.
+
+### Strategy
+
+1. Byte-pattern search the save for `tag=0x05` record headers (per `save-binary-format.md` framing).
+2. Walk each record body to the 12-byte flag-byte block following the 16-byte catalog GUID.
+3. Match observed patterns against this finding's enumeration table.
+4. Cross-check via `item-table.md` for catalog-GUID → item attributes.
+
+### Assumptions
+
+- The 40-byte tag=0x05 record layout (16-byte GUID + 12-byte flag block + framing) stable engine-wide.
+- Flag-byte semantics stable across builds.
+- The 114-record count is stable (one per entity in the catalog) — unless devs add new objects.
+
+### Known failure modes
+
+- **New catalog entries.** Each new MO / powerup adds a record. Total count grows; pattern table may need new entries.
+- **New collection state.** A previously-unseen flag pattern indicates a new state. Doc table needs updating, not the locator strategy.
+- **Cipher / framing change.** Inherits from `save-binary-format.md` failure modes.
+
+### Cross-finding anchoring
+
+Inherits from `save-binary-format.md` (record framing) and `item-table.md` (GUID → attribute mapping).

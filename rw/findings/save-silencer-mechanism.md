@@ -192,6 +192,29 @@ Patch the binary at `0x14025d6c8` (`LEA RAX, [on_event_19eadad1_disable_run_save
 - `rw/findings/save-event-not-firing.md` — the observation triage; this doc supersedes both hypotheses (mis-click, game-lies). The mechanism is structural.
 - CLAUDE.md "Save-load error modal — read the actual outcome, not the modal" — same mechanism, observed from the UI side.
 
+## Locating these symbols on a new build
+
+Per `rw/docs/README.md` §"Locating <thing>" — RE-side template. The handful of RVAs in this finding live in the broader save subsystem.
+
+### Symbols specific to this finding
+
+| Symbol | Anchor |
+|---|---|
+| `on_event_19eadad1_disable_run_saves` (image+0x27c320) | Hash `0x19eadad1` is the registered named-event ID. Byte-pattern search for `ad da ea 19` returns the registration site and this handler. The handler is the one that writes to `+0x1ef4` (single-byte write of `1`). |
+| `+0x1ef4` flag on `oCDtRootGs` | The "saves disabled" gate. Re-derive: find `oCDtRootGs` via RTTI (`.?AVoCDtRootGs@@`), then look for any function that writes a single byte to `[oCDtRootGs+0x1ef4]`. Should be exactly one. |
+| `+0x19ac` save-result code on the IO job | See `save-subsystem.md` Tier 4 struct offsets (`+0x1928 + 0x84 = +0x19ac`). |
+| Patch site at `image+0x25d6c8` (LEA to silencer handler) | Re-derive: xrefs from the silencer handler function, find the static-init site that LEAs to it. There's typically one such LEA in a registration table. |
+
+### Hash anchor (content-derived, version-stable)
+
+| Hash | Meaning |
+|---|---|
+| `0x19eadad1` | Named event ID for "SaveCompat / disable run saves" — registered as a string somewhere; survives recompiles unless the event is removed. |
+
+### Cross-finding anchoring
+
+Inherits from `save-subsystem.md` Tier 1-4 anchors.
+
 ## Ghidra annotations applied (2026-04-30)
 
 | Address | Name | Note |

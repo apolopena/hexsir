@@ -408,6 +408,23 @@ flowchart TD
   style H fill:#fff4e6
 ```
 
+## Locating these symbols on a new build
+
+Per `rw/docs/README.md` §"Locating <thing>" — RE-side template. This is a diagram doc; nearly every RVA cited here is anchored elsewhere. **Re-anchor `save-subsystem.md` first** (its Tier 1-5 anchor tables cover all save-subsystem RVAs in this doc) and the diagrams here remain valid.
+
+### Symbols specific to this doc
+
+| Symbol class | Anchor |
+|---|---|
+| Save-format magic markers (§7) | These are byte values in the format itself, not RVAs. They survive recompiles unless save format changes. The magic-byte table in this doc IS the anchor. |
+| Anti-debug tripwire RVAs (§8) | Each tripwire's signature: a bare `INT 3` or distinctive timing-check sequence. Re-derive empirically by triggering the corresponding game state with a debugger attached. |
+| `Modal_Save_Or_Quit.entity.ot` decoded layout (§11) | This is asset-side, not binary-side. Survives binary recompiles entirely — anchored by the asset file name in `rw/ref/tree-deciphered.txt`. |
+| GameModeDefault+0x38 install path (§10) | Anchor: GameModeDefault RTTI (`save-subsystem.md` Tier 1) + walk to `+0x38` at construction. |
+
+### Cross-finding anchoring
+
+This doc is composed almost entirely of cross-references to `save-subsystem.md` and `frida-pipeline-hardware-breakpoint.md`. Re-anchoring those two findings updates this one transitively. No locator section unique to this doc beyond what those two provide.
+
 ## Key unresolved items
 
 1. **Where exactly is `*(data_source + 0x1958)` first written non-NULL?** Static analysis hits a ceiling because the write happens via vtable-dispatched `oCMemoryBinaryStream::Write` calls that aren't in the xref graph. The cleanest path forward is a hardware data breakpoint on the buffer-pointer slot during a real chapter run. The instruction at the fire point IS the prep call.

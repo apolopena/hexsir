@@ -183,3 +183,44 @@ For the full technical record (template specializations, vtable RVAs, RTTI-walk 
 - `tools/rerw` — Ravensmith RE tool (cipher/decipher, swap, read/write savefile).
 - `tools/hexsir` — CRC32 + binary checksum probe.
 - `rw/ref/tree-ciphered.txt` — asset tree (Rosetta stone for asset-filename ↔ deciphered-name).
+
+## Locating these structures on a new build
+
+Per `rw/docs/README.md` §"Locating <thing>" — byte-stream template. Save-format anchors are byte-level constants (magic bytes, GUID byte sequences, record framing). They survive engine recompiles unless the save format itself changes — which has not been observed across builds to date.
+
+### Magic byte anchors (universal record framing)
+
+| Pattern | Role |
+|---|---|
+| `11 11 bb aa` | Record start marker |
+| `22 22 bb aa` | Record end marker |
+| Tag byte at offset 0 of header (`0x05`, `0x12`, etc.) | Record-type discriminator |
+
+### GUID anchors (record identity)
+
+Records are tagged by 16-byte type GUIDs. The catalog of known GUIDs is documented across this finding plus sibling findings (`talent-records.md`, `magical-objects.md`, `held-dream-shards.md`, `items-add-primitive-cap.md`). For a new build with a rotated GUID, the fallback is **structural-position-based re-derivation**: load a known minimal save, walk records in order, identify the shifted GUID by which structural slot it occupies. The sequence of records is stable across builds.
+
+### Strategy (universal record-walker)
+
+1. Byte-pattern search for `11 11 bb aa` — each hit starts a record.
+2. Read tag byte (offset 0 within header) and 16-byte GUID (offset 4..20).
+3. Validate end marker `22 22 bb aa` at the documented record-end offset.
+4. Walk into body using the record-type-specific layout.
+5. CRC32 of `body[16:]` at body-offset `0x0C` validates the run-state record specifically.
+
+### Assumptions
+
+- Save-file framing magic bytes (`11 11 bb aa`, `22 22 bb aa`) are stable engine-wide.
+- Record GUIDs stable across patch builds (verified to date; not formally guaranteed).
+- CRC32 polynomial is the standard variant (verified by lab roundtrip).
+- Records have stable order in the save (used for fallback identification on GUID rotation).
+
+### Known failure modes
+
+- **GUID rotation on save-format upgrades.** The engine could bump format version and rotate GUIDs. Fallback: structural-position match.
+- **Cipher layer.** Save bytes pass through `rerw cipher`/`decipher`. If the cipher key/algorithm changes (no observed instance), all byte-level anchors break until the new cipher is reverse-engineered.
+- **Per-record body offsets.** These (e.g., `body+0x61` items count) are tied to the record schema, documented per-record-type in sibling findings.
+
+### Cross-finding anchoring
+
+Foundational byte-stream doc. Other byte-stream findings (`talent-records.md`, `magical-objects.md`, `held-dream-shards.md`, `save-catalog-flag-bytes.md`, `items-add-primitive-cap.md`) all build on this one's framing — re-anchor it first if a save-format upgrade lands.

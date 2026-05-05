@@ -114,6 +114,22 @@ A flag at offset `+0x178` of the talent context (`param_1->[0x10]->+0x178`) shor
 - **NGP gating of `0x1871c2fa` "Rare Skill Chance Modifier".** Lives under the New Game Plus inspector category; haven't confirmed whether it's only active in NGP runs or always present at value 0.
 - **Items / chest / Sandman shop pickers.** The same pattern presumably applies (TLS-PCG + per-feature picker entry function) — mechanically reachable per `rng-behavior.md`, just not yet hooked.
 
+## Locating these symbols on a new build
+
+Per `rw/docs/README.md` §"Locating <thing>" — RE-side template. In-progress finding, tight section.
+
+| Symbol | Anchor |
+|---|---|
+| Picker function and per-tier scalars | xref into `register_gameplay_modifier_stats` (named); each scalar is registered with its name string and hash, paired with `register_modifier_stat`. |
+| Modifier-stat hashes (`0x1871c2fa` Rare Skill Chance, four tier scalars, etc.) | Content-derived — FNV of registered name strings. Survive recompiles unless asset name changes. |
+| `register_modifier_stat`, `register_gameplay_modifier_stats` | Already named. Anchored via the cluster of hash registrations. |
+| `DAT_141447830` registry global | xrefs from `register_gameplay_modifier_stats`. |
+| `+0x178` "force legendary" context flag | Item-pickup callsites that write `2` here (xrefs from item-pickup events). |
+
+Picker-count override is a **2-byte immediate-operand patch**. If RVAs shift, byte-pattern search for the surrounding instruction context recovers the patch sites.
+
+Cross-anchored by `rng-behavior.md` (TLS-PCG infrastructure) and `starting-talent-bias.md` (related picker logic).
+
 ## Notes
 
 The picker-count override is a **2-byte patch** with no scaffolding (interceptor-attach, callback, etc.) — the patch sites are clean immediate operands. This is the simplest "real game logic" Frida intervention in the lab to date; it sets a baseline for evaluating how invasive future picker patches need to be.

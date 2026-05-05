@@ -195,6 +195,46 @@ Plate comments added at:
 - `0x1401e9d50` — Update structure, the three threshold-crossing fire sites, and the Frida-trigger one-liner recipe.
 - `0x1401ea2b0` — full property-bag-hash → field map (modifier stats published every frame).
 
+## Locating these symbols on a new build
+
+Per `rw/docs/README.md` §"Locating <thing>" — RE-side template. RVAs in this doc shift on every recompile of `Ravenswatch.exe`. Re-anchor as follows:
+
+### Functions
+
+| Symbol | Strongest anchor | Strategy |
+|---|---|---|
+| `BossTimer_register_stats_and_events` | Strings `"Boss time start"`, `"Boss warning start"`, `"Boss overtime start"` (registers all three name→hash mappings). | Search for any of the three strings; xrefs lead to a single registration function. |
+| `BossTimer_update` | Byte-pattern search for hash `0x17d8d901` little-endian = `01 d9 d8 17`. Returns exactly two hits — `BossTimer_register_stats_and_events` and `BossTimer_update`. The non-register hit is Update. | `mcp__ghidra__search_bytes` pattern `01 d9 d8 17`. Disambiguate via the cross-finding chain. |
+| `BossTimer_publish_state_to_property_bag` | Tail-call from `BossTimer_update` (last function call before return). Also, the **only** function called by the four state-handler helpers `FUN_1401e8d90 / 1401eaad0 / 1401ea750 / 1401ea6a0`. | Walk xrefs from `BossTimer_update`'s last call. |
+
+### Hashes (content-derived, version-stable)
+
+| Hash | Registered name |
+|---|---|
+| `0x17d8d901` | `"Boss time start"` |
+| `0x17d8d900` | `"Boss warning start"` |
+| `0x1cd7928b` | `"Boss overtime start"` |
+
+These are FNV-style hashes of the registered strings. Survive recompiles unless the asset string changes. Verify via the registration function's name→hash pairs.
+
+### BossTimer instance struct offsets
+
+The field map (`+0x12c` elapsed, `+0x144` boss_time, `+0x148` is_boss_awaken, etc.) is stable across patch builds; can shift on major engine updates. Re-derive by re-decompiling `BossTimer_update` and matching the existing C-pseudo:
+
+- `+0x12c` = the field that gets `+= dt * speed_multiplier` on each Update tick.
+- `+0x144` = the constant target compared against `+0x12c` for the boss-arrival branch.
+- `+0x148` = the byte set to 1 immediately before `fire_named_event(..., 0x17d8d901, ...)`.
+
+### Assumptions and known failure modes
+
+- Assumes the BossTimer subsystem is still implemented as a per-frame Update with three threshold-crossing event fires. If the dev team replaces the named-event fires with direct subscriber calls, the byte-pattern anchor for `0x17d8d901` will still work but the surrounding code shape changes.
+- Assumes the registered strings remain English. A localized build would lose the string anchor; fall back to the hash byte-pattern.
+- The four state-handler helpers (`FUN_1401e8d90`, etc.) are not individually anchored and would need re-naming via xrefs from `BossTimer_publish_state_to_property_bag` if needed.
+
+### Cross-finding anchoring
+
+The `forceBossSpawn` Frida command in `tools/frida/rw_lab.js` hardcodes `image+0x1e9d50`. On RVA shift, recover via this finding's anchor table — the hash byte-pattern recipe takes ~30 seconds in Ghidra.
+
 ## Unresolved / next steps
 
 - **Identify the BossTimer's owner class.** `oCDtBossTimerUiControllerEntityCpnt` is the UI mirror; the actual stateful BossTimer entity is a different (currently unnamed) entity component. Cosmetic only — instance capture via the Update hook works regardless.

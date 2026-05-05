@@ -132,3 +132,27 @@ Save backups, sharing, and `rerw swap savefile` all work without account conside
 | What is the 83-byte base64 blob? | Untested. Static across saves; possibly an asset manifest hash or build identifier. |
 | Does Steam DRM check anything beyond ownership at launch? | Not investigated. Likely not relevant to save loading. |
 | Does the game's Nacon-OS auth gate any game-state features once loaded? | Untested. Online/multiplayer/leaderboards likely; offline single-player apparently not. |
+
+## Locating these structures on a new build
+
+Per `rw/docs/README.md` §"Locating <thing>" — byte-stream template. Light section; this finding's anchors are byte-position within the save's account-binding header region.
+
+### Strategy
+
+1. Locate the save header (start of file, before record list).
+2. The 83-byte base64 blob lives in a fixed header region. Re-derive position by hex-dumping a known minimal save and matching the documented byte ranges in this finding.
+3. Steam-account ID (when present) is at a documented offset in the header.
+
+### Assumptions
+
+- Header region layout stable engine-wide (verified across observed builds).
+- Base64-encoded blob length (83 bytes) stable.
+
+### Known failure modes
+
+- **Build identifier changes.** If the 83-byte blob is a build hash, it varies per build but its byte position does not.
+- **Auth scheme change.** If Nacon-OS auth gating changes, header layout could change. No observed instance.
+
+### Cross-finding anchoring
+
+Inherits from `save-binary-format.md` (header framing). Multiplayer aspects covered in `multiplayer-host-authority.md`.

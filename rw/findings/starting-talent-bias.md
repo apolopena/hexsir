@@ -149,6 +149,20 @@ Plate comments added at:
 - **Empirical confirmation.** Verdict above is read-only-from-binary. A Frida confirmation experiment would be: in the same chapter-2 mint save, run two sessions with seeded starting talents — one all-Common, one with a Legendary in slot 0 — and compare item drops + talent picks for slots 1..4 across many forced seeds. Prediction: identical distributions for slots 1..4 and identical item drops; only slot 0's tier stamps differ. If anyone reports otherwise it's a bug in the model, not the prediction.
 - **Talent-picker secondary buffer.** The priority-insertion buffer (`puVar7` / `local_158`) sorted by `FUN_1402e8ae0` deserves a separate finding if its category-flag inputs ever interact with run state. Current read: registry-side metadata only, no run input.
 
+## Locating these symbols on a new build
+
+Per `rw/docs/README.md` §"Locating <thing>" — RE-side template. In-progress finding, tight section.
+
+| Symbol | Anchor |
+|---|---|
+| `mo_roll_rarity_bucket_weighted` | Reads weights from `param_1+0x128`. Distinctive 4-bucket weighted-roll structure. xrefs from items-picker entry. |
+| `is_skill_pick_free` | Already named; shared between talent and items pickers. xrefs disambiguate the two paths. |
+| `FUN_1402d3490` (items-picker UI flow) | Mirror of the talent-side reroll harness; anchor via shared `is_skill_pick_free` xref + state-machine shape. |
+| `FUN_1402e8ae0` (priority-insertion sort) | Bucket-weight sorting; xrefs from picker buffers. |
+| `param_1+0x128` weights array | Per-controller offset; re-derive via `mo_roll_rarity_bucket_weighted` decompile. |
+
+Cross-anchored by `rng-behavior.md` (PCG TLS slot) and `talent-picker-weighting.md` (modifier-stat registration; both pickers register through the same substrate).
+
 ## Notes on methodology
 
 This dig used the queue-and-apply annotation pattern discussed at the start of the session — I held annotations until the picture was clear and applied at the end. In retrospect the session was solo and the standard "annotate on the spot" rule would have worked equally well here; the queue-and-apply pattern is more useful when multiple agents are digging in parallel against the same Ghidra instance, which was not the case.
