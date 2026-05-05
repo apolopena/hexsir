@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from "vue-router";
+import StatusStrip from "./components/StatusStrip.vue";
 
 // Vite replaces __SUPERPOWERS__ at build time via the `define` config in
 // vite.config.ts. Capture it as a top-level const so the template scope
@@ -35,8 +36,8 @@ const superpowers = __SUPERPOWERS__;
       <RouterView />
     </main>
 
-    <footer class="px-4 py-2 border-t border-slate-800 text-xs text-slate-400">
-      <span>rerw sidecar: pending wiring</span>
+    <footer class="px-4 py-2 border-t border-slate-800">
+      <StatusStrip />
     </footer>
   </div>
 </template>
