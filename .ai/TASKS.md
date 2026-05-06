@@ -17,6 +17,8 @@
 
 ## Backlog
 
+- **`cauldron_test` mod — script the manual cauldron-spawn-capture protocol.** Current flow is 9+ REPL lines per test with 3+ procedural pitfalls (skipping `RW.Player.refresh()`, double-`start()` wiping captures, forgetting to verify a cauldron exists in this chapter). Build `tools/frida/mods/cauldron_test.js` (research mod) that: verifies a cauldron is in the encyclopedia (prompts user to reload chapter if not), arms `SpawnCapture.start()`, runs `Transporter.warpEntity("cauldron", p.x+3, p.y, p.z)`, prints clear instructions to walk-up-and-activate, then exposes `CauldronTest.finish()` which clears Transporter, stops capture, and runs `analyze({ requireComponent: "EnemyController" })`. Per `rw/findings/transporter-placement-primitive.md` and the open-dig section of the latest context handoff.
+
 - **CLI shape: `tier` subcommand is ambiguously scoped.** `rerw write savefile tier --slot N --tier T` is currently a top-level field, but tier applies to BOTH talents and items. Needs scoping under the relevant noun (e.g. `rerw write savefile talent tier --slot N --tier T` and a parallel `item tier`), or the existing `tier` subcommand needs explicit talent/item disambiguation. Holding off until the runtime tier-roller (Frida path B) is solved, since findings there may inform what other tier-related save edits we want to expose.
 
 
