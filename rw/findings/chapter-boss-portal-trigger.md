@@ -6,6 +6,8 @@
 **Created:** 2026-05-03
 **Verified:** 2026-05-03 (in-game, full success)
 
+> **Naming correction 2026-05-05.** The class this document calls "`BossTimer`" is actually `oe::dt::DayNightCycleSceneContext` (RTTI confirmed via vtable RVA `0xee52b8` → COL → type-descriptor name `.?AVDayNightCycleSceneContext@dt@oe@@`). The behavior described here is correct — the field map, the named-event trigger, the `forceBossSpawn` write to `+0x12c` — but the *class* is the engine's day/night cycle context, not a dedicated boss timer. The "boss_time" field at `+0x144` is the day+night-cycle duration after which boss arrival fires. The runtime instance is a scene context (back-pointer to scene_manager at `+0x10` confirmed live). Renaming the references in this doc is deferred; future agents reading this should mentally substitute `DayNightCycleSceneContext` for `BossTimer`.
+
 ## Sources
 
 - `Ravenswatch.exe` (Ghidra MCP — function decompile + byte-pattern hash xrefs)

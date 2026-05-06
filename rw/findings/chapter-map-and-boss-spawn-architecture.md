@@ -319,7 +319,106 @@ When `+0x1e8 == 0`, the resolver walks the **global type registry** at `g_global
 2. ✅ Library lookup function: `oIEntity_resolveBoundPrefab_byIndex @ 0x140314e20` — Frida-callable.
 3. ✅ Spawner's prefab-handle field offset: `entries[i]+0x1f0` within the array at `parent[+0x8C0]`. Universal pattern, not Map_Boss_Spawner-specific.
 
-## The Encyclopedia — full library access from Frida
+## The Encyclopedia — runtime test results 2026-05-05
+
+> **CORRECTION over the prior architectural assumptions in this section.** The runtime test on 2026-05-05 invalidated the central premise that `findEntitySettings("Map_Boss_Spawner_<Chapter>")` would resolve the per-chapter boss spawner prefab. It does not. The encyclopedia holds **abstract spawner classes keyed by display name** (e.g. `[Entity spawner] Boss Spawner`), not asset-path-style names. The chapter-specific boss data lives at instance-level on the live `Boss Spawner` entity in the loaded chapter, NOT in this encyclopedia. The original prose below is preserved for historical context; the **"Verified runtime layout"** subsection below records the actual structure discovered live.
+
+### What was verified end-to-end (Frida, 2026-05-05)
+
+- `_oCTSameTypeTester<oCEntitySettingsEncyclopediaSceneContext>::vftable @ 0x140f536d0` resolves correctly.
+- `scene_manager_find_context_by_type @ 0x140653f80` returns a non-null encyclopedia given a captured scene_manager (captured via `Interceptor.attach` on the function itself, first natural caller).
+- The hashmap layout at encyclopedia `+0x28..+0x48` matches the static decode (control-bytes ptr, entries ptr, count, capacity-mask).
+- The hashmap **key (entry +0x00..+0x10) is NOT `(begin_ptr, end_ptr)` of name strings** as previously assumed — dereferencing those qwords produces ACCESS VIOLATION. They are precomputed hash qwords (the engine pre-hashes the name once at registration and stores the fingerprint, not the string identity). So a Frida-side hashmap lookup keyed by a freshly-allocated buffer cannot match — must walk entries instead.
+- The entry value (entry `+0x10`) points to a sub-object inside `oCEntitySettingsResource` at `resource+0x98`, with this layout:
+  ```
+  +0x00: vtable
+  +0x08: char* name
+  +0x10: u32 length
+  +0x18: vtable / function ptr
+  +0x20: self-pointer
+  ```
+  Reading `value+0x08` as a `char*` and `value+0x10` as the length yields the prefab's display name.
+
+### Verified runtime layout — what's actually in the encyclopedia
+
+In a chapter-1 (Dark_Hills) live session, the encyclopedia contained **21 entries, all entity-spawner classes**, keyed by display name:
+
+```
+[Entity spawner] Enemy Camp 01
+[Entity spawner] Boss Spawner          ← single generic class, not per-chapter
+[Entity spawner] Hog Enemy Camp Wandering
+[Entity spawner] Teleporter
+[Entity spawner] Entrance
+[Entity spawner] Den Entrance
+[Entity spawner] Cauldron
+... (15 more spawner-class entries)
+```
+
+`forceBossSpawn()` does NOT trigger new prefab registrations into this encyclopedia — count stays at 21 before and after the boss arrival event. The chapter-specific Boss Spawner prefab (the engine-side analog of `Map_Boss_Spawner_Dark_Hills.entity.ot`) is loaded by a different mechanism. The asset-tree files `Map_Boss_Spawner_<Chapter>.entity.ot` exist but their data does not surface as encyclopedia keys.
+
+### What this implies for the boss-rush mod
+
+The "swap a bound prefab in the encyclopedia and re-fire `0x17d8d901`" plan is invalidated. The boss configuration lives at **instance-level on the live `Boss Spawner` entity in the current chapter**, accessed via the `parent[+0x8C0][i]+0x1f0` universal pattern (per the `oIEntity_resolveBoundPrefab_byIndex` decode below). The right next step is **live-entity enumeration**: query a different scene-context (likely `oCEntitySceneContext` or similar) to walk active entities, locate the Boss Spawner instance, then read/swap its bound prefab there.
+
+### Path-based loader — discovered 2026-05-05 dig (static)
+
+To "swap to chapter-2's boss while in chapter 1" the mod needs a way to load a prefab by path string at runtime. Initial assumption was `Sc_RequestSyncLoadData` could do this — **invalidated**: that function takes a single `this` (resource handle) arg, increments its refcount, and triggers a deferred load only if the resource was already constructed with its path baked in. It's exposed only as a *script binding* (`"Sc_RequestSyncLoadData"`, registered at `0x14085fe20` with `arg_count=1`) and is not the engine's own path-based load API.
+
+The actual path-based loader is reachable through the prefab-loader class registered in `g_global_type_registry_root` under type-id `0x53b64d`. From `oIEntity_resolveBoundPrefab_byIndex`'s decompile:
+
+```c
+// Find the prefab loader class in g_global_type_registry_root
+plVar7 = *(longlong **)(g_global_type_registry_root + 0x30);  // entries array
+count   = *(uint *)(g_global_type_registry_root + 0x38);       // entry count
+for (i = 0; i < count; i++) {
+    classPtr = *plVar7;
+    if (*(int *)(classPtr + 8) == 0x53b64d) break;             // match by type-id
+    plVar7++;
+}
+loaderInstance = *(undefined8 *)(classPtr + 16);               // class struct +0x10 = instance
+// Call vtable[3] (offset 0x18) — the load-by-path call
+(*(code *)(*loaderInstance + 0x18))(
+    loaderInstance,
+    &pathStruct,           // 16-byte { char* begin; char* end; } — the path
+    _DAT_1412c7590,        // 0x1412c7590 — static config blob (default loader options)
+    &outHandle,             // out: oCEntitySettingsResource* (refcounted)
+    0                       // flags / ?
+);
+```
+
+Settings-entry layout on the parent entity's `[+0x8C0]` array (each entry per-slot):
+
+| Offset | Field |
+|---|---|
+| `+0x1c0` | path string (16-byte `{ begin, end }`) — the asset path |
+| `+0x1d0` | secondary string (probably variant/qualifier path) |
+| `+0x1e0` | optional loader-class override; null → use the `0x53b64d` default loader |
+| `+0x1e8` | resolved flag — when 1, loader is skipped (already resolved) |
+| `+0x1f0` | bound resource handle (refcounted; `+0x08` is the refcount field) |
+
+So the boss-rush PoC path is:
+
+1. Frida-walk `g_global_type_registry_root` (`0x141446f38`) to find the prefab-loader instance with type-id `0x53b64d`. Wrap its vtable[3] in a `NativeFunction`.
+2. Hook `oIEntity_resolveBoundPrefab_byIndex @ 0x140314e20` during a `forceBossSpawn` window — capture the parent entity ptr, the slot index, and the settings entry's `+0x1c0` path string. Confirms the path *format* the engine expects.
+3. Construct chapter-2's analogous path string (e.g. `"Map_Boss_Spawner_Storm_Island"` or whatever format step 2 reveals) and call the loader from step 1 directly. If it returns a non-null handle without crashing, cross-chapter loading works.
+4. Either write the new handle into the live entity's `entry[+0x1f0]` and clear `entry[+0x1e8]`, or rewrite `entry[+0x1c0]`'s path bytes and clear `entry[+0x1e8]` — the engine reresolves on next access. Re-fire `0x17d8d901`.
+
+Step 3 is the binary gating test — does the path-based loader load assets that aren't in the current chapter's level data? Unknown until tested.
+
+### Working Frida primitive (read-only) — for reference
+
+The Frida code that produced the above lives at `tools/frida/mods/boss_rush.js` v0.4.0-walk-by-name. It exposes:
+- `findEncyclopedia()` → encyclopedia pointer
+- `dumpEncyclopedia(limit?)` → array of `{name, value}`
+- `findEntitySettings(name)` → exact-display-name match against the dumped list
+
+This primitive is correct for the encyclopedia it accesses — it just doesn't yield Map_Boss_Spawner_<X> because that data isn't there.
+
+---
+
+## The Encyclopedia — original prose (pre-runtime test)
+
+> Preserved for context; superseded by the runtime test results above.
 
 The `oCEntitySettingsEncyclopediaSceneContext` is a scene-context that holds a **hashmap of every entity-settings prefab loaded in the current session**, keyed by name string.
 
@@ -360,15 +459,20 @@ The encyclopedia is a SCENE CONTEXT. Same access pattern as other contexts in th
 scene_manager_find_context_by_type(scene_manager, &EncyclopediaTypeTester_vftable)
 ```
 
-The type-tester vtables exist statically (as RTTI helpers): `_oCTKindOfTypeTester<oCDtEncyclopediaSceneContext, oIGameSceneContext>::vftable` and `_oCTKindOfTypeTester<oCEntitySettingsEncyclopediaSceneContext, oIGameSceneContext>::vftable`. We saw the first one used in `chapter_end_work` to reach the chapter encyclopedia. The entity-settings encyclopedia uses the second.
+The type-tester vtables exist statically (as RTTI helpers). The engine has two families: `_oCTSameTypeTester<X, oIGameSceneContext>` (exact-type match) and `_oCTKindOfTypeTester<X, oIGameSceneContext>` (subtype/kind-of match). The chapter encyclopedia path uses a `KindOf` tester for `oCDtEncyclopediaSceneContext`; the entity-settings encyclopedia path uses a `Same` tester for `oCEntitySettingsEncyclopediaSceneContext`.
+
+Resolved addresses (verified 2026-05-05 via RTTI walk: type descriptor at `0x141369540` → CHD at `0x141010180` → COL at `0x1410104a8` → vftable at `vftable-8`):
+
+- `_oCTSameTypeTester<oCEntitySettingsEncyclopediaSceneContext, oIGameSceneContext>::vftable @ 0x140f536d0` — used by `EntitySettings_onLoad_registerToEncyclopedia @ 0x140703920` (and by two sibling sites at `0x140703a2e/0x1407184ad`)
+- `scene_manager_find_context_by_type @ 0x140653f80` — confirmed from the `CALL` site at `0x14070398f`
 
 The scene_manager itself is at `session->[+0x20]->[+0x18]` (verified earlier in `chapter_end_work` and other functions).
 
 **Frida lookup primitive (skeleton)**:
 
 ```javascript
-const ENC_TYPETESTER_VFTABLE = base.add(0x...);    // resolve once at session start
-const SCENE_MANAGER_FIND_CONTEXT = base.add(0x...); // ditto
+const ENC_TYPETESTER_VFTABLE = base.add(0xf536d0);   // _oCTSameTypeTester<oCEntitySettingsEncyclopediaSceneContext>::vftable
+const SCENE_MANAGER_FIND_CONTEXT = base.add(0x653f80);
 const FNV_STRING_HASH_64        = base.add(0x507510);
 const HASHMAP_FIND              = base.add(0x6a0680);
 
@@ -388,9 +492,9 @@ function findEntitySettings(name) {
 }
 ```
 
-**Implication**: with this single primitive, Frida can resolve `findEntitySettings("Map_Boss_Spawner_Storm_Island")`, `findEntitySettings("Baba_Yaga_Boss")`, `findEntitySettings("Map_Boss_Spawner_Cinematic_Awakening")`, or any other prefab name. The encyclopedia holds everything currently loaded — and `Sc_RequestSyncLoadData` will pull anything not yet loaded into memory before lookup.
+**Implication (INVALIDATED 2026-05-05 — see correction above):** ~~with this single primitive, Frida can resolve `findEntitySettings("Map_Boss_Spawner_Storm_Island")`, etc.~~ — runtime test showed asset-path-style names are NOT registered in this encyclopedia. The encyclopedia holds 21 abstract spawner classes keyed by display name (e.g. `[Entity spawner] Boss Spawner`), not per-chapter prefabs.
 
-This is the universal handle the boss-rush mod needs. The narrowed pseudocode follows.
+The pseudocode below also doesn't work as written, because the hashmap key is a precomputed hash pair (not interned begin/end pointers) and a freshly-allocated Frida buffer can't match. Walk entries instead — see the working primitive in `tools/frida/mods/boss_rush.js` v0.4.
 
 ## Trigger surface — engine event/method primitives
 
@@ -525,16 +629,63 @@ function fightNextBoss(nextChapterTag) {
 
 ## Open questions / next dig
 
-In rough priority order; all are integration-level rather than architectural:
+The 2026-05-05 runtime test reshaped this list — what was integration-level is now partly architectural again. New priority order:
 
-1. **Resolve the encyclopedia type-tester vtable address at runtime.** `_oCTSameTypeTester<oCEntitySettingsEncyclopediaSceneContext>::vftable` is a static .rdata symbol — find its absolute RVA so the Frida primitive can build the 16-byte type-tester struct on the fly.
-2. **Verify the bound-prefab field offset on a live Map_Boss_Spawner instance.** Universal pattern is `parent[+0x8C0][i]+0x1f0` per `oIEntity_resolveBoundPrefab_byIndex`, but the specific index `i` (and whether Map_Boss_Spawner uses one slot or several) needs runtime confirmation. Cleanest method: Frida-hook the spawner constructor, dump `[+0x8C0]` array contents.
-3. **Boss-kill / chapter-end suppression hook.** Trace caller chain from boss-death to `chapter_end_work @ 0x1402907e0`. The mod must intercept at the right level — early enough to skip chapter advance, late enough to keep kill credit and rewards.
-4. **Identify subscribers to `0x17d8d901` at level-load time** via Frida hook on `register_named_event @ 0x14067daa0` filtered to that hash. Confirms which entity-component does the actual spawn (currently inferred to be inside `Map_Boss_Spawner_<Chapter>` via the awakening cinematic chain).
-5. **Encyclopedia name-key dump tool.** Walk the Swiss-Tables hashmap or hook the register function. Layout fully decoded above. Useful both for boss-rush (to enumerate available bosses) and as a general tooling primitive.
-6. **Verify `oCTString` representation.** The encyclopedia walk assumes entry `+0x00` is a directly-readable `char*`. If `oCTString` has a vtable header or other prefix, one extra deref is needed. Quick to verify in-game.
+1. ~~**Resolve the encyclopedia type-tester vtable address.**~~ **Resolved 2026-05-05.** `_oCTSameTypeTester<oCEntitySettingsEncyclopediaSceneContext, oIGameSceneContext>::vftable @ 0x140f536d0` via RTTI walk. `scene_manager_find_context_by_type @ 0x140653f80` resolved as a side-product. End-to-end Frida access verified — see `tools/frida/mods/boss_rush.js` v0.4.
 
-## Annotations applied this session
+2. ~~**Encyclopedia name-key dump tool.**~~ **Resolved 2026-05-05.** Hash-keyed lookup from outside doesn't work — entry `+0x00..+0x10` is a precomputed hash pair, not interned begin/end pointers. Walker iterates Swiss-Table entries, derefs `entry+0x10 → value`, reads `value+0x08` (char*) + `value+0x10` (u32 length). Implemented in `boss_rush.js` v0.4.
+
+3. ~~**Verify `oCTString` representation.**~~ **Resolved 2026-05-05.** The name field on the encyclopedia value is a plain `char*` at `value+0x08` with a length u32 at `value+0x10`. No vtable prefix or extra deref needed.
+
+4. **Find live Boss Spawner instance in the active level (cheapest path identified).** Hook `oIEntity_resolveBoundPrefab_byIndex @ 0x140314e20` during a `forceBossSpawn` window — captures `(parent_entity, slot_index, settings_entry_ptr)` for every bound-prefab resolution. Filter to the boss-spawn one (likely happens during the awakening cinematic) to get the live spawner instance pointer + the entry whose `+0x1c0` path is the chapter-1 boss spawner path.
+
+5. ~~**Locate where `Map_Boss_Spawner_<Chapter>.entity.ot` data lives at runtime.**~~ **Reframed 2026-05-05.** Discovered the path-based loader API (see "Path-based loader" section above): `vtable[3]` of the class registered at `g_global_type_registry_root` type-id `0x53b64d`. Calling it with a path string returns an `oCEntitySettingsResource*` handle. The remaining open question is whether this loader can pull cross-chapter assets while the wrong chapter's level is active (binary in-game test).
+
+6. **Verify the bound-prefab field offset on the live Boss Spawner instance** (depends on #4). Universal pattern is `parent[+0x8C0][i]+0x1f0` per `oIEntity_resolveBoundPrefab_byIndex`, but the specific index `i` and whether multiple slots are populated needs runtime confirmation against the live instance.
+
+7. **Boss-kill / chapter-end suppression hook.** Trace caller chain from boss-death to `chapter_end_work @ 0x1402907e0`. The mod must intercept at the right level — early enough to skip chapter advance, late enough to keep kill credit and rewards. Unchanged.
+
+8. **Identify subscribers to `0x17d8d901` at level-load time** via Frida hook on `register_named_event @ 0x14067daa0` filtered to that hash. Confirms which entity-component does the actual spawn. Likely depends on #4 findings to know which entity-component to look at.
+
+## Annotations applied 2026-05-05 (coordinated three-agent session)
+
+Read-only multi-agent dig (Agents A/B/C — spawning logic, player position API, camps/placement). All renames proposed at end-of-session and applied as a single `batch_rename` after user approval, to avoid cross-agent identity drift. 22 proposed; 21 applied (one no-op — `0x140314e20` was already named from the prior session below). Topic-focused detail in `spawn-at-coord-recipe.md`.
+
+Function renames (19):
+
+| RVA | New name |
+|---|---|
+| `0x14045fd70` | `Sc_ForcePosition_impl` |
+| `0x14045fc70` | `Sc_MoveTowards_impl` |
+| `0x14045fe20` | `Sc_TranslatePosition_impl` |
+| `0x1406ef7c0` | `Sc_Spawn_impl` |
+| `0x1406ef5c0` | `oCEntitySpawner_spawnIfNotCached` |
+| `0x1406eef40` | `oCEntitySpawner_spawnEntityFromBoundTransform` |
+| `0x1406ef6c0` | `oCEntitySpawner_despawnAndUnregister` |
+| `0x1406ef300` | `oCEntitySpawner_recomputeActivationGate` |
+| `0x1406ef3a0` | `oCEntitySpawner_setActiveFlag` |
+| `0x1406efcc0` | `oCEntitySpawner_clearAsyncIoVector` |
+| `0x1406f2c50` | `oCTileSpawner_spawnAllTransforms` |
+| `0x140289b30` | `level_load_orchestrator` |
+| `0x140235940` | `register_oCDtEnemyCampEntitySelectorToSpawnEntityCpnt_class` |
+| `0x1407fd1e0` | `Entity3dNodeLocator_transform_update_loop` |
+| `0x140700ee0` | `Entity_teleport_profile_zone_enter` |
+| `0x1406efa70` | `register_entity_to_sectorization` |
+| `0x1402b72e0` | `global_value_publish_vec3` |
+| `0x1401c6790` | `global_value_find_bucket_by_hash` |
+| `0x14038e260` | `HC_per_frame_update` (confirmed; was already partially named) |
+
+Data renames (3):
+
+| RVA | New name |
+|---|---|
+| `0x141447dc0` | `g_typeDesc_oITransform3dAccess` |
+| `0x141447448` | `g_typeDesc_Vec3_direct` |
+| `0x1412c09d8` | `g_eventHash_GenerateEnemyCamps` |
+
+Headline finding from this session: there is a confirmed callable spawn-at-position path. The placement primitive is the universal `vtable[+0x1a0]` setter on `oITransform3dAccess`-implementing entities, exposed to scripts as `Sc_ForcePosition`. Combined with `Sc_Spawn`, this gives an end-to-end "spawn an entity, then place it at a chosen coord" recipe. See `spawn-at-coord-recipe.md` for the full contract, recipe, and unresolved questions.
+
+## Annotations applied 2026-05-04 (initial dig)
 
 All committed via `mcp__ghidra__rename_symbol`. Function renames (29):
 
@@ -616,6 +767,7 @@ Search Ghidra for the class name as a string (`.?AVoCFoo@@` form). The associate
 | `oIEntitySelectorToSpawnEntityCpnt` | `.?AVoIEntitySelectorToSpawnEntityCpnt@@` (interface base for selector family). |
 | `oCEntityCpntCinematic` | `.?AVoCEntityCpntCinematic@@` at `0x14136bdb8`. |
 | `oCEntitySpawnData` | `.?AVoCEntitySpawnData@@` at `0x14134b0e8` (transform data for spawns). |
+| `_oCTSameTypeTester<oCEntitySettingsEncyclopediaSceneContext, oIGameSceneContext>` | RTTI name string `.?AV?$_oCTSameTypeTester@VoCEntitySettingsEncyclopediaSceneContext@@VoIGameSceneContext@@@@` at `0x141369550` (descriptor begins 16 bytes earlier at `0x141369540`). To locate the vftable: walk descriptor xrefs to the BCD; from BCD walk to the CHD (`pCHD` field); search for the COL by the CHD-RVA-as-bytes; vftable sits at `COL+0x28` (or equivalently 8 bytes after the COL address). Resolved this build: COL `0x1410104a8`, vftable `0x140f536d0`. |
 
 ### Strategy 3 — Content-derived hashes
 

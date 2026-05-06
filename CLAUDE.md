@@ -101,6 +101,9 @@ A WinDbg MCP server is registered in `.mcp.json` (port 8000); when running, tool
 ### Frida: WSL → Windows interop workflow
 Frida scripts live at `tools/frida/*.js` in WSL; `frida.exe` runs Windows-side via interop (default path `/mnt/c/Users/KidSqid/AppData/Local/Python/pythoncore-3.14-64/Scripts/frida.exe`) and loads the WSL absolute path directly on initial invocation. The REPL eats backslashes on `%load` reloads — never reload from the REPL; after any edit, exit Frida and re-launch with a fresh one-liner.
 
+### Frida: code standards
+Before adding or modifying any Frida script under `tools/frida/`, read `tools/frida/CODE_STANDARDS.md`. It is opinionated and covers project layout (powers vs mods), naming, the docstring contract (block-comment with two fences; mechanism below the second fence), state and re-load safety, the `delay<Verb>` convention, shared utilities (`RW.after`, `RW.help`), and the validation checklist for new powers. Adhere to it.
+
 ### Ghidra: annotate findings on the spot
 When you identify what a function/struct/global does — even partially — annotate it in Ghidra immediately via the `mcp__ghidra__*` tools. Don't batch at session end. Symbol identity (names, types, struct definitions, enums) goes in Ghidra; narrative context goes in `rw/findings/*.md`. Full annotation kinds, naming conventions, and the symbol-identity-vs-narrative split live in `rw/docs/workflow/ghidra.md`.
 

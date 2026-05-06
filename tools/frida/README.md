@@ -8,7 +8,10 @@ Frida scripts that drive Ravenswatch's save subsystem from outside the game. No 
 |---|---|
 | `find_data_source.js` | Verify-only. Finds the heap-allocated `oCDtRootGs` instance and prints its address + key field values. Does NOT trigger a save. Use to confirm the scan works before committing to a save. |
 | `save_now.js` | Finds `oCDtRootGs`, calls `save_request_sync(NULL, data_source + 0x1928)`, blocks until save completes, prints status. Updates `Profile_1.ob` on disk. |
-| `rw_lab.js` | Live-patch lab. Hub for runtime patches and diagnostics. Currently: talent-picker seed forcing (`force(seed)`, `forceFresh(seed)`), picker count override (`pickerCount(n)`), pool/slot dumps, held-talent clearing. See header comment for the full REPL command list. |
+| `rw_lab.js` | Live-patch lab hub. Owns the mod loader (`loadMod`, `loadPower`), the docstring parser, `RW.help`, `RW.after`, `registerMod`, `status`. Capability code lives under `mods/powers/<Name>.js`; load with `loadPower("Name")`. Self-parses its own source so `help()` lists hub APIs alongside loaded powers. |
+| `mods/powers/` | Self-contained capabilities. Each is one `loadPower("Name")` away from a clean REPL surface: `Teleport` (player teleport), `ChapterBoss` (force boss arrival), `Currency` (shard wallet writes), `TalentPicker` (seed forcing + dumps, partially verified), `SaveDiagnostic` (save-buffer probes, experimental), `SmokeTest` (end-to-end exercise). Each file is structured per `CODE_STANDARDS.md`. |
+| `mods/` | Research-grade mods loaded via `loadMod("<name>")` (no clean callable surface required). Currently: `boss_rush.js` (encyclopedia + bound-prefab digs), `hello.js` (cross-file scope POC). |
+| `CODE_STANDARDS.md` | **Read first** before adding to anything in this directory. Opinionated rules for layout, naming, the docstring contract (block comments with two `---` fences), state and re-load safety, the `delay<Verb>` convention, shared utilities (`RW.after`, `RW.help`), and a validation checklist. |
 
 `save_now.js` and `find_data_source.js` implement the recipe documented in `rw/findings/save-subsystem.md`.
 
@@ -76,6 +79,34 @@ C:\Users\<USERNAME>\AppData\Local\Python\pythoncore-3.X-64\Scripts\frida.exe ...
 ```
 
 Verbose but works without modifying anything.
+
+**Option D — Persistent `$env:FRIDA` via PowerShell profile.** Bind the full `frida.exe` path to an env var that loads automatically on every PowerShell session start. Cleaner than Option C without polluting PATH.
+
+```powershell
+# One-time: PowerShell's default policy blocks profile scripts. Allow them for your user.
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+
+# Create the profile file if it doesn't exist. -Force creates parent directories too.
+New-Item -ItemType File -Path $PROFILE -Force
+
+# Append the env-var assignment to your profile.
+Add-Content $PROFILE '$env:FRIDA = "C:\Users\<USERNAME>\AppData\Local\Python\pythoncore-<PYVER>-64\Scripts\frida.exe"'
+
+# Apply to the current session without reopening.
+. $PROFILE
+```
+
+Verify:
+
+```powershell
+Test-Path $env:FRIDA
+```
+
+Should print `True`. From now on, invoke Frida via PowerShell's `&` call operator (the `&` is required because the path lives in a variable rather than being a literal command):
+
+```powershell
+& $env:FRIDA -n Ravenswatch.exe -l <script-path>
+```
 
 ### Verify Frida is callable
 
@@ -158,6 +189,40 @@ copy \\wsl.localhost\<DISTRO>\home\<USER>\repos\work\ravensmith\tools\frida\*.js
 Then use `C:\rerw-frida\<script>.js` in place of the WSL path. You'll need to re-copy if the scripts change.
 
 ## Usage
+
+### Lab harness with modular loading (`rw_lab.js` + `mods/`)
+
+The mod loader sits at the top of `rw_lab.js`. Launch `rw_lab.js` as you always have; once loaded, `loadMod("<name>")` at the REPL pulls `mods/<name>.js` and evaluates it into the same scope. Mods see every global rw_lab.js exposes (`forceBossSpawn`, `bossTimerStatus`, etc.) as bare names — no namespace import.
+
+**Prereqs**: Ravenswatch running, on the main menu (not still loading). WSL alive and the distro that hosts the repo must be `Running`. Check + wake:
+
+```powershell
+wsl -l -v                  # confirm distro name and STATE column
+wsl ls /                    # any wsl command wakes a Stopped distro
+```
+
+**Launch** (using `$env:FRIDA` from Option D above; replace `<DISTRO>` with the running distro name):
+
+```powershell
+& $env:FRIDA -n Ravenswatch.exe -l \\wsl.localhost\<DISTRO>\home\<USER>\repos\work\ravensmith\tools\frida\rw_lab.js
+```
+
+The `RW.FRIDA_DIR` constant near the top of `rw_lab.js` is what the loader uses at runtime to resolve mod paths via `File.readAllText`. If your distro isn't `Void` (the current default), edit that constant once.
+
+**REPL workflow**:
+
+```js
+loadMod("hello")            // eval mods/hello.js into the current scope
+status()                     // print loaded mods + versions
+```
+
+Edit a mod file in WSL, save, then `loadMod("<name>")` again at the REPL to pick up changes without restarting Frida. After editing `rw_lab.js` itself: exit Frida and relaunch — `rw_lab.js` uses top-level `const` heavily and isn't reload-safe via `eval`.
+
+**Mod authoring constraints**:
+- No top-level `const`/`let` — V8 throws on re-declaration via `eval`.
+- Use `var`/`function` at top level, or attach state to `globalThis.RW`.
+- Wrap in an IIFE for private scope — see `mods/hello.js`.
+- Optionally call `RW.registerMod("name", "version")` so `status()` lists it.
 
 ### Trigger a save
 

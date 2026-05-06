@@ -43,3 +43,4 @@ Source of truth: the `**Status:**` line at the top of each `rw/findings/<name>.m
 | archived | [save-event-not-firing.md](save-event-not-firing.md) | Boss-kill save dialog — disk write not occurring |
 | archived | [talent-record-discovery.md](talent-record-discovery.md) | Talent record discovery in Geppetto chapter 2 saves |
 | ? | [frida-buffer-diagnostic-runbook.md](frida-buffer-diagnostic-runbook.md) | Frida buffer-diagnostic runbook — _no canonical Status line_ |
+| ? | [spawn-at-coord-recipe.md](spawn-at-coord-recipe.md) | Entity world position — read/write contract and spawn-at-coord recipe — _no canonical Status line_ |
