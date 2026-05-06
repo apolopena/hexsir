@@ -19,10 +19,10 @@ default = []
 superpowers = ["dep:portable-pty"]
 
 [build-dependencies]
-tauri-build = "2.6.0"
+tauri-build = { version = "2.6.0", features = [] }
 
 [dependencies]
-tauri = "2.11.0"
+tauri = { version = "2.11.0", features = [] }
 tauri-plugin-dialog = "2.7.1"
 tauri-plugin-shell = "2.3.5"
 serde = { version = "1", features = ["derive"] }

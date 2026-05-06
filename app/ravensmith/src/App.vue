@@ -30,6 +30,14 @@ const superpowers = __SUPERPOWERS__;
       >
         Dev Console
       </RouterLink>
+      <RouterLink
+        v-if="superpowers"
+        to="/smoke"
+        class="px-3 py-1 rounded text-sm text-amber-300 hover:bg-slate-800"
+        active-class="bg-slate-800"
+      >
+        Smoke
+      </RouterLink>
     </nav>
 
     <main class="flex-1 overflow-auto">
