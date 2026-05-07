@@ -1,6 +1,6 @@
 [← Back to findings](README.md)
 
-# Enemy spawn architecture (hybrid path) and live-enemy control
+# Enemy spawn architecture and live-enemy control
 
 **Status:** in-progress
 
@@ -8,10 +8,13 @@
 Architecture finding from the 2026-05-06 dig. Identifies the
 `oCDtEntityCpntEnemyController` class (RTTI, vtable, hash key, ctor RVA), maps the
 universal entity factory chain that every `oCEntity` construction passes through, and
-documents the hybrid chapter-load-vs-runtime spawn architecture observed via live
-`SpawnCapture` runs in two cauldron types. Also documents the `+0x620` self-pointer
-(useful for memory-alive checks), the `+0x8`/`+0x10` engagement-state pattern, and the
-`enemy_herd.js` mod that uses these primitives to herd live enemies during combat.
+documents the unified runtime-construction model for cauldron waves observed via live
+`SpawnCapture` runs. Also documents the `+0x620` self-pointer (useful for memory-alive
+checks), two adjacent slots at `+0x08`/`+0x10` that hold other entity pointers (the
+AI-target interpretation of these slots is tracked separately in
+`rw/findings/enemy-ai.md`), and the `enemy_herd.js` mod that uses these primitives to
+herd live enemies during combat. Gameplay-level rules about cauldron randomization and
+the test-design constraint they imply live in `rw/docs/game-rules.md`.
 
 The session shipped four Frida mods (`cauldron_test`, `spawn_capture` v0.8.1,
 `enemy_capture` (deprecated — see §"Tried and ruled out"), `enemy_herd`) and renamed three
@@ -52,12 +55,16 @@ and ruled out (the class-metadata-registered ctor never fires for runtime enemie
   + virtual init at vtable[+0x08]`) ← `FUN_1406c7a40` (trampoline) ← function-pointer
   dispatch via class-metadata table at `0x140f4cf38`. The trampoline is *only* reached
   via that table slot.
-- **Hybrid spawn architecture** (corrects "all enemies pre-spawned" theory):
-  - Some enemies pre-spawned at chapter-load (e.g., the 4 big spiders in a Spider
-    Nightmare arena — woken by cauldron, not constructed by it).
-  - Some enemies constructed dynamically during the fight (e.g., the Snake/Summoner/
-    Tentacle in a Cultist cauldron — full 6-component stack, captured by hook).
-  - Effect entities (eggs, projectiles, puddles) always runtime-constructed.
+- **Unified runtime-construction model for cauldron waves** (corrects an earlier
+  "hybrid pre-placed vs runtime" theory). Cauldrons do not wake pre-placed sleeping
+  enemies. Activation triggers main-enemy construction at trigger time via the
+  universal factory chain; some main enemies (spiders, summoners) then summon their
+  own minions mid-fight via the same chain. Every captured construction —
+  Snake/Summoner/Tentacle/egg/projectile/puddle — passes through `oCEntity::ctor`.
+  The Spider-cauldron observation that "main spiders are absent from the capture
+  buffer" is best explained by `SpawnCapture` not being armed before fight-start, not
+  by the spiders being pre-existing. See "Hypothesis" §"Why-the-spider-mains-were-
+  missing" below for the unverified piece.
 - **Stable structural offsets on `oCEntity`** found this session:
   - `+0x620`: self-pointer. Every entity has `*(entity + 0x620) == entity`. Useful as
     a memory-alive check (passes on freed-and-reused slabs that have been
@@ -127,12 +134,16 @@ and ruled out (the class-metadata-registered ctor never fires for runtime enemie
   (decorations, UI entities, anchors) is consistent with the universal-allocator
   shape but **not yet directly verified** — pending broader confirmation across the
   captured entity-type set.
-- **`+0x08` and `+0x10` are engagement-state slots, NOT parent backrefs.** Tentacle's
-  `+0x08` = Geppetto Dummy entity (the player ability that's hitting it); Tentacle's
+- **`+0x08` and `+0x10` hold other-entity pointers, NOT parent backrefs.** Tentacle's
+  `+0x08` = Geppetto Dummy entity (the player actor that was hitting it); Tentacle's
   `+0x10` = Geppetto Dummy debris piece. Summoner's `+0x08` = Snake[0]; Summoner's
-  `+0x10` = Snake[1] (suggesting an intrusive linked-list node pair across allied
-  enemies). Confirmed by scanning 1600 bytes of the Tentacle entity for a backref to
-  its known summoner — summoner address was *not* in those bytes.
+  `+0x10` = Snake[1]. Confirmed by scanning 1600 bytes of the Tentacle entity for a
+  backref to its known summoner — summoner address was *not* in those bytes. The
+  semantic of these slots is unsettled: the Tentacle observation fits an
+  AI-target/current-focus reading, the Summoner observation does not (cultists do not
+  target their own snakes). Promoted to its own doc:
+  `rw/findings/enemy-ai.md` — first dig is verifying whether the slot is the AI-target
+  field, a multi-purpose pointer, or a different field entirely.
 - **`vtable[+0x50] setPosition` works on most enemies but not on Tentacles.** Snakes
   and Summoner respond to the warp; Tentacles are root-locked (engine likely re-asserts
   their root transform every frame, or the vtable slot is a no-op for tentacle-class
@@ -142,17 +153,20 @@ and ruled out (the class-metadata-registered ctor never fires for runtime enemie
   name lives at `+0x08` (char*); length at `+0x10` (u32). Use `readUtf8String(len)`.
   Stable across the entity's lifetime; survives entity destruction (the settings
   template lives in the asset cache, not the entity slab).
-- **Hybrid spawn architecture.** Two paths coexist in the engine:
-  - **Path A — chapter-load static placement.** Some enemies (notably "boss"-style
-    enemies in arena cauldrons, e.g., the 4 big spiders) are constructed when the
-    chapter loads and remain hidden/inactive until a trigger reveals them. Cauldron
-    activation is the trigger; the cauldron does *not* construct these enemies.
-  - **Path B — runtime construction.** Some cauldron types (e.g., Cultist/Summoner)
-    construct enemies dynamically during the fight via the universal factory chain.
-    Mid-fight ability casts (mom spider lays an egg, summoner summons a tentacle,
-    Geppetto throws a Cogsbomb) also follow path B.
-- **Effect/projectile/puddle entities are always path B.** Confirmed in both Spider
-  and Cultist cauldron runs.
+- **Unified runtime-construction model for cauldron waves.** All cauldron-wave
+  enemies are constructed at activation time via the universal factory chain
+  (`oCEntity::ctor` at RVA `0x6c96f0`). Main enemies phase in when the cauldron
+  fires; some main-enemy templates (spider mothers, cultist summoners) then summon
+  their own minions mid-fight via the same factory chain. Mid-fight player-ability
+  casts (Geppetto Cogsbomb, Geppetto Dummy) also go through this chain. Effect /
+  projectile / puddle entities (eggs, line attacks, poison puddles) are also always
+  runtime-constructed via this chain. Confirmed across both Spider Nightmare and
+  Cultist/Summoner cauldron runs.
+
+  **Cauldron content is randomized per chapter run** — the wave family (cultist,
+  spider, ghoul, pig, ...) is drawn from a pool whose size and exact composition is
+  unmeasured. Live tests must be type-agnostic. Full rules and rationale in
+  `rw/docs/game-rules.md` §"Cauldrons and waves."
 
 ### Hypothesis (mapped, not fully verified)
 
@@ -162,9 +176,21 @@ and ruled out (the class-metadata-registered ctor never fires for runtime enemie
   component's bytes is the next dig.
 - **A global per-instance entity registry exists somewhere.** The class metadata table
   is just type-info; finding the *instance* registry would let us enumerate all live
-  enemies (path A or B) without spawn capture. Best path: look at scene-context
-  iteration in `session_finalize_and_save` — that walks live entities for serialization
-  and may expose the registry.
+  enemies without spawn capture. Best path: look at scene-context iteration in
+  `session_finalize_and_save` — that walks live entities for serialization and may
+  expose the registry.
+- **Why the spider-cauldron mains were missing from the capture buffer.** In a
+  prior Spider Nightmare cauldron run, the 4 main spiders did not appear in
+  `SpawnCapture._captures` even though the cauldron's secondary content (eggs,
+  projectiles, puddles) did. The current best explanation, consistent with the
+  unified runtime-construction model, is that `SpawnCapture` was armed *after* the
+  main spiders had already phased in — they were constructed, the construction
+  fired before our hook was active, and the post-arm capture only saw mid-fight
+  minion-summons. To verify: re-run a Spider cauldron with `SpawnCapture` armed
+  before approaching the cauldron, observe whether the main spiders appear at
+  cauldron-fire time. Until verified, the alternate hypothesis ("spider mains are
+  pre-placed and woken, not constructed") is not strictly excluded — it's just less
+  consistent with the rest of the model.
 
 ## Tried and ruled out
 
@@ -317,6 +343,11 @@ Per `rw/docs/README.md` §"Locating <thing>" — RE-side template.
 
 - `rw/findings/transporter-placement-primitive.md` — parent doc for spawn_capture and
   the placement primitive (vtable[+0x50] setPosition).
+- `rw/findings/enemy-ai.md` — the AI-target / focus interpretation of the
+  `+0x08`/`+0x10` slots and the redirect-AI-to-fight-each-other question.
+- `rw/docs/game-rules.md` §"Cauldrons and waves" — the gameplay-level rules
+  (cauldron randomization, test-design constraint) implied by the unified
+  runtime-construction model.
 - `rw/findings/STATUS.md` — manifest of all findings.
 - `tools/frida/CODE_STANDARDS.md` — Frida script conventions (followed by all four
   mods shipped this session).

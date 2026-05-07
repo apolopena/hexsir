@@ -23,6 +23,9 @@ Files in .ai/scratch/ and .ai/planning/prp/{instances,proposals,archive,abandone
 ### Terminology
 Standardized terms for talents, items, seeds, and indexing live in `rw/docs/terminology/README.md`. Read before writing about these domains. Indexing rule: code is 0-based, user-facing is 1-based — translate at the access boundary.
 
+### Game rules
+In-game mechanics rules for Ravenswatch live in `rw/docs/game-rules.md`. Read before designing live tests or modeling enemy/cauldron/wave behavior — the doc encodes hard-learned constraints (e.g. cauldron content is randomized; tests cannot depend on a specific enemy family appearing).
+
 ### AskUserQuestion Tool
 Never use this tool. Ask questions directly in response text.
 

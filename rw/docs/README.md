@@ -10,6 +10,7 @@ Reverse engineering work for Ravenswatch (single-player roguelike, OEngine / OSo
 | [Findings](../findings/README.md) | Every analysis doc, in any state. Status-tracked: `in-progress` → `confirmed` → `archived` |
 | [Reference data](../ref/README.md) | Tree files, screenshots — tracked snapshots the project reads |
 | [Terminology](terminology/README.md) | Standardized terms for talents, items, seeds, and indexing. Read before writing about these domains |
+| [Game rules](game-rules.md) | In-game mechanics rules — gameplay-level constraints that shape live-test design (cauldron randomization, etc.). Read before designing live tests |
 | [Wishlist](wishlist.md) | Future-work ideas parking lot — CLI surface, digs, doc cleanups. Not commitments |
 | [Ghidra and WinDbg MCP for WSL](ghidra-windbg-mcp-for-wsl.md) | WSL mirrored-networking fix plus Windows-hosted Ghidra and WinDbg MCP setup |
 | [Tools](tools/README.md) | Tools used for RW work |

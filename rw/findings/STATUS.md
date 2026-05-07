@@ -6,7 +6,9 @@ Source of truth: the `**Status:**` line at the top of each `rw/findings/<name>.m
 | Status | File | Topic |
 |---|---|---|
 | in-progress | [chapter-map-and-boss-spawn-architecture.md](chapter-map-and-boss-spawn-architecture.md) | Chapter map binding and boss-spawn architecture |
-| in-progress | [enemy-spawn-architecture.md](enemy-spawn-architecture.md) | Enemy spawn architecture (hybrid path) and live-enemy control |
+| in-progress | [enemy-ai.md](enemy-ai.md) | Enemy AI — target/focus field and the redirect question |
+| in-progress | [enemy-spawn-architecture.md](enemy-spawn-architecture.md) | Enemy spawn architecture and live-enemy control |
+| in-progress | [entity-spawner-mechanism.md](entity-spawner-mechanism.md) | Entity-spawner mechanism — how entities spawn child entities |
 | in-progress | [frida-pipeline-hardware-breakpoint.md](frida-pipeline-hardware-breakpoint.md) | Frida save-trigger pipeline — prep-chain capture task |
 | in-progress | [ghidra-rule-c-investigation.md](ghidra-rule-c-investigation.md) | Ghidra dive — Rule C cap source investigation |
 | in-progress | [items-add-primitive-cap.md](items-add-primitive-cap.md) | Items ADD primitive — save-load cap discovery |
