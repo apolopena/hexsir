@@ -23,6 +23,11 @@
 
 ## Done
 <!-- DONE_START -->
+MAINT-43: warden — drop file logging, stdout only (2026-05-07)
+  - Removed `blocked.log` writes from `warden.py`; stdout is the only output channel now. Renamed internal `log_block` → `report_block` to match.
+  - Deleted `tools/telemetry-warden/.gitignore` (no longer needed since no log file is generated).
+  - Updated `tools/telemetry-warden/README.md` to drop log-file references and note that users wanting persistence can redirect stdout themselves.
+
 MAJOR-12: Steam-vs-analytics RE + telemetry-warden block tool (2026-05-07)
   - **Steam playtime question answered.** Investigated user-reported "save's logged playtime gets added to Steam profile playtime on each test." Confirmed the binary does not (and cannot via Steamworks public API) write to Steam profile playtime. The three "playtime"-named strings in the binary are: `playtime.game` and `playtime.run` (debug-overlay scratch keys, written to internal 64-slot in-process key/value table at `debug_overlay_set_kv`), and `run_playtime` (JSON field in studio analytics POST). None reach Steam. Most likely cause of observation: Steam profile's 0.1h (6-min) rounding granularity compounded over multiple short tests.
   - **Telemetry surface fully mapped.** `passtech_analytics_post_event` (formerly `FUN_1401f6b10`) is the master JSON POST builder — 33 distinct callers, 37 callsites, every game-state event funnels through here. Endpoints: `dt-live{,-2,-3}.passtechgames.com` (Pub/Sub topic `projects/passtech-ravenswatch/topics/ravenswatch`), `nacon-os-rec{,-v2}-54f75zaw5q-ew.a.run.app` (Cloud Run), `nacon-os.com/v2/analytics`, plus `submit.backtrace.io` for crash reports. Auth via `os-access-token` HTTP header. JSON includes user_id, session_id, hero_name, hero_skin, difficulty, run_playtime, run_id, nacon_user_id.
