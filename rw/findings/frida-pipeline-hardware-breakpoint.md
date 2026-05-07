@@ -11,7 +11,7 @@
 - `tools/frida/rw_lab.js` — current Frida hub script. Hosts `probeForBossKillSave()` and the existing talent-picker harness. Header comment is the canonical REPL reference.
 - `tools/frida/save_now.js`, `tools/frida/repl.js`, `tools/frida/trace_save_dialog.js` — the original mechanical pipeline scripts that proved `save_request_sync` end-to-end.
 - `rw/findings/save-subsystem.md` — full architecture: chapter-end call topology, prep-chain dig identifying GameModeDefault+0x38 factory+serialize, anti-debug observations, oCDtRootGs layout.
-- `rw/findings/save-flow-diagrams.md` — mermaid diagrams of the save flow, class hierarchy, data layout.
+- `rw/findings/save-flow-diagrams.md` — save-flow architecture reference: chapter-end event chain, class hierarchy, data layout (prose + tables).
 - `rw/saves/proofs/geppetto/chapter1/frida-trigger-1/Profile_1.ob` — proof artifact from the working (but incomplete) pipeline (md5 `48c24953cc845b7f5304e0268caf23d6`).
 
 ## Goal

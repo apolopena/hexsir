@@ -160,6 +160,7 @@ Three candidate hook targets investigated via Ghidra:
 - `SpawnCapture.stop()` — detach
 - `SpawnCapture.dump()` — print every captured entity grouped by RTTI (raw firehose)
 - `SpawnCapture.analyze({ requireComponent? })` — group by initArg template, sort by size, walk each group's first-entity component map. Optional case-insensitive substring filter against component class names — e.g., `analyze({ requireComponent: "EnemyController" })` to drop non-enemy templates.
+- `SpawnCapture.findCommonParents({ templateSubstring?, scanBytes? })` — added 2026-05-06 (v0.8.0). Scans captured entity bytes for non-module qwords whose deref's vtable RVA is `0xf4cc40` (oCEntity), aggregating across an optionally name-filtered set. Designed for "find the parent of these spawned children" via backref discovery; in practice surfaces engagement-state slots (`+0x08`, `+0x10`) and the `+0x620` self-pointer rather than parent backrefs (see `enemy-spawn-architecture.md`).
 
 ### Hub helpers (in `tools/frida/rw_lab.js`)
 
@@ -179,6 +180,43 @@ Both `RW.Entity.*` are EXPERIMENTAL-tagged because the underlying encyclopedia i
 - `Transporter.clear()` — abort all timers (no position restore).
 
 Refuses to move the hourglass (`NoModel+2Cpnt`).
+
+## Updates (2026-05-06)
+
+Subsequent session that revisited this finding shipped:
+
+- **`spawn_capture.js` v0.6.0–v0.8.1** with three layered enhancements:
+  - **v0.6.0** — `analyze()` resolves the `initArg` settings name via the encyclopedia
+    walker pattern (`+0x08` char*, `+0x10` u32 length). Groups now print as
+    `Spider_Nightmare_Egg [0x...] (N entities)` instead of `template 0x...`.
+  - **v0.7.0** — drops the position filter from `analyze()`. Templates with all-zero
+    position were getting culled; those tend to be exactly the dead enemies we want
+    to identify post-fight. Header still reports the non-zero-pos count for context.
+  - **v0.8.0** — onEnter records `this.returnAddress` per capture; `analyze()` prints
+    a top-3 caller histogram per template. Adds `findCommonParents()`.
+  - **v0.8.1** — onEnter additionally records `Thread.backtrace(... ACCURATE).slice(0, 4)`;
+    `analyze()` prints `frame[0] return-into-allocator` (uniform noise),
+    `frame[2] spawn-site` (the actual spawn-call code), `frame[3] spawn-site-caller`
+    (one level up). Frame[2] is the goal — its dominant RVA per template tells us
+    which engine function spawns that template.
+- **`cauldron_test.js`** — orchestrates the manual cauldron-spawn-capture protocol
+  (verify cauldron exists, refresh player, arm SpawnCapture, warp cauldron via
+  Transporter, instruct user, finish-and-analyze). Removes 9-line REPL boilerplate
+  and the three procedural pitfalls (skipping refresh, double-start wiping captures,
+  forgetting cauldron-exists check).
+- **`enemy_capture.js`** — *deprecated; do not load.* Hooks `oCDtEntityCpntEnemyController`
+  ctor at RVA `0x37bbe0` directly. Hook fires 0 times during gameplay because the
+  class-metadata-registered ctor isn't the runtime instantiation site. Kept as a
+  record of the dead-end approach. See `enemy-spawn-architecture.md` for the proper
+  hook chain.
+- **`enemy_herd.js`** — uses the SpawnCapture buffer + `+0x620` self-pointer +
+  `vtable[+0x50] setPosition` to herd live enemies in combat. Verified working on
+  Snakes and Summoner; root-locked on Tentacles.
+
+Architectural finding: enemies spawn via a hybrid path — some at chapter-load
+(triggered/revealed by cauldrons), some constructed dynamically during the fight
+through the universal `oCEntity` factory chain. Full writeup in
+`rw/findings/enemy-spawn-architecture.md`.
 
 ## Next analysis pass
 

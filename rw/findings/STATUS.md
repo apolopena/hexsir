@@ -6,6 +6,7 @@ Source of truth: the `**Status:**` line at the top of each `rw/findings/<name>.m
 | Status | File | Topic |
 |---|---|---|
 | in-progress | [chapter-map-and-boss-spawn-architecture.md](chapter-map-and-boss-spawn-architecture.md) | Chapter map binding and boss-spawn architecture |
+| in-progress | [enemy-spawn-architecture.md](enemy-spawn-architecture.md) | Enemy spawn architecture (hybrid path) and live-enemy control |
 | in-progress | [frida-pipeline-hardware-breakpoint.md](frida-pipeline-hardware-breakpoint.md) | Frida save-trigger pipeline — prep-chain capture task |
 | in-progress | [ghidra-rule-c-investigation.md](ghidra-rule-c-investigation.md) | Ghidra dive — Rule C cap source investigation |
 | in-progress | [items-add-primitive-cap.md](items-add-primitive-cap.md) | Items ADD primitive — save-load cap discovery |
@@ -29,7 +30,7 @@ Source of truth: the `**Status:**` line at the top of each `rw/findings/<name>.m
 | confirmed | [save-binary-format.md](save-binary-format.md) | Save: binary format and edit primitives |
 | confirmed | [save-catalog-flag-bytes.md](save-catalog-flag-bytes.md) | Save: catalog flag-byte analysis (tag=0x05 records) |
 | confirmed | [save-edit-pipeline.md](save-edit-pipeline.md) | Save edit pipeline |
-| confirmed | [save-flow-diagrams.md](save-flow-diagrams.md) | Save flow diagrams (Ravenswatch) |
+| confirmed | [save-flow-diagrams.md](save-flow-diagrams.md) | Save flow architecture (Ravenswatch) |
 | confirmed | [save-silencer-mechanism.md](save-silencer-mechanism.md) | Save silencer mechanism — definitive root cause |
 | confirmed | [save-subsystem.md](save-subsystem.md) | Save: subsystem architecture and live-trigger map |
 | confirmed | [talent-records.md](talent-records.md) | Save: talent records |

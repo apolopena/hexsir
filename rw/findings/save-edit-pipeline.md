@@ -720,7 +720,7 @@ This finding extends `save-subsystem.md`. Re-anchor that first; this doc's table
 ## Cross-references
 
 - `rw/findings/save-subsystem.md` — canonical save-subsystem architecture; this doc is supplementary.
-- `rw/findings/save-flow-diagrams.md` — mermaid diagrams of save chain.
+- `rw/findings/save-flow-diagrams.md` — save-chain architecture reference (prose + tables).
 - `rw/findings/decoder-work-2026-04-30.md` — the three-step plan that produced `cooked.py`.
 - `tools/rerw-src/lib/cooked.py` — the decoder library.
 - `tools/rerw-src/lib/cooked_schemas.py` — per-class schema definitions (currently `oCDtPlayerProfileData` only).

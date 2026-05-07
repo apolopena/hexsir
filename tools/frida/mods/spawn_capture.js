@@ -33,14 +33,15 @@
 //                              //   + component class names per group
 
 (function () {
-    var version = "0.5.0";
+    var version = "0.8.1";
     var mod = Process.findModuleByName("Ravenswatch.exe");
     if (!mod) { console.log("[SpawnCapture] FATAL: no Ravenswatch.exe"); return; }
     var imageBase = mod.base;
     var imageEnd  = imageBase.add(mod.size);
 
-    var ENTITY_CTOR_RVA = 0x6c96f0;
-    var ENTITY_POS_OFF  = 0x324;
+    var ENTITY_CTOR_RVA  = 0x6c96f0;
+    var ENTITY_POS_OFF   = 0x324;
+    var OCENTITY_VT_RVA  = 0xf4cc40;
 
     if (!RW.SpawnCapture) RW.SpawnCapture = {};
     var SpawnCapture = RW.SpawnCapture;
@@ -80,7 +81,14 @@
                 try {
                     this._entity  = ptr(args[0]);
                     this._initArg = ptr(args[1]);
+                    this._caller  = this.returnAddress;
                     this._ts      = Date.now();
+                    // Walk a few frames up — caller is inside the allocator;
+                    // the actual spawn site is two frames up. Backtracer.ACCURATE
+                    // is slow but on a low-frequency hook (~tens-of-Hz), fine.
+                    try {
+                        this._stack = Thread.backtrace(this.context, Backtracer.ACCURATE).slice(0, 4);
+                    } catch (er) { this._stack = null; }
                 } catch (e) { this._entity = null; }
             },
             onLeave: function () {
@@ -89,6 +97,8 @@
                     ts: this._ts,
                     entity: this._entity,
                     initArg: this._initArg,
+                    caller: this._caller,
+                    stack:  this._stack,
                 });
             },
         });
@@ -147,6 +157,20 @@
             });
         });
     };
+
+    // Read display name from an oCEntitySettingsResource pointer.
+    // Mirrors the encyclopedia walker pattern: strPtr at +0x08,
+    // u32 length at +0x10, decoded via readUtf8String. Returns null
+    // on any read failure (initArg may be null, freed, or non-settings).
+    function _readSettingsName(initArg) {
+        try {
+            if (initArg.isNull()) return null;
+            var strPtr = initArg.add(0x08).readPointer();
+            var len    = initArg.add(0x10).readU32();
+            if (len <= 0 || len > 512) return null;
+            return strPtr.readUtf8String(len);
+        } catch (e) { return null; }
+    }
 
     // Component-map walker shared between analyze() and its filter.
     // Returns { count, comps: [{key, name}] } or null on read failure.
@@ -220,8 +244,11 @@
             } catch (er) { return false; }
         });
 
+        // Group by template across ALL captures (not just non-zero-pos).
+        // Dead-enemy slabs get zeroed by the time we read — filtering by
+        // current position would drop the templates we most want to see.
         var byTemplate = {};
-        withPos.forEach(function (e) {
+        c.forEach(function (e) {
             var key = e.initArg.toString();
             if (!byTemplate[key]) byTemplate[key] = { initArg: e.initArg, entries: [] };
             byTemplate[key].entries.push(e);
@@ -230,8 +257,41 @@
         var groups = Object.keys(byTemplate).map(function (k) { return byTemplate[k]; });
         groups.sort(function (a, b) { return b.entries.length - a.entries.length; });
 
-        // Walk components for each group's first entity (once)
-        groups.forEach(function (g) { g.compInfo = _readComponents(g.entries[0].entity); });
+        // Walk components + resolve settings name for each group (once each)
+        groups.forEach(function (g) {
+            g.compInfo = _readComponents(g.entries[0].entity);
+            g.name     = _readSettingsName(g.initArg);
+
+            // Aggregate the FULL stack frame at depth 2 (the spawn-site
+            // caller, two frames above the oCEntity::ctor hook — frame 0
+            // is inside the allocator, frame 1 is inside the trampoline,
+            // frame 2 is the actual spawn-site code).
+            function aggregate(getter) {
+                var hist = {};
+                g.entries.forEach(function (e) {
+                    var v = getter(e);
+                    if (!v) return;
+                    var key = v.toString();
+                    hist[key] = (hist[key] || 0) + 1;
+                });
+                var keys = Object.keys(hist);
+                keys.sort(function (a, b) { return hist[b] - hist[a]; });
+                return keys.slice(0, 3).map(function (k) {
+                    var rva = -1;
+                    try {
+                        var p = ptr(k);
+                        if (p.compare(imageBase) >= 0 && p.compare(imageEnd) < 0) {
+                            rva = p.sub(imageBase).toInt32();
+                        }
+                    } catch (er) {}
+                    return { addr: k, rva: rva, count: hist[k] };
+                });
+            }
+
+            g.callers     = aggregate(function (e) { return e.caller; });
+            g.spawnSites2 = aggregate(function (e) { return (e.stack && e.stack[2]) || null; });
+            g.spawnSites3 = aggregate(function (e) { return (e.stack && e.stack[3]) || null; });
+        });
 
         // Apply filter if requested
         var visible = groups;
@@ -249,7 +309,8 @@
         console.log(header);
 
         visible.forEach(function (g) {
-            console.log("\n[SpawnCapture.analyze] === template " + g.initArg +
+            var label = g.name ? g.name + " [" + g.initArg + "]" : "template " + g.initArg;
+            console.log("\n[SpawnCapture.analyze] === " + label +
                         " (" + g.entries.length + " entities) ===");
             g.entries.slice(0, 3).forEach(function (e, i) {
                 var pos;
@@ -260,12 +321,106 @@
 
             if (!g.compInfo) {
                 console.log("  components: (none / map empty)");
-                return;
+            } else {
+                console.log("  components (" + g.compInfo.count + "):");
+                g.compInfo.comps.forEach(function (cm) {
+                    console.log("    - " + cm.name + "  (key 0x" + cm.key.toString(16) + ")");
+                });
             }
-            console.log("  components (" + g.compInfo.count + "):");
-            g.compInfo.comps.forEach(function (cm) {
-                console.log("    - " + cm.name + "  (key 0x" + cm.key.toString(16) + ")");
+
+            function printFrames(label, frames) {
+                if (!frames || !frames.length) return;
+                console.log("  " + label + ":");
+                frames.forEach(function (c) {
+                    var rvaStr = (c.rva >= 0) ? ("RVA 0x" + c.rva.toString(16)) : "(out of module)";
+                    console.log("    " + c.addr + " " + rvaStr + "  x" + c.count);
+                });
+            }
+            printFrames("frame[0] return-into-allocator", g.callers);
+            printFrames("frame[2] spawn-site",            g.spawnSites2);
+            printFrames("frame[3] spawn-site-caller",     g.spawnSites3);
+        });
+    };
+
+    /*
+     * ----------------------------------------------------------------
+     * SpawnCapture.findCommonParents(opts?: { templateSubstring?: string, scanBytes?: number }): void
+     *
+     * For each captured entity matching the template name filter,
+     * scan its first scanBytes bytes a qword at a time looking for
+     * non-module pointers whose dereference is the oCEntity vtable
+     * (RVA 0xf4cc40). Aggregate: count how often each unique parent
+     * pointer appears across the matching entity set. Sorted desc.
+     *
+     * Use case: traverse from runtime-spawned children (eggs,
+     * projectiles, etc.) to their pre-existing parent enemy. If the
+     * parent is the same across all children, it dominates the
+     * histogram (e.g., 7/7 eggs reference the mom spider).
+     *
+     * opts.templateSubstring: case-insensitive substring filter
+     *   against resolved settings names. Default: no filter (all
+     *   captures).
+     * opts.scanBytes: bytes per entity to scan (default 0x200,
+     *   covers most known component layouts).
+     * ----------------------------------------------------------------
+     * MECHANISM:
+     *   For each capture matching the filter, walks bytes off=0..N
+     *   step 8: tries readPointer at entity+off; if pointer-shaped
+     *   AND outside the module range AND its deref's vtable RVA is
+     *   OCENTITY_VT_RVA, records it. Aggregates counts across all
+     *   matching captures. Module-range pointers are skipped to
+     *   exclude vtable slots.
+     */
+    SpawnCapture.findCommonParents = function (opts) {
+        var caps = SpawnCapture._captures;
+        if (!caps.length) { console.log("[SpawnCapture.findCommonParents] no captures"); return; }
+
+        var filter    = (opts && opts.templateSubstring) ? String(opts.templateSubstring).toLowerCase() : null;
+        var scanBytes = (opts && typeof opts.scanBytes === 'number') ? opts.scanBytes : 0x200;
+
+        var matching = caps;
+        if (filter) {
+            matching = caps.filter(function (e) {
+                var n = _readSettingsName(e.initArg);
+                return n && n.toLowerCase().indexOf(filter) >= 0;
             });
+        }
+        if (!matching.length) {
+            console.log("[SpawnCapture.findCommonParents] no entities match filter \"" + filter + "\"");
+            return;
+        }
+
+        var hist = {};   // parentPtrStr -> { count, offsets:Set }
+        matching.forEach(function (cap) {
+            var seen = {};   // dedupe within one entity
+            for (var off = 0; off < scanBytes; off += 8) {
+                var v;
+                try { v = cap.entity.add(off).readPointer(); } catch (e) { continue; }
+                if (v.compare(imageBase) >= 0 && v.compare(imageEnd) < 0) continue;
+                if (vtRva(v) !== OCENTITY_VT_RVA) continue;
+                var key = v.toString();
+                if (seen[key]) continue;
+                seen[key] = true;
+                if (!hist[key]) hist[key] = { count: 0, offsets: {} };
+                hist[key].count += 1;
+                hist[key].offsets[off] = (hist[key].offsets[off] || 0) + 1;
+            }
+        });
+
+        var keys = Object.keys(hist);
+        keys.sort(function (a, b) { return hist[b].count - hist[a].count; });
+
+        var label = filter ? "matching \"" + filter + "\"" : "(all captures)";
+        console.log("[SpawnCapture.findCommonParents] " + matching.length + " entities " + label +
+                    "; scan " + scanBytes + " bytes each:");
+        if (!keys.length) {
+            console.log("  no oCEntity backrefs found in any entity");
+            return;
+        }
+        keys.slice(0, 10).forEach(function (k) {
+            var rec = hist[k];
+            var offs = Object.keys(rec.offsets).map(function (o) { return "+0x" + parseInt(o, 10).toString(16); }).join(",");
+            console.log("  " + k + "  " + rec.count + "/" + matching.length + " entities  (offsets: " + offs + ")");
         });
     };
 
@@ -273,7 +428,7 @@
     SpawnCapture.events = SpawnCapture._captures;
 
     RW.registerMod("spawn_capture", version);
-    console.log("[SpawnCapture] " + version + " loaded. start() / stop() / dump() / analyze()");
+    console.log("[SpawnCapture] " + version + " loaded. start() / stop() / dump() / analyze() / findCommonParents()");
 })();
 
 // Top-level alias

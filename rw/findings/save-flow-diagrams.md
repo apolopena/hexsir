@@ -1,13 +1,16 @@
 [← Back to findings](README.md)
 
-# Save flow diagrams (Ravenswatch)
+# Save flow architecture (Ravenswatch)
 **Status:** confirmed
 
 
-Mermaid diagrams of the save-subsystem architecture, chapter-end event chain,
-class hierarchy, and data layout — generated from static analysis 2026-04-29 /
-2026-04-30. All addresses absolute (subtract `0x140000000` for RVA). Function
-names match the Ghidra DB renames; cross-walk in `save-subsystem.md`.
+Architecture reference for the save subsystem: chapter-end event chain, threading model,
+class hierarchy, memory layout, call topology, and binary framing — derived from static
+analysis 2026-04-29 / 2026-04-30. All addresses absolute (subtract `0x140000000` for RVA).
+Function names match the Ghidra DB renames; cross-walk in `save-subsystem.md`.
+
+> **Note:** This doc was previously a mermaid-diagram companion. Converted to prose/tables
+> 2026-05-06 to remove mermaid maintenance burden — same content, text form.
 
 ---
 
@@ -17,400 +20,375 @@ names match the Ghidra DB renames; cross-walk in `save-subsystem.md`.
 
 ## 1. Chapter-end save event chain
 
-End-to-end flow from boss death to `Profile_1.ob` written to disk.
+End-to-end flow from boss death to `Profile_1.ob` written to disk. Five phases.
 
-```mermaid
-flowchart TD
-  subgraph "Chapter setup (runs at chapter start)"
-    A[chapter loads] --> B[session_subscribe_chapter_end_events<br/>image+0x27fde0]
-    B --> B1["Subscribes ~17 named events<br/>incl. GAME_END_SUCCESS at DAT_1412bfca0"]
-    B --> B2["Loads Modal_Save_Or_Quit.entity.ot<br/>DAT_141410b38 → session+0xf8"]
-    B --> B3["Publishes GAME_CHRONO_START<br/>via construct_named_event +<br/>publish_event_to_subscribers"]
-  end
+### Phase A — Chapter setup (runs at chapter start)
 
-  subgraph "Boss dies → chapter-end logic"
-    C[boss dies] --> D[engine publishes GAME_END_SUCCESS]
-    D --> E["LAB_1402c85c0<br/>(vtable adjustor thunk)"]
-    E --> F["0x1402835f0<br/>(XOR EDX,EDX; JMP 0x140283520)"]
-    F --> G[on_game_end_event_handler<br/>image+0x283520]
-    G --> H{game_end_should_show_modal?<br/>image+0x2918b0}
-    H -->|no, param_2==0| I[game_end_no_modal_path<br/>image+0x285080<br/>skips dialog → next chapter]
-    H -->|yes| J[publish_named_event_game_end<br/>image+0x285710<br/>arg=2]
-    J --> J1["constructs oe::dt::NamedEventGameEnd<br/>fans to subscribers"]
-  end
+`session_subscribe_chapter_end_events` (image+0x27fde0) does three things:
 
-  subgraph "NamedEventGameEnd subscriber"
-    J1 --> K["thunk at 0x1402c8750<br/>(JMP qword[0x140ef9d48])"]
-    K --> L[on_named_event_game_end_handler<br/>image+0x28f140]
-    L --> L1[updates profile_data stats<br/>+0x230 +0x234 +0x240 +0x244]
-    L --> M{state at param_2+0x60?}
-    M -->|3 = WIN| N[session_on_saved_dispatch<br/>image+0x291350]
-    M -->|2| O[chapter_end_encyclopedia_and_stats_update<br/>image+0x28f660]
-    M -->|else / type mismatch| P[session_on_abandoned_dispatch<br/>image+0x291190]
-  end
+1. Subscribes ~17 named events including `GAME_END_SUCCESS` at `DAT_1412bfca0`.
+2. Loads `Modal_Save_Or_Quit.entity.ot` (`DAT_141410b38`) and stashes it at `session+0xf8`.
+3. Publishes `GAME_CHRONO_START` via `construct_named_event` + `publish_event_to_subscribers`.
 
-  subgraph "Saved dispatcher (WIN path)"
-    N --> N1["sets phase=3 at session+0x150"]
-    N --> N2[chapter_end_work<br/>image+0x2907e0<br/>★ likely runs SerializeArchive walks<br/>★ progressively fills oCMemoryBinaryStream]
-    N --> N3["sets saves-enabled flag<br/>session+0xa5 = 1"]
-    N --> N4[publishes 'Saved' oCCustomFlagList event<br/>via FUN_14067dea0 0x17cde816]
-    N --> N5["updates profile_data->[0x244]<br/>chapter counter"]
-    N --> N6[sets session+0x30 = 1]
-  end
+### Phase B — Boss dies → chapter-end logic
 
-  subgraph "User clicks Save and quit"
-    N6 --> Q[Modal_Save_Or_Quit dialog<br/>at session+0xf8]
-    Q --> R[user clicks Save and quit]
-    R --> S[modal callback fires<br/>—mechanism TBD—]
-    S --> T[session_finalize_and_save<br/>image+0x28d6a0]
-  end
+1. Engine publishes `GAME_END_SUCCESS`.
+2. `LAB_1402c85c0` (vtable adjustor thunk) →
+3. `0x1402835f0` (`XOR EDX, EDX; JMP 0x140283520`) →
+4. `on_game_end_event_handler` (image+0x283520).
+5. Branches on `game_end_should_show_modal?` (image+0x2918b0):
+   - `param_2 == 0` → `game_end_no_modal_path` (image+0x285080), skips dialog → next chapter.
+   - otherwise → `publish_named_event_game_end` (image+0x285710, arg=2), which constructs
+     `oe::dt::NamedEventGameEnd` and fans to subscribers.
 
-  subgraph "Save dispatch (queue → worker → file)"
-    T --> T1["pre-save plumbing<br/>FUN_14026f750/620<br/>scene-context iteration"]
-    T --> T2["★ vtable[0xd0] indirect call:<br/>scene_manager+0x708 →+0x38 → vt[0xd0]<br/>(STRONGEST UNRESOLVED PREP CANDIDATE)"]
-    T --> T3[io_request_list_clear<br/>swap_subscribed_pointer<br/>profile_data manager updates]
-    T --> T4["walks linked list at session+8<br/>finds oCDtRootGs by typedesc"]
-    T4 --> T5{*data_source+0x1ef4 == 0?<br/>(saves-enabled flag)}
-    T5 -->|yes| U["save_request_sync(NULL,<br/>data_source+0x1928)<br/>image+0x6797b0"]
-    T5 -->|no| Z[skip save]
-    U --> V[saves_queue_enqueue<br/>image+0x6818a0]
-    V --> W[ReleaseSemaphore<br/>g_saves_queue_semaphore]
-    W --> X[saves_manager_worker_thread<br/>image+0x679150<br/>opcode=1=SAVE]
-    X --> Y1[save_atomic_orchestrator<br/>image+0x678f30]
-    Y1 --> Y2["reads *(job+0x30)<br/>and *(job+0x38)"]
-    Y2 --> Y3[oCFileBinaryStream::Write<br/>vtable[1] at 0x140f28d98]
-    Y3 --> Y4["writes Profile_1_Temp.ob<br/>then CopyFileW → Profile_1.ob"]
-  end
+### Phase C — NamedEventGameEnd subscriber
 
-  style L fill:#ffe6e6
-  style N2 fill:#fff4e6
-  style T2 fill:#ffe6e6
-  style U fill:#e6ffe6
-```
+1. Thunk at `0x1402c8750` (`JMP qword[0x140ef9d48]`) →
+2. `on_named_event_game_end_handler` (image+0x28f140).
+3. Updates profile_data stats at offsets `+0x230 / +0x234 / +0x240 / +0x244`.
+4. Branches on state at `param_2+0x60`:
+   - `3` (WIN) → `session_on_saved_dispatch` (image+0x291350) — *save path*.
+   - `2` → `chapter_end_encyclopedia_and_stats_update` (image+0x28f660).
+   - else / type mismatch → `session_on_abandoned_dispatch` (image+0x291190).
+
+### Phase D — Saved dispatcher (WIN path)
+
+`session_on_saved_dispatch` performs:
+
+1. Sets `phase=3` at `session+0x150`.
+2. Calls `chapter_end_work` (image+0x2907e0) — likely runs SerializeArchive walks and
+   progressively fills `oCMemoryBinaryStream`.
+3. Sets the saves-enabled flag at `session+0xa5 = 1`.
+4. Publishes `'Saved'` `oCCustomFlagList` event via `FUN_14067dea0` (key `0x17cde816`).
+5. Updates `profile_data->[0x244]` (chapter counter).
+6. Sets `session+0x30 = 1`.
+
+### Phase E — User clicks Save and quit → file written
+
+1. `Modal_Save_Or_Quit` dialog (cached at `session+0xf8`) is shown.
+2. User clicks "Save and quit".
+3. Modal callback fires (mechanism still TBD — see *Key unresolved items* §3).
+4. Callback invokes `session_finalize_and_save` (image+0x28d6a0).
+5. Pre-save plumbing: `FUN_14026f750` / `FUN_14026f620` (scene-context iteration).
+6. **Strongest unresolved prep candidate** — `vtable[0xd0]` indirect call:
+   `scene_manager+0x708 → +0x38 → vt[0xd0]`. See §9.
+7. `io_request_list_clear`, `swap_subscribed_pointer`, `profile_data` manager updates.
+8. Walks linked list at `session+8`, finds `oCDtRootGs` by typedesc.
+9. Branches on `*data_source+0x1ef4 == 0` (saves-enabled flag):
+   - yes → `save_request_sync(NULL, data_source+0x1928)` (image+0x6797b0).
+   - no → skip save.
+10. `saves_queue_enqueue` (image+0x6818a0) → `ReleaseSemaphore` `g_saves_queue_semaphore`.
+11. `saves_manager_worker_thread` (image+0x679150) wakes with `opcode=1=SAVE`.
+12. `save_atomic_orchestrator` (image+0x678f30) reads `*(job+0x30)` and `*(job+0x38)`.
+13. `oCFileBinaryStream::Write` (vtable[1] at `0x140f28d98`).
+14. Writes `Profile_1_Temp.ob`, then `CopyFileW` → `Profile_1.ob`.
+
+**Highlighted hot spots** (formerly red/orange/green nodes):
+- `on_named_event_game_end_handler` — the dispatch fan-out (red).
+- `chapter_end_work` — the serializer entry that fills the memstream (orange).
+- The vtable[0xd0] indirect call — strongest unresolved prep candidate (red).
+- `save_request_sync` — confirmed save trigger (green).
 
 ---
 
 ## 2. Save subsystem threading & queue
 
-The worker-thread side of the save (post-enqueue).
+The worker-thread side of the save (post-enqueue). Main thread enqueues; worker thread
+dequeues and writes.
 
-```mermaid
-flowchart LR
-  subgraph "Main thread"
-    A1["save_request_sync<br/>image+0x6797b0"] --> A2["increment job+0x7c (pend)"]
-    A2 --> A3["saves_queue_enqueue<br/>image+0x6818a0"]
-    A3 --> A4["push 16-byte entry to ring queue<br/>at DAT_14143ffc0"]
-    A4 --> A5["ReleaseSemaphore<br/>DAT_14143ff98"]
-    A5 --> A6["busy-wait on job+0x80 (done)"]
-  end
+### Main thread
 
-  subgraph "Worker thread"
-    B1[saves_manager_worker_thread<br/>image+0x679150] --> B2["WaitForSingleObject<br/>on semaphore"]
-    A5 -.signals.-> B2
-    B2 --> B3["dequeue 16-byte entry"]
-    B3 --> B4{opcode at job+0xc?}
-    B4 -->|0 = LOAD| B5["FUN_140679810(job, DAT_14140e9c8)"]
-    B4 -->|1 = SAVE| B6[save_atomic_orchestrator<br/>image+0x678f30]
-    B4 -->|2 = DELETE| B7["(*DAT_14140e9e0)(job, &name)"]
-    B6 --> C1[EnterCriticalSection<br/>manager+0x20]
-    C1 --> C2[FUN_14064b2f0 pre-save]
-    C2 --> C3[pre-save guard stub<br/>always returns 1 on PC]
-    C3 --> C4["job+0x79 = 1 (TEMP mode)"]
-    C4 --> C5["FUN_140679810(job, DAT_14140e9c0)<br/>writes Profile_1_Temp.ob"]
-    C5 --> C6["job+0x79 = 0 (TEMP mode off)"]
-    C6 --> C7[FUN_1405229b0<br/>CopyFileW Temp → real]
-    C7 --> C8["increment job+0x80 (done)<br/>set job+0x84 (result code)"]
-    C8 --> C9[LeaveCriticalSection]
-    C9 --> B2
-    C8 -.unblocks.-> A6
-  end
+1. `save_request_sync` (image+0x6797b0).
+2. Increment `job+0x7c` (pending counter).
+3. `saves_queue_enqueue` (image+0x6818a0).
+4. Push 16-byte entry to ring queue at `DAT_14143ffc0`.
+5. `ReleaseSemaphore` (`DAT_14143ff98`) — signals the worker.
+6. Busy-wait on `job+0x80` (done counter); blocks until worker finishes.
 
-  style A6 fill:#ffe6e6
-  style B6 fill:#e6e6ff
-```
+### Worker thread
+
+1. `saves_manager_worker_thread` (image+0x679150).
+2. `WaitForSingleObject` on the semaphore.
+3. Dequeue 16-byte entry.
+4. Branch on opcode at `job+0xc`:
+   - `0` (LOAD) → `FUN_140679810(job, DAT_14140e9c8)`.
+   - `1` (SAVE) → `save_atomic_orchestrator` (image+0x678f30).
+   - `2` (DELETE) → `(*DAT_14140e9e0)(job, &name)`.
+5. SAVE path:
+   1. `EnterCriticalSection` on `manager+0x20`.
+   2. `FUN_14064b2f0` pre-save guard stub (always returns 1 on PC).
+   3. `job+0x79 = 1` (TEMP mode on).
+   4. `FUN_140679810(job, DAT_14140e9c0)` — writes `Profile_1_Temp.ob`.
+   5. `job+0x79 = 0` (TEMP mode off).
+   6. `FUN_1405229b0` — `CopyFileW` Temp → real (`Profile_1.ob`).
+   7. Increment `job+0x80` (done) and set `job+0x84` (result code).
+   8. `LeaveCriticalSection`.
+   9. Loop back to step 2.
+
+The semaphore release in main-thread step 5 is what unblocks the worker's
+`WaitForSingleObject` in worker-thread step 2. The done-counter increment in worker-thread
+step 5.7 is what unblocks the main-thread busy-wait in step 6.
 
 ---
 
 ## 3. Class hierarchy & data layout (oCDtRootGs)
 
-The data_source struct with the embedded oCMemoryBinaryStream.
+The `data_source` struct with the embedded `oCMemoryBinaryStream`.
 
-```mermaid
-classDiagram
-  class oIGameState {
-    <<interface>>
-    +vftable
-  }
-  class oCConsolesRootGs {
-    +vftable
-  }
-  class oCDtRootGs {
-    +vftable @ 0x140ef49d8
-    +size = 0x21d0 bytes
-    +linked_list_next at +0x08
-    +oCDtGameProfile at +0x18d8
-    +saves_disabled_flag at +0x1ef4
-    +Serialize() at vtable[3]=0x140c01570
-  }
-  class oCDtGameProfile {
-    +vftable
-    +size = 0x3b8 bytes
-    +oIGameProfile_base at +0x00
-    +save_io_job at +0x50
-    +oCDtPlayerProfileData at +0x178
-  }
-  class oIGameProfile {
-    <<base>>
-    +vftable
-    +flag at +0x08
-    +DAT_140edbfa0 at +0x10
-    +save_io_job at +0x50
-  }
-  class save_io_job {
-    +path1_string at +0x00
-    +path2_string at +0x10
-    +oCMemoryBinaryStream at +0x20
-    +pending_seq at +0x7c
-    +completed_seq at +0x80
-    +result_code at +0x84
-  }
-  class oIWriteBinaryStream {
-    <<interface>>
-    +vtable[1] = Write
-  }
-  class oIReadBinaryStream {
-    <<interface>>
-    +vtable[1] = Read
-  }
-  class oCMemoryBinaryStream {
-    +vftable_write @ 0x140f28d80
-    +vftable_read  @ 0x140f28d48
-    +buffer_ptr at +0x10  (= job+0x30)
-    +capacity   at +0x18  (= job+0x38)
-    +used_size  at +0x24  (= job+0x44)
-    +Write() at vtable[1] = 0x1405257d0
-  }
+### Inheritance chain
 
-  oIGameState <|-- oCConsolesRootGs
-  oCConsolesRootGs <|-- oCDtRootGs
-  oCDtRootGs *-- oCDtGameProfile : embeds at +0x18d8
-  oIGameProfile <|-- oCDtGameProfile
-  oCDtGameProfile *-- save_io_job : embeds at +0x50
-  oIWriteBinaryStream <|-- oCMemoryBinaryStream
-  oIReadBinaryStream <|-- oCMemoryBinaryStream
-  save_io_job *-- oCMemoryBinaryStream : embeds at +0x20
 ```
+oIGameState (interface, has vftable)
+  └── oCConsolesRootGs (has vftable)
+        └── oCDtRootGs (vftable @ 0x140ef49d8, size 0x21d0)
+```
+
+### Class layout summary
+
+| Class | Size | Key fields |
+|---|---|---|
+| `oCDtRootGs` | `0x21d0` | vftable @ `0x140ef49d8`; `+0x08` linked_list_next; `+0x18d8` `oCDtGameProfile`; `+0x1ef4` saves_disabled_flag; `Serialize()` at vtable[3] = `0x140c01570` |
+| `oCDtGameProfile` | `0x3b8` | inherits `oIGameProfile` at `+0x00`; `save_io_job` at `+0x50`; `oCDtPlayerProfileData` at `+0x178` |
+| `oIGameProfile` (base) | — | `+0x08` flag; `+0x10` `DAT_140edbfa0`; `+0x50` `save_io_job` |
+| `save_io_job` | — | `+0x00` path1_string; `+0x10` path2_string; `+0x20` `oCMemoryBinaryStream`; `+0x7c` pending_seq; `+0x80` completed_seq; `+0x84` result_code |
+| `oCMemoryBinaryStream` | — | inherits `oIWriteBinaryStream` + `oIReadBinaryStream`; vftable_write @ `0x140f28d80`; vftable_read @ `0x140f28d48`; `+0x10` buffer_ptr (= `job+0x30`); `+0x18` capacity (= `job+0x38`); `+0x24` used_size (= `job+0x44`); `Write()` at vtable[1] = `0x1405257d0` |
+
+### Containment
+
+- `oCDtRootGs` *embeds* `oCDtGameProfile` at `+0x18d8`.
+- `oCDtGameProfile` *embeds* `save_io_job` at `+0x50`.
+- `save_io_job` *embeds* `oCMemoryBinaryStream` at `+0x20`.
 
 ---
 
 ## 4. Memory offsets (data_source absolute layout)
 
-Where the buffer pointer and size live within data_source.
+Where the buffer pointer and size live within `data_source`. Numbers are absolute offsets
+from the start of the `oCDtRootGs` struct.
 
-```mermaid
-flowchart TD
-  A["data_source (oCDtRootGs)<br/>0x21d0 bytes"] --> B["+0x00 vtable<br/>0x140ef49d8"]
-  A --> C["+0x08 linked_list_next"]
-  A --> D["+0x18d8 oCDtGameProfile<br/>0x3b8 bytes"]
-  A --> E["+0x1ef4 saves_disabled_flag (u8)"]
+| Offset | Field | Notes |
+|---|---|---|
+| `+0x0000` | vtable | `0x140ef49d8` |
+| `+0x0008` | linked_list_next | |
+| `+0x18d8` | `oCDtGameProfile` (embedded, 0x3b8 bytes) | start of profile section |
+| `+0x18d8` (`+0x00`) | `oIGameProfile` vtable | base-class vtable for the profile |
+| `+0x1928` (`+0x18d8 + 0x50`) | `save_io_job` (start) | path1 string |
+| `+0x1938` | path2 string | |
+| `+0x1948` | `oCMemoryBinaryStream` (write side vtable) | |
+| `+0x1950` | `oCMemoryBinaryStream` (read side vtable) | |
+| `+0x1958` | **buffer_ptr (u64)** ★ | NULL at construction; grown on Write |
+| `+0x1960` | **capacity (u32)** ★ | read by `save_atomic_orchestrator` as 'size' |
+| `+0x196c` | used_size (u32) | |
+| `+0x19a4` | pending_seq (u32) | |
+| `+0x19a8` | completed_seq (u32) | |
+| `+0x19ac` | result_code (u8) | |
+| `+0x1ef4` | saves_disabled_flag (u8) | bottom-line gate read by `session_finalize_and_save` |
 
-  D --> F["+0x18d8+0x00 oIGameProfile vtable"]
-  D --> G["+0x18d8+0x50 = +0x1928 save_io_job"]
-
-  G --> H["+0x1928+0x00 = +0x1928 path1 string"]
-  G --> I["+0x1928+0x10 = +0x1938 path2 string"]
-  G --> J["+0x1928+0x20 = +0x1948 oCMemoryBinaryStream<br/>(write side vtable)"]
-  G --> K["+0x1928+0x28 = +0x1950 oCMemoryBinaryStream<br/>(read side vtable)"]
-  G --> L["+0x1928+0x30 = +0x1958 ★ buffer_ptr (u64)<br/>NULL at construction; grown on Write"]
-  G --> M["+0x1928+0x38 = +0x1960 ★ capacity (u32)<br/>read by save_atomic_orchestrator as 'size'"]
-  G --> N["+0x1928+0x44 = +0x196c used_size (u32)"]
-  G --> O["+0x1928+0x7c = +0x19a4 pending_seq (u32)"]
-  G --> P["+0x1928+0x80 = +0x19a8 completed_seq (u32)"]
-  G --> Q["+0x1928+0x84 = +0x19ac result_code (u8)"]
-
-  style L fill:#ffe6e6
-  style M fill:#fff4e6
-```
+`+0x1958` and `+0x1960` are the two pointer/size slots `save_atomic_orchestrator` reads.
+First-write of `+0x1958` is the "★ THE PREP" hot spot — see §9, *Key unresolved items* §1.
 
 ---
 
 ## 5. Serialization paths (settings save vs run-state save)
 
-Two distinct serializer paths. The settings path uses oCBinarySaver+oCFileBinaryStream
-(direct file). The run-state path uses an embedded oCMemoryBinaryStream that grows
-in memory, then save_atomic_orchestrator copies bytes to disk.
+Two distinct serializer paths. The settings path uses `oCBinarySaver` + `oCFileBinaryStream`
+(direct file). The run-state path uses an embedded `oCMemoryBinaryStream` that grows in
+memory, then `save_atomic_orchestrator` copies bytes to disk.
 
-```mermaid
-flowchart TB
-  subgraph "Settings save path (GameSettings.ini, profile data)"
-    S1[settings_serialize_load_or_save_ini<br/>image+0x64b2f0] --> S2[oCBinarySaver constructor<br/>image+0x4e8ca0]
-    S2 --> S3["oCBinarySaver instance<br/>vtable @ 0x140f235e0"]
-    S3 --> S4["embedded oCFileBinaryStream<br/>at saver+0x20<br/>vtable @ 0x140f28d98"]
-    S4 --> S5["serialize_object_with_name<br/>(FUN_1404e9350)<br/>writes class registry +<br/>object section markers<br/>(0xAABB1111, 0xAABB2222)"]
-    S5 --> S6[per-object Serialize<br/>vtable slot 3 of each object]
-    S6 --> S7["oCFileBinaryStream::Write<br/>image+0x140f28d98 vt[1]"]
-    S7 --> S8[direct file write to .ini]
-  end
+### Settings save path (`GameSettings.ini`, profile data)
 
-  subgraph "Run-state save path (Profile_1.ob, chapter end)"
-    R1[chapter_end_work<br/>image+0x2907e0<br/>★ likely entry] --> R2["serializer / archive<br/>writes to embedded stream<br/>via vtable dispatch"]
-    R2 --> R3["embedded oCMemoryBinaryStream<br/>at data_source+0x1948"]
-    R3 --> R4["oCMemoryBinaryStream::Write<br/>image+0x5257d0 vt[1]<br/>grows buffer dynamically"]
-    R4 --> R5["buffer accumulated at<br/>*(data_source+0x1958)<br/>size at *(data_source+0x1960)"]
-    R5 --> R6["save_request_sync(NULL, job)<br/>via session_finalize_and_save"]
-    R6 --> R7[saves_manager_worker_thread]
-    R7 --> R8[save_atomic_orchestrator]
-    R8 --> R9["read *(job+0x30) + *(job+0x38)<br/>write to Profile_1_Temp.ob<br/>via oCFileBinaryStream::Write"]
-    R9 --> R10[CopyFileW → Profile_1.ob]
-  end
+1. `settings_serialize_load_or_save_ini` (image+0x64b2f0) →
+2. `oCBinarySaver` constructor (image+0x4e8ca0) →
+3. `oCBinarySaver` instance (vtable @ `0x140f235e0`) embeds `oCFileBinaryStream` at
+   `saver+0x20` (vtable @ `0x140f28d98`).
+4. `serialize_object_with_name` (`FUN_1404e9350`) writes class-registry section + object
+   section markers (`0xAABB1111`, `0xAABB2222`).
+5. Per-object `Serialize` (vtable slot 3 of each object).
+6. `oCFileBinaryStream::Write` (image+0x140f28d98 vt[1]) → direct file write to .ini.
 
-  style R3 fill:#fff4e6
-  style R4 fill:#ffe6e6
-```
+### Run-state save path (`Profile_1.ob`, chapter end)
+
+1. `chapter_end_work` (image+0x2907e0) — likely entry. Drives the serializer/archive that
+   writes to the embedded stream via vtable dispatch.
+2. Embedded `oCMemoryBinaryStream` at `data_source+0x1948`.
+3. `oCMemoryBinaryStream::Write` (image+0x5257d0 vt[1]) — grows buffer dynamically.
+4. Buffer accumulated at `*(data_source+0x1958)`; size at `*(data_source+0x1960)`.
+5. `save_request_sync(NULL, job)` via `session_finalize_and_save`.
+6. `saves_manager_worker_thread` →
+7. `save_atomic_orchestrator` →
+8. Read `*(job+0x30)` + `*(job+0x38)`, write to `Profile_1_Temp.ob` via
+   `oCFileBinaryStream::Write`.
+9. `CopyFileW` → `Profile_1.ob`.
+
+`oCMemoryBinaryStream` and its `Write` vtable slot are the hot spots — `Write` is what
+actually fills the in-memory buffer that the worker thread later flushes to disk.
 
 ---
 
 ## 6. Save call topology (verified)
 
-```mermaid
-flowchart TB
-  A[save_request_sync<br/>image+0x6797b0] --> A1[ONE caller:<br/>session_finalize_and_save<br/>image+0x28d6a0]
+Three relevant entry points and their callers.
 
-  B[save_request_async<br/>image+0x679760] --> B1[FOUR callers]
-  B1 --> B2[global_save_modal_init_dispatcher<br/>image+0x25d3b0<br/>at +0x25db45]
-  B1 --> B3[global_save_dispatcher_chapter_state<br/>image+0x261ca0]
-  B3 --> B3a[at +0x262f33]
-  B3 --> B3b[at +0x26308d]
-  B1 --> B4[profile_mark_chapter_complete_save<br/>image+0x26c700<br/>at +0x26c781]
-  B2 --> C["all four async callers target<br/>*(DAT_14140dd70)+8<br/>(global save manager)"]
-  B3a --> C
-  B3b --> C
-  B4 --> C
+### `save_request_sync` (image+0x6797b0)
 
-  D[saves_queue_enqueue<br/>image+0x6818a0] --> D1[lower-level direct queue push]
-  E[save_atomic_orchestrator<br/>image+0x678f30] --> E1[direct call bypasses queue]
+Exactly **one caller**: `session_finalize_and_save` (image+0x28d6a0). This is the *sync*
+trigger — caller blocks on the worker. Confirmed save trigger.
 
-  style A fill:#e6ffe6
-  style B fill:#e6f0ff
-  style C fill:#fff4e6
-```
+### `save_request_async` (image+0x679760)
+
+**Four callers**, all targeting `*(DAT_14140dd70)+8` (the global save manager):
+
+- `global_save_modal_init_dispatcher` (image+0x25d3b0, at +0x25db45)
+- `global_save_dispatcher_chapter_state` (image+0x261ca0, at +0x262f33 *and* +0x26308d)
+- `profile_mark_chapter_complete_save` (image+0x26c700, at +0x26c781)
+
+### Lower-level entry points (bypass)
+
+- `saves_queue_enqueue` (image+0x6818a0) — direct queue push.
+- `save_atomic_orchestrator` (image+0x678f30) — direct call, bypasses the queue.
 
 ---
 
 ## 7. Save format magic markers (binary save framing)
 
-Discovered in `FUN_1404e9350` (serialize_object_with_name).
+Discovered in `FUN_1404e9350` (`serialize_object_with_name`).
 
-```mermaid
-flowchart LR
-  A[save file framing] --> B["class registry section<br/>marker: 0xAABB1111<br/>at DAT_140eb3ae8"]
-  A --> C["object section<br/>marker: 0xAABB2222<br/>at DAT_140eb3aec"]
-  B --> B1["per class:<br/>m_sName (string)<br/>m_uId (u32)<br/>m_uVersionMaj (u16)<br/>m_uVersionMin (u16)<br/>m_uParentId (u32)"]
-  C --> C1["per object:<br/>uFoundIndex (u32, refs class)<br/>then object's Serialize()<br/>writes its fields"]
-```
+| Marker | Value | Stored at | Purpose |
+|---|---|---|---|
+| Class registry section | `0xAABB1111` | `DAT_140eb3ae8` | Frames the class-registry section |
+| Object section | `0xAABB2222` | `DAT_140eb3aec` | Frames the object section |
+
+### Per-class entry layout (inside class-registry section)
+
+- `m_sName` (string)
+- `m_uId` (u32)
+- `m_uVersionMaj` (u16)
+- `m_uVersionMin` (u16)
+- `m_uParentId` (u32)
+
+### Per-object entry layout (inside object section)
+
+- `uFoundIndex` (u32) — references a class entry by index
+- The object's `Serialize()` then writes its fields immediately after.
 
 ---
 
 ## 8. Anti-debug tripwires (empirical, 2026-04-29)
 
-```mermaid
-flowchart LR
-  A[Game running] --> B{WinDbg attached?}
-  B -->|no| C[normal operation]
-  B -->|yes| D{game-state transition?}
-  D -->|main menu / settings save| E[OK — BPs work]
-  D -->|boss-spawn| F["__debugbreak() fires<br/>process exits with<br/>STATUS_BREAKPOINT 0x80000003"]
-  D -->|boss-kill| G["__debugbreak() fires<br/>process exits with<br/>STATUS_BREAKPOINT 0x80000003"]
-  D -->|chapter-end animation<br/>(post-boss-die window)| H[OK — attach during<br/>this window is safe]
+Trip conditions when WinDbg is attached to the running game.
 
-  style F fill:#ffcccc
-  style G fill:#ffcccc
-  style H fill:#ccffcc
-```
+| Game state | Behavior with debugger attached |
+|---|---|
+| Main menu / settings save | OK — breakpoints work normally |
+| Boss-spawn transition | `__debugbreak()` fires; process exits with `STATUS_BREAKPOINT 0x80000003` |
+| Boss-kill transition | `__debugbreak()` fires; process exits with `STATUS_BREAKPOINT 0x80000003` |
+| Chapter-end animation (post-boss-die window) | OK — attaching during this window is safe |
+
+Implication: attach window for save-pipeline debugging is between the post-boss-die
+animation start and the modal callback firing. Don't attach during boss-spawn or
+boss-kill transitions.
 
 ---
 
 ## 9. Prep chain (refined 2026-04-30 night)
 
-End-to-end chain from session_finalize_and_save into the static prep candidate. The
-green node is the runtime-installed slot — its concrete class is selected by GameMode
-name and cannot be pinned by static analysis.
+End-to-end chain from `session_finalize_and_save` into the static prep candidate. The
+runtime-installed slot's concrete class is selected by `GameMode` name and cannot be
+pinned by static analysis alone.
 
-```mermaid
-flowchart TD
-  A[session_finalize_and_save<br/>image+0x28d6a0<br/>= GameSessionGs::vtable&#91;6&#93;] --> A1[FUN_14026f750/620<br/>list/state plumbing]
-  A1 --> B{session+0xa5<br/>saves enabled?}
-  B -->|no| B1[profile_data_manager+0x198<br/>vtable&#91;0x10&#93; teardown]
-  B -->|yes| C["R14 = *(scene_manager+0x708)<br/>= oe::dt::GameModeDefault*<br/>(size 0x48)"]
-  C --> D["RCX = *(R14+0x38)<br/>★ runtime-installed subsystem"]
-  D --> E["serializer = RCX->vtable&#91;0xf8&#93;()<br/>factory.create_serializer()"]
-  E --> F["serializer->vtable&#91;0x40&#93;(R14)<br/>★ THE PREP — populates memstream"]
-  F --> G[profile_data_manager+0x1e0 = serializer<br/>cache for later teardown]
-  B1 --> H[walk session+8 list<br/>→ data_source]
-  G --> H
-  H --> I["save_request_sync(NULL, data_source+0x1928)"]
+1. `session_finalize_and_save` (image+0x28d6a0) — `GameSessionGs::vtable[6]`.
+2. `FUN_14026f750` / `FUN_14026f620` — list/state plumbing.
+3. Branch on `session+0xa5` (saves enabled?):
+   - **No** → `profile_data_manager+0x198`, `vtable[0x10]` teardown. End.
+   - **Yes** → continue:
+     1. `R14 = *(scene_manager+0x708)` — points to `oe::dt::GameModeDefault*` (size 0x48).
+     2. `RCX = *(R14+0x38)` — **runtime-installed subsystem** (the slot whose concrete
+        class is GameMode-dependent; this is the "green node" — known by structure, not
+        by name).
+     3. `serializer = RCX->vtable[0xf8]()` — factory creates the serializer.
+     4. `serializer->vtable[0x40](R14)` — **THE PREP** — populates the memstream
+        (red hot-spot; first-writer of `*(data_source+0x1958)`).
+     5. `profile_data_manager+0x1e0 = serializer` — cache for later teardown.
+4. Walk `session+8` linked list → `data_source`.
+5. `save_request_sync(NULL, data_source+0x1928)`.
 
-  subgraph "Earlier in session_finalize_and_save (NOT prep)"
-    Z["scene_manager+0x230<br/>= cached oCDtP2PSessionSceneContext"]
-    Z --> Z1["vtable&#91;0xd0&#93; =<br/>oCDtP2PSession_shutdown_raknet<br/>(network teardown, NOT prep)"]
-  end
+**Earlier in `session_finalize_and_save` (NOT prep — distractor):**
+`scene_manager+0x230` is the cached `oCDtP2PSessionSceneContext`; its `vtable[0xd0]` is
+`oCDtP2PSession_shutdown_raknet` (network teardown, not a save prep).
 
-  style D fill:#e6ffe6
-  style F fill:#ffe6e6
-  style Z1 fill:#cccccc
-```
+---
 
 ## 10. GameModeDefault+0x38 install path (registry by name)
 
 How the prep target gets installed. Static analysis reveals the mechanism but cannot
 resolve the concrete class.
 
-```mermaid
-flowchart LR
-  A[oe_dt_GameMode_constructor<br/>image+0x31b950] --> A1["param_1+0x38 = NULL"]
-  A1 --> B[scan registry<br/>*(DAT_141447698+0x30)]
-  B --> C{entry+0x8 ==<br/>magic 0x53b64d?}
-  C -->|no| B
-  C -->|yes| D["handler = entry+0x10"]
-  D --> E["handler->vtable&#91;0x18&#93;(<br/>  handler,<br/>  name_string,<br/>  _DAT_1412c7590,<br/>  &param_1+0x38, ←OUT<br/>  0)"]
-  E --> F["+0x38 ← concrete subsystem*<br/>(class depends on name_string)"]
+### Constructor path
 
-  G[module_registry_init_with_magic_0x53b64d<br/>image+0x442bb0] --> G1[iterate global module list<br/>DAT_141414090]
-  G1 --> G2[per module:<br/>insert entry tagged 0x53b64d<br/>into per-module registry]
+1. `oe_dt_GameMode_constructor` (image+0x31b950).
+2. `param_1+0x38 = NULL` (initialize the slot).
+3. Scan registry at `*(DAT_141447698+0x30)`:
+   - For each entry, check `entry+0x8 == 0x53b64d` (magic).
+   - On match: `handler = entry+0x10`.
+4. Call `handler->vtable[0x18](handler, name_string, _DAT_1412c7590, &param_1+0x38, 0)`
+   — last arg is the OUT pointer; the call writes the concrete subsystem pointer back
+   into `param_1+0x38`.
+5. `+0x38` now holds a `concrete subsystem*` whose class depends on `name_string`.
 
-  style F fill:#fff4e6
-```
+### Module-registry init (where the magic-tagged entries come from)
+
+1. `module_registry_init_with_magic_0x53b64d` (image+0x442bb0).
+2. Iterates global module list at `DAT_141414090`.
+3. Per module: inserts an entry tagged `0x53b64d` into the per-module registry.
+
+So the registry is populated at module-init time; lookups happen at GameMode construction.
+
+---
 
 ## 11. Modal_Save_Or_Quit.entity.ot decoded layout
 
 The cooked `.gen` format that defines the chapter-end save dialog.
 
-```mermaid
-flowchart TD
-  A["File header (16 bytes)<br/>'Cooked' identifier"] --> B[u32 count + u8 marker]
-  B --> C["0xAABB1111 — section start"]
-  C --> D[Class registry<br/>14 classes for this modal]
-  D --> D1[oCEntitySettingsResource]
-  D --> D2[oCEntityCpntWindowUiSettings]
-  D --> D3[oCEntityCpntLabelUiSettings × N buttons]
-  D --> D4[oCEntityCpntPicker / oIUniqueObjectPicker<br/>references Modal_Model.entity.ot]
-  C --> E["0xAABB1111 — object section start"]
-  E --> F["Object bodies<br/>class_index + 16-byte GUID + class fields"]
-  F --> F1[Title<br/>→ Message_Save_And_Quit_Title<br/>(Common~GAM.xls)]
-  F --> F2[Description<br/>→ Message_Save_And_Quit_Description]
-  F --> F3["★ Cancel button<br/>→ Message_Save_And_Quit<br/>(USER-FACING 'Save and Quit')"]
-  F --> F4[Validate button<br/>→ Message_Continue<br/>USER-FACING 'Continue']
-  F --> G["0xAABB2222 — section end"]
+### File framing
 
-  H["NOTE: no callback IDs in .gen<br/>buttons are abstract Cancel/Validate<br/>wiring is C++-bound<br/>OnCancel of host = 'Save and Quit'"]
+1. **Header** — 16 bytes, `'Cooked'` identifier.
+2. **u32 count + u8 marker** — preamble.
+3. **`0xAABB1111` — section start** (class registry section).
+4. **Class registry** — 14 classes for this modal:
+   - `oCEntitySettingsResource`
+   - `oCEntityCpntWindowUiSettings`
+   - `oCEntityCpntLabelUiSettings` × N buttons
+   - `oCEntityCpntPicker` / `oIUniqueObjectPicker` (references `Modal_Model.entity.ot`)
+   - (and the rest of the 14, listed in the asset itself)
+5. **`0xAABB1111` — object section start** (note: same marker; section disambiguated by
+   position).
+6. **Object bodies** — each: `class_index (u32)` + 16-byte GUID + class fields.
+7. **`0xAABB2222` — section end**.
 
-  style F3 fill:#ffe6e6
-  style H fill:#fff4e6
-```
+### Object semantics (the labels you see in-game)
+
+| Object | Localization key | User-facing string |
+|---|---|---|
+| Title | `Message_Save_And_Quit_Title` (Common~GAM.xls) | (title text) |
+| Description | `Message_Save_And_Quit_Description` | (body text) |
+| **Cancel button** ★ | `Message_Save_And_Quit` | "Save and Quit" — this is the action |
+| Validate button | `Message_Continue` | "Continue" |
+
+### Note — buttons are abstract
+
+There are no callback IDs in the `.gen`. The buttons are abstract `Cancel` / `Validate`
+slots. The wiring is C++-bound: the host's `OnCancel` handler is what implements
+"Save and Quit." So picking it apart in `.gen` only gives you label + structure, not
+behavior.
+
+---
 
 ## Locating these symbols on a new build
 
-Per `rw/docs/README.md` §"Locating <thing>" — RE-side template. This is a diagram doc; nearly every RVA cited here is anchored elsewhere. **Re-anchor `save-subsystem.md` first** (its Tier 1-5 anchor tables cover all save-subsystem RVAs in this doc) and the diagrams here remain valid.
+Per `rw/docs/README.md` §"Locating <thing>" — RE-side template. This is an architecture
+doc; nearly every RVA cited here is anchored elsewhere. **Re-anchor `save-subsystem.md`
+first** (its Tier 1-5 anchor tables cover all save-subsystem RVAs in this doc) and the
+content here remains valid.
 
 ### Symbols specific to this doc
 
@@ -423,13 +401,25 @@ Per `rw/docs/README.md` §"Locating <thing>" — RE-side template. This is a dia
 
 ### Cross-finding anchoring
 
-This doc is composed almost entirely of cross-references to `save-subsystem.md` and `frida-pipeline-hardware-breakpoint.md`. Re-anchoring those two findings updates this one transitively. No locator section unique to this doc beyond what those two provide.
+This doc is composed almost entirely of cross-references to `save-subsystem.md` and
+`frida-pipeline-hardware-breakpoint.md`. Re-anchoring those two findings updates this one
+transitively. No locator section unique to this doc beyond what those two provide.
 
 ## Key unresolved items
 
-1. **Where exactly is `*(data_source + 0x1958)` first written non-NULL?** Static analysis hits a ceiling because the write happens via vtable-dispatched `oCMemoryBinaryStream::Write` calls that aren't in the xref graph. The cleanest path forward is a hardware data breakpoint on the buffer-pointer slot during a real chapter run. The instruction at the fire point IS the prep call.
-2. **What is `oCDtRootGs::vtable[3]` (= 0x140c01570) actually?** Disassembly shows it's a code chunk inside a larger function (`FUN_140c01480`) that uses critical sections — looks like a thread-safe init/finalizer, not a Serialize method. The data_source's actual Serialize entry may be at a different vtable slot or invoked via a different mechanism.
-3. **Modal callback → `session_finalize_and_save` link.** When the user clicks Save and quit on the modal, what wires the click to invoke `session_finalize_and_save`? The vtable that holds it (at `0x140efa120` slot 0) has no callers in static xrefs.
+1. **Where exactly is `*(data_source + 0x1958)` first written non-NULL?** Static analysis
+   hits a ceiling because the write happens via vtable-dispatched `oCMemoryBinaryStream::Write`
+   calls that aren't in the xref graph. The cleanest path forward is a hardware data
+   breakpoint on the buffer-pointer slot during a real chapter run. The instruction at the
+   fire point IS the prep call.
+2. **What is `oCDtRootGs::vtable[3]` (= `0x140c01570`) actually?** Disassembly shows it's
+   a code chunk inside a larger function (`FUN_140c01480`) that uses critical sections —
+   looks like a thread-safe init/finalizer, not a Serialize method. The `data_source`'s
+   actual Serialize entry may be at a different vtable slot or invoked via a different
+   mechanism.
+3. **Modal callback → `session_finalize_and_save` link.** When the user clicks "Save and
+   quit" on the modal, what wires the click to invoke `session_finalize_and_save`? The
+   vtable that holds it (at `0x140efa120` slot 0) has no callers in static xrefs.
 
 ## Cross-references
 
