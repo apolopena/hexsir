@@ -1,25 +1,21 @@
 #!/usr/bin/env python3
 """
-telemetry-warden — block and log Ravenswatch telemetry calls.
+telemetry-warden — block Ravenswatch telemetry calls and report each one to stdout.
 
 Run from a Windows admin terminal (binds privileged ports 80/443):
 
     python warden.py
 
-Stop with Ctrl+C. Logs to blocked.log alongside this script.
-
-Stdlib only — no external deps.
+Stop with Ctrl+C. Stdlib only — no external deps. Nothing is written to disk.
 """
 
 import datetime
-import os
 import socket
 import struct
 import sys
 import threading
 
 PORTS = [80, 443, 8888]
-LOG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "blocked.log")
 
 _state_lock = threading.Lock()
 _total = 0
@@ -65,16 +61,13 @@ def parse_http_host(data: bytes) -> str | None:
     return None
 
 
-def log_block(host: str, port: int, kind: str) -> None:
+def report_block(host: str, port: int, kind: str) -> None:
     global _total
     ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    line = f"{ts}  BLOCKED  {host}:{port}  ({kind})\n"
     with _state_lock:
         _total += 1
         _by_host[host] = _by_host.get(host, 0) + 1
-        with open(LOG_PATH, "a", encoding="utf-8") as f:
-            f.write(line)
-        sys.stdout.write(line)
+        sys.stdout.write(f"{ts}  BLOCKED  {host}:{port}  ({kind})\n")
         sys.stdout.flush()
 
 
@@ -94,7 +87,7 @@ def handle(client: socket.socket, port: int) -> None:
             else:
                 host = parse_http_host(data)
                 kind = "HTTP"
-        log_block(host or "<unknown>", port, kind)
+        report_block(host or "<unknown>", port, kind)
     finally:
         try:
             client.close()
@@ -119,7 +112,6 @@ def listener(port: int) -> None:
 
 def main() -> None:
     print(f"telemetry-warden — listening on 127.0.0.1:{','.join(map(str, PORTS))}")
-    print(f"log file: {LOG_PATH}")
     print("stop with Ctrl+C\n")
     for p in PORTS:
         threading.Thread(target=listener, args=(p,), daemon=True).start()
