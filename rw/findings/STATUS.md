@@ -22,6 +22,7 @@ Source of truth: the `**Status:**` line at the top of each `rw/findings/<name>.m
 | in-progress | [talent-picker-weighting.md](talent-picker-weighting.md) | Talent picker — count override + rarity-weighting pipeline |
 | in-progress | [transporter-placement-primitive.md](transporter-placement-primitive.md) | Transporter — placement primitive on encyclopedia map landmarks |
 | confirmed | [chapter-boss-portal-trigger.md](chapter-boss-portal-trigger.md) | Chapter boss-arrival trigger — force the portal on demand |
+| confirmed | [cooked-format-schemas.md](cooked-format-schemas.md) | Cooked-format per-class schemas — herodef + entity-settings |
 | confirmed | [held-dream-shards.md](held-dream-shards.md) | Held Dream Shards — bytefield reference |
 | confirmed | [hero-swaps.md](hero-swaps.md) | Save: hero swap |
 | confirmed | [hero-table.md](hero-table.md) | Hero asset table |
