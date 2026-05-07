@@ -1,5 +1,6 @@
 ---
 description: Generate a context handoff document so another agent can pick up where you left off
+disable-model-invocation: true
 ---
 
 ## Instructions

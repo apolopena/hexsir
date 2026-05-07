@@ -36,8 +36,10 @@ Source of truth: the `**Status:**` line at the top of each `rw/findings/<name>.m
 | confirmed | [save-flow-diagrams.md](save-flow-diagrams.md) | Save flow architecture (Ravenswatch) |
 | confirmed | [save-silencer-mechanism.md](save-silencer-mechanism.md) | Save silencer mechanism — definitive root cause |
 | confirmed | [save-subsystem.md](save-subsystem.md) | Save: subsystem architecture and live-trigger map |
+| confirmed | [steam-playtime-not-game-driven.md](steam-playtime-not-game-driven.md) | Steam profile playtime is session-based, not game-driven |
 | confirmed | [talent-records.md](talent-records.md) | Save: talent records |
 | confirmed | [talents.md](talents.md) | Talent names (partial) |
+| confirmed | [telemetry-surface-and-warden.md](telemetry-surface-and-warden.md) | Telemetry surface + telemetry-warden block tool |
 | archived | [decoder-work-2026-04-30.md](decoder-work-2026-04-30.md) | DecoderWork — `.gen` and `Profile_1.ob` decoder |
 | archived | [geppetto-save-analysis.md](geppetto-save-analysis.md) | Geppetto Save File Analysis |
 | archived | [level-runtime-address.md](level-runtime-address.md) | Runtime Level address (Geppetto) |
