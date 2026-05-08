@@ -91,7 +91,7 @@ The two `+0x00` slots (master copies) hold the displayed seed exactly. The two `
 
 ## Source of the master
 
-The master arrives in a tagged message struct, extracted at `param_2 + 0x1c` of `apply_session_seed_to_scene_contexts`. The dispatcher `FUN_1402696a0` shows the message envelope:
+The master arrives in a tagged message struct, extracted at `param_2 + 0x1c` of `apply_session_seed_to_scene_contexts`. The dispatcher `dispatch_session_seed_message` (RVA `0x2696a0`) shows the message envelope:
 
 ```c
 if (*(int *)(param_3 + 8) == 0x15dba49e) {       // tag = "apply session seed" event
@@ -103,7 +103,7 @@ if (*(int *)(param_3 + 8) == 0x15dba49e) {       // tag = "apply session seed" e
 }
 ```
 
-Three callers exist: `FUN_140266500`, `FUN_1402674a0`, `FUN_1402696a0` — all tag-dispatch handlers, likely covering host-init / save-load / multiplayer-replicate variants. Determining which originates the master value is open work; for forcing, the hook at `apply_session_seed_to_scene_contexts` entry is upstream of all three.
+Three callers of `apply_session_seed_to_scene_contexts` exist: `dispatch_session_seed_message` (verified handler for tag `0x15dba49e`), plus `FUN_140266500` and `FUN_1402674a0` — likely sister dispatchers covering host-init / save-load / multiplayer-replicate variants, not yet decompiled. Determining which originates the master value is open work; for forcing, the hook at `apply_session_seed_to_scene_contexts` entry is upstream of all three.
 
 ## What the master controls vs. doesn't
 
