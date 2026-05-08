@@ -91,14 +91,14 @@ Content-Type: `application/json`. Transport: WinHTTP.
 The warden takes the network-layer block + log approach. Architecture:
 
 1. **Hosts file edit** (one-time, manual): each telemetry hostname pinned to `127.0.0.1`. Uses Windows's standard hosts file at `C:\Windows\System32\drivers\etc\hosts`. Marker comments `# === BEGIN/END ravensmith telemetry-warden ===` make the entries trivially reversible.
-2. **Local listener**: `warden.py` binds `127.0.0.1` ports `80`, `443`, and `8888`. On each incoming connection, peeks the first ~2 KB, parses the SNI extension from the TLS ClientHello (or `Host:` header for plain HTTP), writes one line to `blocked.log`, and closes the socket without responding. Game's WinHTTP request fails as a connection-reset; the game treats it as a flaky network error and either drops the event or queues for retry — every retry hits the same wall.
-3. **Output**: one line per blocked attempt: `2026-05-07 14:32:01  BLOCKED  dt-live.passtechgames.com:443  (TLS)`. End-of-session summary prints a per-host count.
+2. **Local listener**: `warden.py` binds `127.0.0.1` ports `80`, `443`, and `8888`. On each incoming connection, peeks the first ~2 KB, parses the SNI extension from the TLS ClientHello (or `Host:` header for plain HTTP), prints one line to stdout, and closes the socket without responding. Game's WinHTTP request fails as a connection-reset; the game treats it as a flaky network error and either drops the event or queues for retry — every retry hits the same wall.
+3. **Output**: one line per blocked attempt to stdout: `2026-05-07 14:32:01  BLOCKED  dt-live.passtechgames.com:443  (TLS)`. End-of-session summary prints a per-host count. Warden never writes to disk (per MAINT-43); redirect stdout if persistence is wanted.
 
 ### Design choices and rejected alternatives
 
 - **Why localhost listener, not just blackhole?** A bare hosts-file blackhole works (TCP connect to `127.0.0.1` with nothing listening fails immediately) but produces no log. The listener exists only to log what was attempted — proof that blocking is effective, plus visibility into what the game tried to send.
 - **Why no TLS termination / payload visibility?** Originally proposed, then dropped per "do one thing" feedback. Terminating TLS would require generating a CA, installing it in the Windows trust store, and per-host cert minting on the fly — too invasive for the goal of "block and report." We see hostname and port; we don't see encrypted body content. That's enough to confirm the block.
-- **Why not Frida hook on `passtech_analytics_post_event`?** Considered as a supplement (logs from inside the game what it would have sent, no certs needed, more granular). Not built — kept for later if cert pinning ever shows up. The hosts-file + listener approach handles the entire surface today.
+- **Why not Frida hook on `passtech_analytics_post_event`?** Considered as a supplement (logs from inside the game what it would have sent, no certs needed, more granular). **Built later as `tools/frida/mods/powers/Telemetry.js`** — but pivoted to hooking `winhttp!WinHttpSendRequest` instead of `passtech_analytics_post_event`. The Stormancer login function (`UsersApi::loginImpl`) was buried in C++ async-task lambda machinery (no direct Ghidra xref), and going through WinHTTP catches all telemetry layers — login, analytics, Backtrace — in one hook. See "Telemetry power" section below.
 - **Why not Windows Firewall outbound rule?** Firewall rules match by IP, not hostname. Cloud Run IPs rotate. And the firewall log doesn't include host info — you'd see "blocked outbound to 35.x.y.z" without knowing which telemetry endpoint that was.
 
 ### Operational notes
@@ -108,9 +108,43 @@ The warden takes the network-layer block + log approach. Architecture:
 - If port `:80` is owned by something else (rare; usually IIS), :443 and :8888 binds still succeed and catch the bulk of traffic.
 - Stop with Ctrl+C. Hosts entries persist across sessions; the listener is the only thing you toggle.
 
+## tools/frida/mods/powers/Telemetry.js — in-process companion
+
+Frida-side complement to the warden, built MAINT-45/47. Loaded via `loadPower("Telemetry")`. Hooks `winhttp!WinHttpSendRequest` once at load with a host-suffix filter (`passtechgames.com`, `nacon-os.com`, `nacon-os-rec`, `submit.backtrace.io`, `.a.run.app`). API:
+
+- `Telemetry.disable()` — matched calls return `BOOL FALSE` without doing any I/O. No socket, no DNS, no TLS handshake. The warden goes silent for those hosts because nothing reaches the network layer.
+- `Telemetry.enable()` — restore default; matched calls pass through to WinHTTP normally.
+- `Telemetry.log(on?)` — toggle stdout printing of cleartext request bodies. WinHTTP's `lpOptional` arg is the cleartext payload; TLS encryption happens *inside* WinHTTP after the function returns, so we read the JSON / auth blob before it gets encrypted. Stdout only — never writes to disk.
+- `Telemetry.stats()` — `{matched, blocked, logged}` counters since load.
+
+**Why both warden and power.** The warden is the always-on broad net (catches anything hitting blocked hostnames at the network layer, including paths we haven't reverse-engineered). The Telemetry power is surgical — kills the calls inside the process, stops the retry storm at its source, and gives cleartext-body visibility. Two layers, different scopes:
+
+| Path | Warden catches? | Telemetry power catches? |
+|---|---|---|
+| `passtech_analytics_post_event` JSON POSTs | yes (network drop) | yes (function-call block + body read) |
+| Stormancer `UsersApi::loginImpl` retries to `dt-live*` | yes | yes |
+| Backtrace crash upload | yes | yes |
+| Endpoint hitting a *new* host warden's hosts file doesn't include | no | yes (if URL hostname matches power's filter pattern) |
+| Endpoint hitting a host *neither* knows about | no | no — surfaces in the next URL-string scan |
+
+## Stormancer-login retry storm — what dt-live spam actually is
+
+When the warden first went up, only `nacon-os.com` calls were observed (~2 over 2 minutes). After Frida-driven gameplay tampering and several crashes, `dt-live.passtechgames.com` started spamming roughly once per second. Initial investigation suggested it might be persisted analytics queue from prior sessions; the actual cause was found in `_Logs/logs_*.txt`:
+
+```
+| Stormancer | ApiClient.getFederation | Can't reach the server endpoint. https://dt-live.passtechgames.com
+| Stormancer | UsersApi::loginImpl | Login failed with recoverable error, doing another attempt.
+```
+
+So `dt-live*.passtechgames.com` isn't (only) an analytics host — it's also the **Stormancer multiplayer federation server**. Stormancer's `UsersApi::loginImpl` auto-fires on game launch (or first time the user navigates to a multiplayer-aware UI), the warden blocks the connection, Stormancer marks it as a "recoverable error," and re-tries roughly every second hitting both mirrors (`dt-live` then `dt-live-2`). This is *Stormancer's design* — the retry never gives up. Implications:
+
+- The dt-live spam is **login retries**, not gameplay analytics. The Telemetry power's `disable()` is the cleanest way to silence it (kills the WinHttpSendRequest call before it reaches the network layer).
+- The retry storm is fully session-recreated, not disk-persisted. No state file feeds it; quitting the game empties the queue, relaunching reproduces the same behavior because Stormancer always tries to login.
+- "Solo play needs no multiplayer login" — `Telemetry.disable()` is safe for solo runs. Multiplayer matchmaking won't work while disabled.
+
 ## Known limitations
 
-- **Cert pinning** would silently break visibility (TLS handshake fails before our peek can read SNI). The traffic still gets blocked because `127.0.0.1` is the only resolution. Detection: if BLOCKED log lines stop appearing while the game is actively running with internet access, pinning is suspected. Fallback: write a Frida hook on `passtech_analytics_post_event` early-return.
+- **Cert pinning** would silently break warden visibility (TLS handshake fails before our peek can read SNI). The traffic still gets blocked because `127.0.0.1` is the only resolution. Detection: if BLOCKED stdout lines stop appearing while the game is actively running with internet access, pinning is suspected. Fallback: use the Telemetry power's `log()` mode for body visibility — the WinHTTP-layer hook is unaffected by cert pinning since it reads cleartext before WinHTTP touches TLS.
 - **Stormancer matchmaking analytics** is a separate code path tied to multiplayer queueing. Solo play shouldn't reach it; not currently in the block list. Add `submit.backtrace.io`-style entry if it surfaces in future logs.
 - **Studio could change the host list in a patch.** Re-run the URL-string search after every game update; new hosts (`https://...passtechgames.com` / `nacon-os` / new Cloud Run subdomains) get appended to the hosts file.
 
