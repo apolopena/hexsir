@@ -229,6 +229,13 @@ every call (no collision but doubled cost + log noise) and tightly
 couples the mod to internals it didn't audit. This is the only real
 multi-load risk; idempotent loads are the design's normal case.
 
+## Resolving DLL exports
+
+Use `Process.findModuleByName("dll").findExportByName("Func")` — the instance
+form. The static `Module.findExportByName(...)` was removed in newer Frida and
+throws `TypeError: not a function` on load. Null-check the module: DLLs like
+`winhttp.dll` may not be loaded yet when a power evaluates.
+
 ## Logging
 
 Every log line starts with `[<Name>]` or `[<Name>.method]` so output is
@@ -324,6 +331,7 @@ Before considering a new power "done":
 - [ ] Every public method has a fenced docstring with TS-style signature
 - [ ] State is on `RW`, guarded with `if (!RW._x) RW._x = {}`
 - [ ] Hooks are tracked + re-detached on re-load
+- [ ] DLL exports resolved via `Process.findModuleByName(...).findExportByName(...)`, not the removed static `Module.findExportByName`
 - [ ] `RW.registerMod("power:<Name>", version)` is called
 - [ ] Log lines all use `[<Name>]` prefix
 - [ ] `loadPower("<Name>")` followed by `help("<Name>")` shows every method

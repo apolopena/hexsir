@@ -23,6 +23,13 @@
 
 ## Done
 <!-- DONE_START -->
+MAINT-45: Telemetry power — block / inspect outbound telemetry calls at WinHTTP layer (2026-05-07)
+  - New `tools/frida/mods/powers/Telemetry.js` (v0.1.0). Hooks `winhttp!WinHttpSendRequest` once at load; matched-host filter (passtechgames.com, nacon-os.com, nacon-os-rec, submit.backtrace.io, .a.run.app) drives runtime flags. API: `disable()` (return BOOL FALSE for matches — no socket, no DNS, no TLS handshake; warden goes silent for those hosts), `enable()` (matched calls pass through), `log(on?)` (toggle cleartext-body printing — reads `lpOptional` before WinHTTP encrypts; works in either state), `stats()` (matched / blocked / logged counters).
+  - Pivot from the original `UsersApi::loginImpl` plan: the Stormancer login function is buried in C++ async-task lambda machinery (Ghidra didn't name it; xrefs go through std::function and PPL task continuations). WinHTTP-layer hook is broader on purpose — kills login + analytics + crash uploads in one place — and is the right blast radius for a "stop solo-play telemetry" power.
+  - Registered in `tools/frida/rw_lab.js` (header comment block + startup banner).
+  - Added §"Resolving DLL exports" to `tools/frida/CODE_STANDARDS.md`: use `Process.findModuleByName("dll").findExportByName("Func")` (instance form). Static `Module.findExportByName(...)` was removed in newer Frida and throws `TypeError: not a function` on load. New checklist item too.
+  - Cross-references `rw/findings/telemetry-surface-and-warden.md` for the host list rationale and the warden companion tool.
+
 MAINT-44: Hourglass power — reward-item spawn-on-demand wrapper (2026-05-07)
   - New `tools/frida/mods/powers/Hourglass.js` (v0.3.0). Thin wrapper around the verified `SpawnerProbe.expr_summonAtPlayer({nameMatch:"NoModel+2Cpnt", index:0, noWarp:true})` primitive — fires the chapter hourglass's early-boss-reward item on demand. Auto-loads + arms `spawner_probe` on power load (`RW.loadMod("spawner_probe")` then `expr_armSpawnerCtor()` if not already armed); user only calls `loadPower("Hourglass")`.
   - API: `spawnItem()` (one-shot, quiet), `spawnItem({intervalMs})` (periodic, quiet), `spawnItem({verbose:true})` (let underlying logs through), `spawnItemStop()`. Quiet by default — wraps the underlying call in a `console.log` redirect to keep interval mode from flooding the REPL. Pre-active hourglass: one fire per state transition; active hourglass (player out of safe zone): re-fires indefinitely.
