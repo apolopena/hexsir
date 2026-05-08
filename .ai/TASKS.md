@@ -23,6 +23,11 @@
 
 ## Done
 <!-- DONE_START -->
+MAINT-52: Map refactor + EntitySpawners util + setPosition snap dig (2026-05-08)
+  - **Map → pure coordinate getters.** `tools/frida/mods/powers/Map.js` v0.9.0 (`bounds` / `size` / `center` / `sandmanShop` / `point` / `randomPoint` / `peakY` / `resetChapter`). Center XZ from Gpn-cube math (symmetric padding decompile re-confirmed); Y from `Teleporter_Start_<chapter>` plate. Composes with Transporter v0.3.0, which adds a `(point, ...)` overload to `warpPlayer` and an experimental `dropPlayer(point, height?)` (off-map prep + in-map target, Y clamped 50).
+  - **New shared util `RW.EntitySpawners`** at `tools/frida/util/EntitySpawners.js` v0.1.0 — single ctor hook on `0x2d0ee0` at IIFE time, surface `size` / `find` / `filter`. Auto-loaded by Map. Hourglass / SpawnerProbe migration to read from it tracked in wishlist.
+  - **Finding:** `rw/findings/player-setposition-reconciliation.md` (in-progress) — camera renders pos writes immediately; player movement controller resolves on input-coupled tick. Off-map prep recipe non-deterministic; snap-prop hypothesis falsified mid-session. Open: locate controller tick function (Ghidra). No annotations applied this session (read-only / parallel mode).
+
 MAINT-51: Master chapter seed forcing + ctor registry util (2026-05-08)
   - **Headline: deterministic chapter map + camps via Frida.** New `tools/frida/mods/powers/Seed.js` v0.1.0 hooks `apply_session_seed_to_scene_contexts` (RVA `0x26af00`) entry, overwrites the master at `args[1] + 0x1c` when armed. API: `Seed.set(value)` / `Seed.clear()` / `Seed.status()`. Setup-bound (`*` in `rw_lab.js` listing). Live-verified by user: forces camps + camp placement deterministic; talents/items/chests/shops stay random (separate TLS+0xff3c path per `rng-behavior.md`).
   - **Architecture mapped + live-verified:** master at `param_2 + 0x1c` is distributed by `apply_session_seed_to_scene_contexts` to four per-context subseed pairs — `EntitySceneContext+0x3b8/+0x3bc`, `MapSceneContext+0x80/+0x84` (rewards, was already named), and two unknown global slots at `DAT_141446a78` / `DAT_141446a98`. Each pair: master at +0x00, `PCG_step(master)` at +0x04. Verified by reading the on-screen seed `0x6690D7DE` and observing it at both `MapSceneContext+0x80` and `EntitySceneContext+0x3b8` simultaneously.

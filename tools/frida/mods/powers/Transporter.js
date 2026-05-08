@@ -1,5 +1,6 @@
 // Transporter.js — warp entities or the player to specified world coords,
-// with optional auto-restore after a roundtrip.
+// with optional auto-restore after a roundtrip; drop the player from above
+// with the off-map prep needed to bypass the engine's grounded snap.
 //
 // Mechanism: the placement primitive is oCEntity::setPosition at vtable
 // slot +0x50 (RVA 0x6ca7f0) — writes the entity's position field at
@@ -8,6 +9,15 @@
 // warpEntity re-issues setPosition on a 500ms tick interval. The player
 // has its own movement controller that respects a single setPosition
 // without ticking, so warpPlayer is one-shot.
+//
+// Drop semantics: setPosition on a grounded player snaps the destination
+// to the nearest walkable surface — Y is effectively ignored. To drop
+// the player from above, a prior setPosition to off-map coords clears
+// the grounded state (no walkable surface nearby), and a subsequent
+// in-map setPosition then respects Y and gravity carries the player
+// down. Both writes happen in the same JS turn; the engine processes
+// them in order. Empirically observed Y ceiling for accepted drops:
+// absolute Y ≤ 50; higher values re-engage the snap.
 //
 // Caveat — invisible-anchor entities:
 //   Some entries in the encyclopedia (e.g. "[Entity spawner] NoModel",
@@ -27,12 +37,15 @@
 //   - RW.Entity (hub helper)
 //
 // REPL surface (after loadPower("Transporter")):
-//   Transporter.warpEntity(name: string, x, y, z, roundtrip?): void
+//   Transporter.warpEntity(name, x, y, z, roundtrip?): void
 //   Transporter.warpPlayer(x, y, z, roundtrip?): void
+//   Transporter.warpPlayer(point, roundtrip?): void           overload
+//   Transporter.dropPlayer(x, y, z, height?): void
+//   Transporter.dropPlayer(point, height?): void              overload
 //   Transporter.clear(): void
 
 (function () {
-    var version = "0.2.0";
+    var version = "0.3.0";
     var mod = Process.findModuleByName("Ravenswatch.exe");
     if (!mod) { console.log("[Transporter] FATAL: no Ravenswatch.exe"); return; }
     var imageBase = mod.base;
@@ -41,10 +54,16 @@
     var SET_POS_VT_SLOT = 0x50;
     var TICK_MS         = 500;
 
+    // Drop semantics — see file header.
+    var DROP_HEIGHT_DEFAULT = 20;
+    var DROP_Y_CEILING      = 50;
+    var OFFMAP_PREP_X       = -410;
+    var OFFMAP_PREP_Y       = 2;
+    var OFFMAP_PREP_Z       = 0;
+
     if (!RW.Transporter) RW.Transporter = {};
     var Transporter = RW.Transporter;
 
-    // Cancel any leftover timers from a prior load
     if (Transporter._timers && Transporter._timers.length) {
         Transporter._timers.forEach(function (id) {
             try { clearInterval(id); } catch (e) {}
@@ -61,6 +80,30 @@
         var vt = ent.readPointer();
         return new NativeFunction(vt.add(SET_POS_VT_SLOT).readPointer(),
                                   'void', ['pointer', 'pointer']);
+    }
+
+    // Internal — write the player's position bytes. Caller handles logging
+    // and roundtrip scheduling.
+    function writePlayerPos(x, y, z) {
+        var player = RW.Player.entity;
+        var setPos = setPosFor(player);
+        var buf = Memory.alloc(12);
+        buf.writeFloat(x); buf.add(4).writeFloat(y); buf.add(8).writeFloat(z);
+        setPos(player, buf);
+    }
+
+    // Normalize (a, b, c, d) → {x, y, z, tail} where tail is the trailing
+    // optional arg (roundtrip for warpPlayer, height for dropPlayer).
+    // Accepts (x, y, z, tail?) or ({x,y,z}, tail?).
+    function normalizePointArgs(a, b, c, d) {
+        if (typeof a === 'object' && a !== null) {
+            return { x: a.x, y: a.y, z: a.z, tail: b };
+        }
+        return { x: a, y: b, z: c, tail: d };
+    }
+
+    function validXyz(p) {
+        return typeof p.x === 'number' && typeof p.y === 'number' && typeof p.z === 'number';
     }
 
     /*
@@ -95,13 +138,13 @@
      */
     Transporter.warpEntity = function (name, x, y, z, roundtrip) {
         if (!RW.Entity || typeof RW.Entity.find !== 'function') {
-            console.log("[Transporter] RW.Entity missing");
+            console.log("[Transporter.warpEntity] RW.Entity missing");
             return;
         }
         var hit = RW.Entity.find(name);
-        if (!hit) { console.log("[Transporter] no match for \"" + name + "\""); return; }
+        if (!hit) { console.log("[Transporter.warpEntity] no match for \"" + name + "\""); return; }
         if (typeof x !== 'number' || typeof y !== 'number' || typeof z !== 'number') {
-            console.log("[Transporter] x, y, z must be numbers");
+            console.log("[Transporter.warpEntity] x, y, z must be numbers");
             return;
         }
 
@@ -134,20 +177,28 @@
     /*
      * ----------------------------------------------------------------
      * Transporter.warpPlayer(x: number, y: number, z: number, roundtrip?: number): void
+     * Transporter.warpPlayer(point: {x,y,z}, roundtrip?: number): void
      *
      * Warp the player to (x, y, z). If roundtrip is provided (seconds),
      * the player is returned to their original position after that
      * interval; otherwise they stay at the destination.
      *
-     * Caveat: warping into an active enemy camp will get the player
-     * killed — enemies are pre-spawned and aggressive. Keep roundtrips
-     * short for combat-zone warps (the player can be killed before the
-     * return fires).
+     * Accepts either explicit (x, y, z, roundtrip?) or a point object
+     * — pipe Map outputs directly:
+     *   Transporter.warpPlayer(Map.center())
+     *   Transporter.warpPlayer(Map.randomPoint(), 5)
+     *
+     * Caveats:
+     *   - The engine's grounded-state snap may reposition the player
+     *     to the nearest walkable surface. To drop from above (player
+     *     falls), use Transporter.dropPlayer instead.
+     *   - Warping into an active enemy camp will get the player killed
+     *     — keep roundtrips short for combat-zone warps.
      *
      * Result:
      *   Player visibly snaps to the destination on the next frame.
-     *   With roundtrip, snaps back to the captured original after
-     *   that many seconds.
+     *   With roundtrip, snaps back to the captured original after that
+     *   many seconds.
      * ----------------------------------------------------------------
      * MECHANISM:
      *   Reads RW.Player.entity, captures original position from
@@ -156,24 +207,26 @@
      *   original position after roundtrip seconds — no tick loop
      *   needed (player movement controller respects a one-shot write).
      */
-    Transporter.warpPlayer = function (x, y, z, roundtrip) {
+    Transporter.warpPlayer = function (a, b, c, d) {
         if (!RW.Player || !RW.Player.entity || RW.Player.entity.isNull()) {
-            console.log("[Transporter] RW.Player not captured — try RW.Player.refresh() and play one frame");
+            console.log("[Transporter.warpPlayer] RW.Player not captured — try RW.Player.refresh() and play one frame");
             return;
         }
-        if (typeof x !== 'number' || typeof y !== 'number' || typeof z !== 'number') {
-            console.log("[Transporter] x, y, z must be numbers");
+        var args = normalizePointArgs(a, b, c, d);
+        if (!validXyz(args)) {
+            console.log("[Transporter.warpPlayer] need (x, y, z) or {x,y,z} — got " + JSON.stringify(args));
             return;
         }
+        var roundtrip = args.tail;
         var player = RW.Player.entity;
         var origPos = vec3(player.add(POS_OFFSET));
         var setPos = setPosFor(player);
         var buf = Memory.alloc(12);
 
-        buf.writeFloat(x); buf.add(4).writeFloat(y); buf.add(8).writeFloat(z);
+        buf.writeFloat(args.x); buf.add(4).writeFloat(args.y); buf.add(8).writeFloat(args.z);
         setPos(player, buf);
         var roundtripStr = (typeof roundtrip === 'number') ? " (return in " + roundtrip + "s)" : " (no auto-return)";
-        console.log("[Transporter.warpPlayer] player -> " + v3str([x,y,z]) + roundtripStr);
+        console.log("[Transporter.warpPlayer] player -> " + v3str([args.x, args.y, args.z]) + roundtripStr);
 
         if (typeof roundtrip === 'number' && roundtrip > 0) {
             var t = setTimeout(function () {
@@ -183,6 +236,69 @@
             }, roundtrip * 1000);
             Transporter._timers.push(t);
         }
+    };
+
+    /*
+     * ----------------------------------------------------------------
+     * Transporter.dropPlayer(x: number, y: number, z: number, height?: number): void
+     * Transporter.dropPlayer(point: {x,y,z}, height?: number): void
+     *
+     * Drop the player from above onto (x, z). The player free-falls
+     * from absolute Y = (y + height) down to whatever surface lies
+     * below (X, Z). Default height is 20; absolute target Y is clamped
+     * to 50 (the empirical engine ceiling for accepted drop altitudes —
+     * higher values re-engage the grounded snap).
+     *
+     * Pipes from Map:
+     *   Transporter.dropPlayer(Map.center())
+     *   Transporter.dropPlayer(Map.center(), 50)
+     *   Transporter.dropPlayer(Map.randomPoint(50))
+     *
+     * Result:
+     *   Player visibly falls from the chosen altitude and lands on
+     *   terrain (or whatever non-walkable prop intercepts the fall).
+     *
+     * Caveats:
+     *   - No roundtrip variant. Use warpPlayer with roundtrip if you
+     *     need return-to-origin semantics.
+     *   - Drop targets at landmarks (cauldron, hourglass, safe zone,
+     *     etc.) re-engage the snap on landing — player lands ON the
+     *     landmark surface. Drops onto raw terrain land normally.
+     * ----------------------------------------------------------------
+     * MECHANISM:
+     *   Two stack-written setPosition calls in the same JS turn:
+     *   1. Off-map prep at (-410, 2, 0) — outside the chapter's xMin
+     *      bound, no walkable surface nearby, clears the grounded flag.
+     *   2. In-map target at (x, min(y + height, 50), z) — controller
+     *      now respects Y; gravity carries the player down.
+     *   The engine processes both writes in order; the off-map state
+     *   is never visible to the user because the second write replaces
+     *   the position before any frame renders.
+     */
+    Transporter.dropPlayer = function (a, b, c, d) {
+        if (!RW.Player || !RW.Player.entity || RW.Player.entity.isNull()) {
+            console.log("[Transporter.dropPlayer] RW.Player not captured — try RW.Player.refresh() and play one frame");
+            return;
+        }
+        var args = normalizePointArgs(a, b, c, d);
+        if (!validXyz(args)) {
+            console.log("[Transporter.dropPlayer] need (x, y, z) or {x,y,z} — got " + JSON.stringify(args));
+            return;
+        }
+        var height = (typeof args.tail === 'number') ? args.tail : DROP_HEIGHT_DEFAULT;
+        if (height < 0) height = 0;
+        var targetY = args.y + height;
+        var clamped = false;
+        if (targetY > DROP_Y_CEILING) {
+            targetY = DROP_Y_CEILING;
+            clamped = true;
+        }
+
+        writePlayerPos(OFFMAP_PREP_X, OFFMAP_PREP_Y, OFFMAP_PREP_Z);
+        writePlayerPos(args.x, targetY, args.z);
+
+        console.log("[Transporter.dropPlayer] player -> " + v3str([args.x, targetY, args.z]) +
+                    " (height=" + height + (clamped ? ", clamped to Y≤" + DROP_Y_CEILING : "") + ")");
     };
 
     /*
@@ -207,7 +323,8 @@
     RW.registerMod("power:Transporter", version);
     console.log("[Transporter] " + version + " loaded.");
     console.log("[Transporter]   warpEntity(name, x, y, z, roundtrip?)");
-    console.log("[Transporter]   warpPlayer(x, y, z, roundtrip?)");
+    console.log("[Transporter]   warpPlayer(x, y, z, roundtrip?)  /  warpPlayer(point, roundtrip?)");
+    console.log("[Transporter]   dropPlayer(x, y, z, height?)     /  dropPlayer(point, height?)");
 })();
 
 // Top-level alias for REPL convenience

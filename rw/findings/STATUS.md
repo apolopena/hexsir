@@ -16,12 +16,14 @@ Source of truth: the `**Status:**` line at the top of each `rw/findings/<name>.m
 | in-progress | [multiplayer-host-authority.md](multiplayer-host-authority.md) | Multiplayer host-authority and replication architecture |
 | in-progress | [on-demand-spawn-pipeline.md](on-demand-spawn-pipeline.md) | On-demand entity spawn pipeline (encyclopedia + factory) |
 | in-progress | [pin-identity-uncertain.md](pin-identity-uncertain.md) | Pin Identity: What Are the Pinned Addresses Actually? |
+| in-progress | [player-setposition-reconciliation.md](player-setposition-reconciliation.md) | Player setPosition reconciliation — controller-tick coupling and the snap |
 | in-progress | [random-seed-system.md](random-seed-system.md) | Random seed system — locate and edit |
 | in-progress | [save-guid-hash-tail.md](save-guid-hash-tail.md) | Save-record GUID hash-tail reversal |
 | in-progress | [save-mint-status.md](save-mint-status.md) | Save Mint — Status and Known Issues |
 | in-progress | [starting-talent-bias.md](starting-talent-bias.md) | Starting-talent bias — does elevated rarity steer subsequent rolls? |
 | in-progress | [talent-picker-weighting.md](talent-picker-weighting.md) | Talent picker — count override + rarity-weighting pipeline |
 | in-progress | [transporter-placement-primitive.md](transporter-placement-primitive.md) | Transporter — placement primitive on encyclopedia map landmarks |
+| in-progress | [ui-modal-architecture.md](ui-modal-architecture.md) | UI modal architecture — assets, runtime class, push/dismiss API, text-input wiring |
 | confirmed | [chapter-boss-portal-trigger.md](chapter-boss-portal-trigger.md) | Chapter boss-arrival trigger — force the portal on demand |
 | confirmed | [cooked-format-schemas.md](cooked-format-schemas.md) | Cooked-format per-class schemas — herodef + entity-settings |
 | confirmed | [held-dream-shards.md](held-dream-shards.md) | Held Dream Shards — bytefield reference |
@@ -53,4 +55,3 @@ Source of truth: the `**Status:**` line at the top of each `rw/findings/<name>.m
 | archived | [talent-record-discovery.md](talent-record-discovery.md) | Talent record discovery in Geppetto chapter 2 saves |
 | ? | [frida-buffer-diagnostic-runbook.md](frida-buffer-diagnostic-runbook.md) | Frida buffer-diagnostic runbook — _no canonical Status line_ |
 | ? | [spawn-at-coord-recipe.md](spawn-at-coord-recipe.md) | Entity world position — read/write contract and spawn-at-coord recipe — _no canonical Status line_ |
-<!-- count=48 -->
