@@ -320,6 +320,22 @@ This binds the namespace to a global `var` so REPL users can type
 should always reference through `RW.<Name>` internally — the top-level
 alias is purely for ergonomics.
 
+## Discovery marker for setup-bound powers
+
+Most powers' hooks fire continuously and can be loaded any time
+(`ChapterBoss`'s frame-tick capture, `Teleport`'s player frame-tick).
+A few must be loaded before a one-shot setup window — typically a
+chapter or a game launch — because their hook captures events that
+only fire during that window. Mark these in `rw_lab.js`'s power
+listing with a trailing `*` plus the shared footnote: `* = load before
+chapter (or game) start — the power's hook arms during setup`.
+`Hourglass` is the current example: chapter setup ctors the hourglass
+spawner; the ctor hook must already be attached.
+
+Quiet by default for periodic powers. If a power has an interval
+mode (e.g. `spawnItem({ intervalMs })`), don't log per-tick — that
+floods the REPL. Expose a `verbose: true` opt for debugging.
+
 ## Validation checklist for a new power
 
 Before considering a new power "done":
@@ -334,5 +350,7 @@ Before considering a new power "done":
 - [ ] DLL exports resolved via `Process.findModuleByName(...).findExportByName(...)`, not the removed static `Module.findExportByName`
 - [ ] `RW.registerMod("power:<Name>", version)` is called
 - [ ] Log lines all use `[<Name>]` prefix
+- [ ] If the hook arms during chapter/game setup, marked with `*` in `rw_lab.js`'s power listing
+- [ ] Periodic methods are quiet by default; debug logs gated behind `verbose: true`
 - [ ] `loadPower("<Name>")` followed by `help("<Name>")` shows every method
 - [ ] No top-level `const` / `let` (only `var` / IIFE / `RW.*` assignments)

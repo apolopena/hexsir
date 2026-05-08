@@ -93,8 +93,8 @@
      *   - If RW.Player.entity isn't captured yet, calls
      *     RW.Player.refresh() and asks you to nudge in-game then
      *     re-run start().
-     *   - Cauldron-bearing chapters are procgen (~50% rate). If no
-     *     cauldron is present, prints "reload the chapter" and bails.
+     *   - Cauldron presence in a chapter is procgen. If no cauldron
+     *     is present, prints "reload the chapter" and bails.
      *   - The warp tick keeps the cauldron pinned at the destination
      *     until finish() (or any Transporter.clear()) — its position
      *     stays where finish() leaves it; positions are not restored.
@@ -112,24 +112,31 @@
             console.log("[CauldronTest] already armed — call finish() before starting again");
             return;
         }
-        if (!preflight()) return;
 
-        var offset = (opts && typeof opts.offset === 'number') ? opts.offset : DEFAULT_OFFSET;
-
-        var p = RW.Player.loc;
-        if (!p) {
-            RW.Player.refresh();
-            console.log("[CauldronTest] player not captured — nudge in-game one frame, then call start() again");
+        // Cauldron-presence gate FIRST, before paying for any dep loading
+        // or player capture. Only RW.Entity is required for the scan.
+        if (!RW.Entity || typeof RW.Entity.find !== 'function') {
+            console.log("[CauldronTest] FATAL: RW.Entity missing — load rw_lab.js first");
             return;
         }
-
         var hit = RW.Entity.find("cauldron");
         if (hit === undefined) {
             console.log("[CauldronTest] scene_manager not captured yet — play one frame, then call start() again");
             return;
         }
         if (!hit) {
-            console.log("[CauldronTest] no cauldron in this chapter — reload the chapter (procgen, ~50% rate) and try again");
+            console.log("[CauldronTest] no cauldron in this chapter — reload the chapter (procgen) and try again");
+            return;
+        }
+
+        // Cauldron exists. Load deps + resolve player so we can warp it in.
+        if (!preflight()) return;
+
+        var offset = (opts && typeof opts.offset === 'number') ? opts.offset : DEFAULT_OFFSET;
+        var p = RW.Player.loc;
+        if (!p) {
+            RW.Player.refresh();
+            console.log("[CauldronTest] player not captured — nudge in-game one frame, then call start() again");
             return;
         }
 

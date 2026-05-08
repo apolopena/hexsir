@@ -602,6 +602,70 @@ This is the certain primitive. To make it a usable enemy, additional setup is ne
    - Killing the Tentacle clears the Summoner's spawner's `+0x160`.
    - Killing the Summoner kills the Tentacle (pool destruction).
 
+## Live work — 2026-05-07 follow-up
+
+After the static dig, a long live-Frida pass confirmed the architecture and surfaced what's actually fireable.
+
+### Working primitive (verified)
+
+**Capture-then-fire by parent name + sub-index**, implemented in `tools/frida/mods/spawner_probe.js` v0.12.0:
+
+1. **Hook the spawner ctor (`FUN_1402d0ee0` at RVA `0x2d0ee0`) BEFORE the chapter loads.** Every `oCEntityCpntEntitySpawner` instance the engine constructs during chapter load is captured to `RW.SpawnerProbe._spawners` with its `+0x08` parent and `+0x10` settings.
+2. **After load, identify by stable name + sub-index.** Each captured spawner's parent entity has its own `oCEntitySettings*` at `parent + 0x28`, with the standard asset-cache name layout (`+0x08 char*`, `+0x10 u32 length`). That parent name is asset-baked and stable across launches. Filter by parent name (e.g. `"NoModel+2Cpnt"`, `"[Entity spawner] Cauldron"`, `"Ravenswatch_Super_Flock"`) plus sub-index in the filtered list — the asset-defined spawner ordering within a parent is consistent across reloads of the same chapter type.
+3. **Fire by calling `FUN_1406f62b0(spawner)`** (the broadcast worker, RVA `0x6f62b0`). This is the function the engine itself uses internally during natural activation — it's safe to invoke directly with an unfired spawner. With an `noWarp` option, no parent warp is performed and the spawn fires at the spawner's natural bound transform; without it, the parent is first warped to the player's position so the spawn appears at the player.
+
+### Confirmed behaviors
+
+- **Hourglass early-boss-reward fire.** `parentName="NoModel+2Cpnt"` (the chapter hourglass — present in every chapter; the auto-name is the engine's "no base model + 2 attached components" label). Calling `expr_summonAtPlayer({ nameMatch: "NoModel+2Cpnt", index: 0, noWarp: true })` produces the early-boss-reward item that's normally only granted upon defeating the boss before the timer runs out.
+  - **Re-fireable when the hourglass is in active state.** If the player leaves the safe area first (so the natural game flow puts the hourglass into its active state), each subsequent call produces another reward item. Unlimited reward farming.
+  - **Locked one-shot when the hourglass is not active** (e.g. right at chapter start, before leaving the safe area). One fire per state transition, then cap.
+- **Cauldron sub-component spawners** (`parentName="[Entity spawner] Cauldron"`, sub-indexes 0–5). Each fires a different cauldron-specific animation/movement: cauldron move, base-plate transition, etc. None spawn enemies. The base-plate-move spawner is capped at 2 fires per chapter (lockout state location not fully isolated; `+0x64` flags don't change between fires, so the cap lives elsewhere).
+- **`Ravenswatch_Super_Flock`** — the bats/birds activation animation. Multiple sub-spawners on one parent; firing any of them produces the full flock visual (multi-output spawner pattern, likely via `oCSpawnedEntityCollector`).
+- **Position-stable warp** of the cauldron entity via `setPosition` on `parent.vtable[10]` works for visual-follow if competing periodic timers (e.g. CauldronTest's 500ms re-warp tick) are cleared first. Per-frame engine reset is mild enough that a 16ms tick or fewer keeps it visibly placed.
+
+### What didn't work — ruled out
+
+- **Direct call to `oCEntitySpawner_spawnIfNotCached` (RVA `0x6ef5c0`)** on a found spawner-class component crashes with `0xffff…` access violations on consumed-state spawners (the prior session's note about the `+0x108` I/O queue lazy-init explains why — the I/O queue gets reset post-natural-fire; un-fired spawners may also lack init and be lazy-primed). Could not be made reliable from Frida in this pass.
+- **Direct call to `FUN_1406f62b0` (broadcast worker) on a CONSUMED spawner** crashes the same way. The broadcast worker only works on un-fired or actively-armed spawners.
+- **The `RegisteredEntitiesHolderEntityCpnt` class's broadcast events** (`PTR_DAT_1412d2348` / `PTR_DAT_1412d23b8`) have empty subscriber lists (verified statically — both list-roots point at the empty Swiss-Tables sentinel `0x140edbfa0`). Holder-only fires set the signals but no one listens for the cauldron's wave path; the wave actually fires through a different chain we couldn't fully isolate.
+- **`FUN_14074ef20` (the natural fire dispatcher) called with the spawner's `+0x08` parent as the manager** crashes — `parent != wave_manager`. The wave_manager is a separate object with its own `+0x68` array of spawner pointers; only natural activation reveals which object that is.
+- **Replaying a captured wave-orchestrator context** via `FUN_140713520` direct call also crashes on consumed state. Same root cause as the spawnIfNotCached crash.
+
+### Stable identifiers discovered (chapter-agnostic where noted)
+
+| parentName | Sub-indexes | Effect | Notes |
+|---|---|---|---|
+| `NoModel+2Cpnt` | 0, 1 | Early-boss-reward item drop | Re-fireable when hourglass is active (player has left safe area). Hourglass is in every chapter. |
+| `[Entity spawner] Cauldron` | 0–5 | Cauldron sub-component animations (move, base-plate transition, etc.) | Procedurally placed per chapter; only present when chapter rolls a cauldron. |
+| `Ravenswatch_Super_Flock` | 0..N | Bats/birds activation flock | Multi-output; any sub-index fires the full flock. |
+| `Starting_Safe_Zone` | 0 | Safe-zone marker / interactable | Present in every chapter. |
+| `Teleporter_Start_<chapter>` | 0–2 | Chapter-start teleporter return point | Suffix varies per chapter (e.g. `Dark_Hills`). |
+
+### Tooling at HEAD (post-cleanup, v0.12.0)
+
+`tools/frida/mods/spawner_probe.js` — focused surface (the broken approaches were cut):
+
+- `inspect(name)` — dump entity components with vtable RVAs + RTTI.
+- `survey(opts?)` — walk encyclopedia for spawner-anchor entries.
+- `expr_armSpawnerCtor()` / `expr_stopSpawnerCtor()` — the foundation hook.
+- `expr_listSpawners(opts?)` — filter captured spawners by `unfiredOnly`, `nameMatch`, `posNear`, `nearEntity`, `max`.
+- `expr_listWaveManagers(opts?)` — group captured spawners by parent for stable name+sub-index lookup.
+- `expr_summonAtPlayer(opts?)` — primary spawn primitive: `nameMatch` + `index` + optional `noWarp`/`nearEntity`/`dryRun`.
+- `expr_lockToPlayer(ptr, opts?)` / `expr_unlock()` — periodic warp+fire (use `noFire:true` for safe visual follow).
+- Diagnostic-only hooks: `expr_captureWaveTrigger` / `expr_stopWaveCapture` (orchestrator hook), `expr_captureFireDispatcher` / `expr_stopFireDispatcherCapture` (dispatcher hook), `expr_inspectLastWave` (dump captured wave-context fields).
+
+#### Production power — `Hourglass`
+
+`tools/frida/mods/powers/Hourglass.js` (v0.4.0) — standalone power for the hourglass-reward fire path. Owns its own Interceptor on `FUN_1402d0ee0`; filters the capture set by `parentName="NoModel+2Cpnt"` + sub-index 0 + bit 3 of `+0x64` clear; fires via `FUN_1406f62b0`. API: `spawnItem()` / `spawnItem({ intervalMs })` / `spawnItem({ verbose: true })` / `spawnItemStop()`. Quiet by default. Must be loaded before chapter setup so the ctor hook is attached when the engine ctors the hourglass spawner. Marked `*` in `tools/frida/rw_lab.js`'s power listing per the setup-bound convention in `tools/frida/CODE_STANDARDS.md`.
+
+#### Companion mod — `easter_item_hunt`
+
+`tools/frida/mods/easter_item_hunt.js` (v0.4.0) — interval-fires the hourglass reward, counts toward a stop-after-N limit, and *attempts* to relocate each dropped item to a random scatter point near the player. Auto-loads Hourglass at IIFE time so the ctor hook arms in time for chapter setup (single-step user flow: `loadMod("easter_item_hunt")` before chapter, then `start(N)`). API: `start(count, opts?)` / `pause()` / `resume()` / `log(on)`.
+
+**Confirmed limitation: `spawner.+0x160` is NULL after the broadcast-worker fire path.** When `FUN_1406f62b0(spawner)` is invoked directly (the path Hourglass uses), the cached-output field documented for `spawnIfNotCached` does not get populated. Effect: `easter_item_hunt` has no spawn-target ptr to pass to `setPosition`, so items currently drop at the hourglass and the mod logs `no child @ +0x160`. Locating the dropped loot for relocation is the open piece; tracked as the **TOP PRIORITY** entry in `rw/docs/wishlist.md` §"Frida tooling" with three suggested approaches (walk `RW.Entity.list()` post-fire / compose with `spawn_capture` mod / decompile `FUN_1406f62b0` to find where it writes the child ptr).
+
+Earlier attempts to write `0` to `+0x160` post-fire (intended as the "force-multi-spawn" trick from §"Trigger primitive") aborted the spawn entirely — items stopped appearing at the hourglass. The broadcast worker path appears to use `+0x160` (or something it touches) during async asset-streaming finalization. Don't clear it until that's understood.
+
 ## Cross-references
 
 - `rw/findings/enemy-spawn-architecture.md` — parent doc. Universal entity factory chain, EnemyController class identification, `+0x570` listener-array architecture (confirmed here as the spawner-subscription mechanism), `+0x5e8` component hashmap.
