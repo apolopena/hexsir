@@ -54,6 +54,7 @@ interim/
 rw/harvested/
 rw/dumps/
 rw/saves/edits/lab/
+rw/ref/registry/ctor/*.jsonl
 
 # REPL history
 .*_history

@@ -37,6 +37,7 @@ Source of truth: the `**Status:**` line at the top of each `rw/findings/<name>.m
 | confirmed | [save-flow-diagrams.md](save-flow-diagrams.md) | Save flow architecture (Ravenswatch) |
 | confirmed | [save-silencer-mechanism.md](save-silencer-mechanism.md) | Save silencer mechanism — definitive root cause |
 | confirmed | [save-subsystem.md](save-subsystem.md) | Save: subsystem architecture and live-trigger map |
+| confirmed | [seed-master-distribution.md](seed-master-distribution.md) | Master seed distribution — chapter master → per-context subseeds |
 | confirmed | [steam-playtime-not-game-driven.md](steam-playtime-not-game-driven.md) | Steam profile playtime is session-based, not game-driven |
 | confirmed | [talent-records.md](talent-records.md) | Save: talent records |
 | confirmed | [talents.md](talents.md) | Talent names (partial) |
@@ -52,3 +53,4 @@ Source of truth: the `**Status:**` line at the top of each `rw/findings/<name>.m
 | archived | [talent-record-discovery.md](talent-record-discovery.md) | Talent record discovery in Geppetto chapter 2 saves |
 | ? | [frida-buffer-diagnostic-runbook.md](frida-buffer-diagnostic-runbook.md) | Frida buffer-diagnostic runbook — _no canonical Status line_ |
 | ? | [spawn-at-coord-recipe.md](spawn-at-coord-recipe.md) | Entity world position — read/write contract and spawn-at-coord recipe — _no canonical Status line_ |
+<!-- count=48 -->

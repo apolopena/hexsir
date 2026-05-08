@@ -12,12 +12,13 @@
 
 **Plain-English summary.** Ravenswatch decides "random" things (which talents appear at level-up, what rarity each one is, what's in chests, what's in shops) by drawing from a single internal random number. This doc tracks our progress at locating, reading, and overriding that number so we can replay or engineer specific outcomes.
 
-**Status as of 2026-05-02: PARTIALLY RESOLVED.**
+**Status as of 2026-05-08: MOSTLY RESOLVED.**
 
 - ✅ **Talent picker (selection + rarity rolls)** — locked. The single-seed model is verified. Frida hook on `SkillController_roll_proposed_skills` (`image+0x39c300`) writes the seed at function entry; combined with nulling `param_3` (R8) the picker proposes the same talents at the same rarities every reroll. See `rw/findings/rng-behavior.md`.
 - ✅ **Persistent rarity** — `rerw write savefile all-talent-rarities <rarity>` locks the picker's rarity stamp by writing both the per-controller tier bytes and the per-slot u32 array.
+- ✅ **Master chapter seed (in-memory) — LOCKED 2026-05-08.** The on-screen seed is distributed at chapter load by `apply_session_seed_to_scene_contexts` (RVA `0x26af00`) to four per-context subseed slots. Live-verified end-to-end. Frida force via `tools/frida/mods/powers/Seed.js` controls camps, camp placement, reward-slot distribution, and other map-scoped procedural decisions. Does NOT control talent/item/chest/shop picks (those use TLS+0xff3c, separate path). See `rw/findings/seed-master-distribution.md` for the full architecture.
 - ⏸ **Chest / Sandman shop / item picker** — same single-seed model expected, separate function entry not yet hooked. Implementation would mirror the talent-picker harness.
-- ⏸ **Master chapter seed** (the seed displayed in-game on screen) — not yet located in the save format. Still on the backlog.
+- ⏸ **Master chapter seed (in save)** — whether the master persists in `Profile_1.ob` is still open. Earlier session searched for the displayed seed value as raw bytes and didn't find it. Live-memory force makes save persistence less urgent (override at chapter load), but identifying the on-disk byte if any would let `rerw` set seeds.
 
 **Rules of thumb when working with this:**
 
@@ -38,13 +39,19 @@ The talent picker uses an inline PCG against TLS+`0xff3c`. Forcing the seed at f
 - `rw/findings/talent-records.md` — the dual-storage tier model
 - Renamed Ghidra functions: `SkillController_roll_proposed_skills`, `SkillController_state_dispatch`, `SkillController_repropose_skills`, `talent_roll_tier_weighted`, `talent_stamp_tier`, `uniform_float_in_range_pcg`, `SkillController_sync_slot_tiers_from_talents`, `SkillController_init_or_load_persistent`
 
-### Open — master chapter seed location
+### Resolved 2026-05-08 — master chapter seed (in-memory) located + Frida-forceable
 
-The game UI displays a seed number on screen during chapter play. Capture exact format on next play session — is it hex? decimal? how many digits? Then:
+The on-screen master seed is distributed at chapter load by `apply_session_seed_to_scene_contexts` (RVA `0x26af00`). It writes the master to four per-context subseed slots (`MapSceneContext+0x80`, `EntitySceneContext+0x3b8`, `*DAT_141446a98`, `*DAT_141446a78`); each slot has a running stream at `+0x04` initialized to `PCG_step(master)` and stepped per roll.
 
-- Ghidra string-search the rendered seed format (`%08X`, `Seed:`, `Run Seed`, etc.) → caller is the renderer → walk back to source field
-- Live-memory search for the displayed integer once WinDbg/trainer is viable (currently deferred — WinDbg crashes on save event per user)
-- Save-file search: byte-search the displayed value across known proof saves; if it appears, the seed is persisted
+Live-verified by reading the on-screen seed (`1720768478` / `0x6690D7DE`) and observing it intact at both `MapSceneContext+0x80` and `EntitySceneContext+0x3b8`.
+
+**Forcing primitive:** `tools/frida/mods/powers/Seed.js`. Hook on `apply_session_seed_to_scene_contexts` entry; overwrites `args[1] + 0x1c` (the master) with armed value. One write controls all four subseeds → deterministic camps, camp placement, reward-slot distribution. Does NOT cover talent/item/chest/shop picks (those use TLS+0xff3c).
+
+Full writeup: `rw/findings/seed-master-distribution.md`.
+
+### Open — master chapter seed in save format
+
+Save-file persistence of the master is still unverified. Earlier session searched the displayed seed value as raw bytes across proof saves and didn't find it. Possibilities: per-run-only (not persisted), or stored in a non-trivial encoding. Live-memory force via `Seed.js` makes this less urgent; identifying the save byte would let `rerw` set seeds offline.
 
 ### Open — chest, Sandman shop, item picker hooks
 
@@ -56,13 +63,15 @@ Picks block storage layout for >5-pick saves (chapter-3, epilogue) is genuinely 
 
 ## Open questions
 
-- Is the master seed per-run only, or persisted across the save? (If only per-run, a save edit can't set it — we'd need live-memory write.)
-- Is there one master seed per chapter, or one master seed that drives a deterministic per-chapter sub-seed?
-- Does the master seed change on chapter rollback (`rerw write savefile chapter`), or is it preserved?
+- Is the master seed per-run only, or persisted across the save? Open — see "Open — master chapter seed in save format" above.
+- ~~Is there one master seed per chapter, or one master seed that drives a deterministic per-chapter sub-seed?~~ **Resolved 2026-05-08:** master drives multiple per-context subseeds (camp/map/two globals). Each subsystem advances its own stream from the same seed. See `seed-master-distribution.md`.
+- Does the master seed change on chapter rollback (`rerw write savefile chapter`), or is it preserved? Open.
 
 ## Cross-references
 
-- `rw/findings/rng-behavior.md` — single-seed model, dual-storage tier, Frida-forcing strategy
+- `rw/findings/seed-master-distribution.md` — master → 4 subseed slot architecture, Frida force via `Seed.js`
+- `rw/findings/rng-behavior.md` — TLS+0xff3c per-event RNG (separate path; not covered by master force)
 - `rw/findings/talent-records.md` — talent record byte layouts, slot.tier u32 array
+- `tools/frida/mods/powers/Seed.js` — master-seed forcing power
 - `tools/frida/rw_lab.js` — talent-picker forcing harness
 - `rw/docs/workflow/save-editing.md` — `all-talent-rarities` CLI capability

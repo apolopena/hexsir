@@ -83,6 +83,34 @@ RW.loadPower = function (name) {
     RW.status();
 };
 
+/*
+ * ----------------------------------------------------------------
+ * loadUtil(name: string): void
+ *
+ * Load a utility from util/<Name>.js, parse its fenced docstrings
+ * into RW.docs, and run its IIFE. Idempotent — re-load to pick up
+ * source edits.
+ *
+ * Utils are infrastructure that powers and mods compose with —
+ * persistent capture/dump tools, registries, file I/O wrappers.
+ * They are NOT gameplay-affecting (that's a power) and NOT
+ * research scratch (that's a mod). They register as "util:<Name>"
+ * in RW.mods so status() can distinguish them.
+ * ----------------------------------------------------------------
+ * MECHANISM:
+ *   Same as loadPower but reads from util/ instead of mods/powers/.
+ *   Eval lands the IIFE in script global scope so the util can
+ *   reference RW.* helpers.
+ */
+RW.loadUtil = function (name) {
+    var path = RW.FRIDA_DIR + '/util/' + name + '.js';
+    var src = File.readAllText(path);
+    var docs = RW._parseDocs(src);
+    for (var k in docs) RW.docs[k] = docs[k];
+    (0, eval)(src);
+    RW.status();
+};
+
 // Parse fenced docstrings out of a source string. Convention defined
 // in CODE_STANDARDS.md §The docstring contract:
 //
@@ -470,6 +498,7 @@ RW.Entity.list = function () {
 // REPL aliases
 var loadMod   = RW.loadMod;
 var loadPower = RW.loadPower;
+var loadUtil  = RW.loadUtil;
 var status    = RW.status;
 var help      = RW.help;
 
@@ -491,8 +520,10 @@ if (mod === null) {
     console.log('[rw_lab] hub helpers: RW.Player.loc / .entity / .hc / .refresh()  (call refresh to capture)');
     console.log('[rw_lab] hub helpers: RW.Entity.find(name) / .list()  (experimental)');
     console.log('[rw_lab] ready. Load capabilities with loadPower("Name"):');
-    console.log('[rw_lab]   ChapterBoss   Currency   Hourglass*   SaveDiagnostic   TalentPicker   Telemetry   Teleport   Transporter');
+    console.log('[rw_lab]   ChapterBoss   Currency   Hourglass*   SaveDiagnostic   Seed*   TalentPicker   Telemetry   Teleport   Transporter');
     console.log('[rw_lab]   * = load before chapter (or game) start — the power\'s hook arms during setup');
+    console.log('[rw_lab] Load utilities with loadUtil("Name"):');
+    console.log('[rw_lab]   Registry*  (ctor-stream → rw/ref/registry/ctor/*.jsonl)');
     console.log('[rw_lab] help() lists every loaded power; help("Name.method") for full docs.');
     console.log('[rw_lab] CODE_STANDARDS.md documents the conventions.');
 }
