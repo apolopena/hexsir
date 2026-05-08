@@ -23,6 +23,12 @@
 
 ## Done
 <!-- DONE_START -->
+MAINT-46: Telemetry power — drop log() per user request (2026-05-07)
+  - Removed `Telemetry.log()` and the cleartext-body printing path entirely. Body inspection produces too much noise to be useful in interactive REPL use; the user explicitly asked for it gone.
+  - Power surface trimmed to `disable()` / `enable()` / `stats()`. `stats()` no longer reports `logged` (just matched / blocked).
+  - Internal: hook body simplified — no `WinHttpSendRequest`-arg-body read, no `_logging` flag. Bumped to v0.2.0.
+  - File trimmed from ~210 lines to ~150.
+
 MAINT-45: Telemetry power — block / inspect outbound telemetry calls at WinHTTP layer (2026-05-07)
   - New `tools/frida/mods/powers/Telemetry.js` (v0.1.0). Hooks `winhttp!WinHttpSendRequest` once at load; matched-host filter (passtechgames.com, nacon-os.com, nacon-os-rec, submit.backtrace.io, .a.run.app) drives runtime flags. API: `disable()` (return BOOL FALSE for matches — no socket, no DNS, no TLS handshake; warden goes silent for those hosts), `enable()` (matched calls pass through), `log(on?)` (toggle cleartext-body printing — reads `lpOptional` before WinHTTP encrypts; works in either state), `stats()` (matched / blocked / logged counters).
   - Pivot from the original `UsersApi::loginImpl` plan: the Stormancer login function is buried in C++ async-task lambda machinery (Ghidra didn't name it; xrefs go through std::function and PPL task continuations). WinHTTP-layer hook is broader on purpose — kills login + analytics + crash uploads in one place — and is the right blast radius for a "stop solo-play telemetry" power.

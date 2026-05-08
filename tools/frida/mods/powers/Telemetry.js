@@ -1,34 +1,23 @@
-// Telemetry.js — block / inspect outbound telemetry calls at the WinHTTP layer.
+// Telemetry.js — block outbound telemetry calls at the WinHTTP layer.
 //
 // Hooks winhttp!WinHttpSendRequest with a host-suffix filter. Matched hosts
-// (passtechgames.com, nacon-os.com, submit.backtrace.io, *.run.app) can be
-// blocked (return BOOL FALSE without making the call) and/or logged
-// (cleartext request body printed before WinHTTP encrypts).
+// (passtechgames.com, nacon-os.com, submit.backtrace.io, *.run.app) return
+// BOOL FALSE without making the call: no socket, no DNS, no TLS handshake.
 //
 // Companion to tools/telemetry-warden/. The warden blocks at the network
 // layer (hosts file → 127.0.0.1 listener); this power kills the call inside
 // the process before WinHTTP even starts. With Telemetry.disable() active,
-// no socket opens, so the warden has nothing to log either — the dt-live
-// retry storm goes silent.
+// the warden has nothing to log either — the dt-live retry storm goes silent.
 //
 // REPL surface (after loadPower("Telemetry")):
 //   Telemetry.disable(): void              install hook + block matched calls
 //   Telemetry.enable(): void               stop blocking; matched calls pass through
-//   Telemetry.log(on?: boolean): void      toggle cleartext-body logging
-//   Telemetry.stats(): {matched,blocked,logged}
+//   Telemetry.stats(): {matched, blocked}  read-only counters since load
 //
-// Notes:
-//   - Hook is installed once on loadPower; disable/enable just flip an
-//     internal flag the hook reads each call.
-//   - log() works in both states. With disable + log, the body is
-//     observed and then the call is blocked.
-//   - Body decoding assumes UTF-8 (true for JSON analytics POSTs);
-//     binary auth blobs may print as gibberish but the byte length is
-//     accurate.
-//   - Per rw/findings/telemetry-surface-and-warden.md.
+// Per rw/findings/telemetry-surface-and-warden.md.
 
 (function () {
-    var version = "0.1.0";
+    var version = "0.2.0";
 
     if (typeof RW !== "object") {
         console.log("[Telemetry] FATAL: RW missing — load rw_lab.js first");
@@ -66,9 +55,8 @@
 
     // Persistent state across reloads.
     Telemetry._disabled = Telemetry._disabled || false;
-    Telemetry._logging = Telemetry._logging || false;
     Telemetry._installed = Telemetry._installed || false;
-    Telemetry._stats = Telemetry._stats || { matched: 0, blocked: 0, logged: 0 };
+    Telemetry._stats = Telemetry._stats || { matched: 0, blocked: 0 };
 
     // Re-load safety: revert prior replacement before re-installing.
     if (Telemetry._installed) {
@@ -116,26 +104,9 @@
         function (hRequest, lpszHeaders, dwHeadersLength, lpOptional,
                   dwOptionalLength, dwTotalLength, dwContext) {
             try {
-                var url = getRequestUrl(hRequest);
-                var host = urlHost(url);
-
+                var host = urlHost(getRequestUrl(hRequest));
                 if (hostMatches(host)) {
                     Telemetry._stats.matched++;
-
-                    if (Telemetry._logging) {
-                        var bodyLen = dwOptionalLength | 0;
-                        var body = "";
-                        if (bodyLen > 0 && !lpOptional.isNull()) {
-                            try {
-                                body = lpOptional.readUtf8String(bodyLen);
-                            } catch (e) {
-                                body = "<read fail: " + e.message + ">";
-                            }
-                        }
-                        console.log("[Telemetry.log] " + url + " body(" + bodyLen + "): " + body);
-                        Telemetry._stats.logged++;
-                    }
-
                     if (Telemetry._disabled) {
                         Telemetry._stats.blocked++;
                         return 0; // BOOL FALSE — caller treats as failed send
@@ -144,7 +115,6 @@
             } catch (e) {
                 console.log("[Telemetry] hook error: " + e.message);
             }
-
             return origSendRequest(hRequest, lpszHeaders, dwHeadersLength,
                                    lpOptional, dwOptionalLength, dwTotalLength, dwContext);
         },
@@ -162,8 +132,6 @@
      * disable() in effect, WinHttpSendRequest returns FALSE for matches
      * without doing any I/O — no socket, no DNS, no TLS handshake.
      * The warden goes silent for these hosts.
-     *
-     * Pairs with Telemetry.enable() to restore default behavior.
      *
      * Result:
      *   Logs "[Telemetry] disabled (N matched so far)". Subsequent
@@ -202,46 +170,11 @@
 
     /*
      * ----------------------------------------------------------------
-     * Telemetry.log(on?: boolean): void
-     *
-     * Toggle (or explicitly set) cleartext-body logging. Each matched
-     * WinHttpSendRequest prints "<url> body(N): <bytes>" before WinHTTP
-     * encrypts and ships the request.
-     *
-     * Usage:
-     *   Telemetry.log()       toggle on/off
-     *   Telemetry.log(true)   force on
-     *   Telemetry.log(false)  force off
-     *
-     * Logging works regardless of disable()/enable() state. Combined
-     * with disable(): see the body, then block the send.
-     *
-     * Result:
-     *   Logs "[Telemetry] logging on/off". Matched calls thereafter
-     *   print their cleartext body to stdout.
-     * ----------------------------------------------------------------
-     * MECHANISM:
-     *   WinHttpSendRequest's lpOptional/dwOptionalLength are the
-     *   cleartext request body — TLS encryption happens inside WinHTTP
-     *   *after* this function returns. We read len bytes from lpOptional
-     *   as UTF-8 (correct for JSON analytics POSTs; binary auth blobs
-     *   render as gibberish but byte count is accurate).
-     *   Edge case: if a caller passes lpOptional=NULL and posts the
-     *   body via WinHttpWriteData later, we miss it. Untreated.
-     */
-    Telemetry.log = function (on) {
-        Telemetry._logging = (typeof on === 'boolean') ? on : !Telemetry._logging;
-        console.log("[Telemetry] logging " + (Telemetry._logging ? "on" : "off"));
-    };
-
-    /*
-     * ----------------------------------------------------------------
-     * Telemetry.stats(): {matched: number, blocked: number, logged: number}
+     * Telemetry.stats(): {matched: number, blocked: number}
      *
      * Read-only counts since power was loaded.
      *   matched — total filter hits (host suffix matched)
      *   blocked — subset where disable() was active at the time
-     *   logged  — subset where log() was on at the time
      *
      * Result:
      *   Returns the counter object. Does not log.
@@ -250,15 +183,13 @@
     Telemetry.stats = function () {
         return {
             matched: Telemetry._stats.matched,
-            blocked: Telemetry._stats.blocked,
-            logged: Telemetry._stats.logged
+            blocked: Telemetry._stats.blocked
         };
     };
 
     RW.registerMod("power:Telemetry", version);
     console.log("[Telemetry] " + version + " loaded — hook armed, default state: " +
                 (Telemetry._disabled ? "disabled" : "enabled") +
-                ", logging " + (Telemetry._logging ? "on" : "off") +
                 ". Try: Telemetry.disable()");
 })();
 
