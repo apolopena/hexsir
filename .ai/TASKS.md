@@ -23,6 +23,12 @@
 
 ## Done
 <!-- DONE_START -->
+MAINT-44: Hourglass power — reward-item spawn-on-demand wrapper (2026-05-07)
+  - New `tools/frida/mods/powers/Hourglass.js` (v0.3.0). Thin wrapper around the verified `SpawnerProbe.expr_summonAtPlayer({nameMatch:"NoModel+2Cpnt", index:0, noWarp:true})` primitive — fires the chapter hourglass's early-boss-reward item on demand. Auto-loads + arms `spawner_probe` on power load (`RW.loadMod("spawner_probe")` then `expr_armSpawnerCtor()` if not already armed); user only calls `loadPower("Hourglass")`.
+  - API: `spawnItem()` (one-shot, quiet), `spawnItem({intervalMs})` (periodic, quiet), `spawnItem({verbose:true})` (let underlying logs through), `spawnItemStop()`. Quiet by default — wraps the underlying call in a `console.log` redirect to keep interval mode from flooding the REPL. Pre-active hourglass: one fire per state transition; active hourglass (player out of safe zone): re-fires indefinitely.
+  - Registered in `tools/frida/rw_lab.js` header comment block + startup log line. New `*` marker convention added — flags powers that must be loaded before chapter (or game) start because their hook arms during setup. Hourglass is the first; future powers hooking once-per-chapter ctors get the same mark.
+  - Cross-references `rw/findings/entity-spawner-mechanism.md` §"Live work — 2026-05-07 follow-up" for the underlying primitive's rationale and ruled-out alternatives.
+
 MAINT-43: warden — drop file logging, stdout only (2026-05-07)
   - Removed `blocked.log` writes from `warden.py`; stdout is the only output channel now. Renamed internal `log_block` → `report_block` to match.
   - Deleted `tools/telemetry-warden/.gitignore` (no longer needed since no log file is generated).

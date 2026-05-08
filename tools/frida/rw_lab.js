@@ -8,9 +8,12 @@
 // Currently extracted to powers (load with loadPower("<Name>")):
 //   ChapterBoss     — force chapter-end boss arrival
 //   Currency        — global wallet writes (shards today)
+//   Hourglass*      — fire chapter hourglass reward-item spawner on demand
 //   SaveDiagnostic  — save-buffer probes (EXPERIMENTAL)
 //   TalentPicker    — talent-picker seed forcing + diagnostics (PARTIALLY VERIFIED)
 //   Teleport        — player teleport primitive
+//
+//   * = load before chapter (or game) start — the power's hook arms during setup
 //
 // Conventions are documented in tools/frida/CODE_STANDARDS.md. Read that
 // first before adding capabilities.
@@ -487,7 +490,8 @@ if (mod === null) {
     console.log('[rw_lab] hub helpers: RW.Player.loc / .entity / .hc / .refresh()  (call refresh to capture)');
     console.log('[rw_lab] hub helpers: RW.Entity.find(name) / .list()  (experimental)');
     console.log('[rw_lab] ready. Load capabilities with loadPower("Name"):');
-    console.log('[rw_lab]   ChapterBoss   Currency   SaveDiagnostic   TalentPicker   Teleport   Transporter');
+    console.log('[rw_lab]   ChapterBoss   Currency   Hourglass*   SaveDiagnostic   TalentPicker   Teleport   Transporter');
+    console.log('[rw_lab]   * = load before chapter (or game) start — the power\'s hook arms during setup');
     console.log('[rw_lab] help() lists every loaded power; help("Name.method") for full docs.');
     console.log('[rw_lab] CODE_STANDARDS.md documents the conventions.');
 }
