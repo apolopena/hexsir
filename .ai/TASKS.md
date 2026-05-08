@@ -23,6 +23,13 @@
 
 ## Done
 <!-- DONE_START -->
+MAINT-50: On-demand spawn pipeline — static dig (2026-05-08)
+  - Mapped end-to-end: encyclopedia name lookup → `oCSpawner_createEntityFromSettings` (was `FUN_1406db260`) → world-binder `oCSpawner::vt[3]` (`oCSpawner_addEntityIntoWorld`) → entity vt[5] (`entity_init_from_config_block`) consumes 0x68-byte `oCEntitySpawnData` (pos `+0x10`, Euler rot `+0x1c`, scale `+0x2c`, parent `+0x38`). Caught the multiplayer-vs-solo split: `FUN_1407088f0` (now `oCEntityReplicaFactory_spawnByName_remote`) skips the world-binder and is multiplayer-only — using it for solo would have produced inert entities and burned a test cycle.
+  - Encyclopedia at `oCEntitySettingsEncyclopediaSceneContext`: Swiss-table at `+0x28`, value at `slot+0x10`, name → settings ptr. Acts as the natural "chapter assets only" boundary — unloaded asset returns null at the sentinel check.
+  - Findings doc shipped: `rw/findings/on-demand-spawn-pipeline.md` (in-progress) — full pipeline, layout tables, recommended Frida primitive, RVA reference table.
+  - **Ghidra annotations applied (committed to project DB):** 17 renames across the factory / world-binder / replica-factory family / entity ctor / enemy-library init; 4 plate comments on `oCSpawner_createEntityFromSettings`, `oCSpawner_addEntityIntoWorld`, `oCEntity_ctor`, and `oCEntityReplicaFactory_spawnByName_remote` (the multiplayer one carries an explicit DO-NOT-USE-FOR-SOLO header).
+  - Two RVAs deferred to runtime capture in next session's discovery script: `oCEntitySpawnData::vftable` and the encyclopedia type-tester vftable. Both faster to read live than to chase statically.
+
 MAINT-49: Map power — chapter-bounds drops (2026-05-07)
   - New `tools/frida/mods/powers/Map.js` (v0.5.1). Reads the engine's authoritative XZ bounding rectangle off `oCGpnSceneContext` (RTTI `0x1413689c0`, type-tester vftable `0x140ee4a38`, type-id pointer `0x141447ae0`) at offsets `+0xb8`/`+0xc0`/`+0xc4`/`+0xcc` (X-min, Z-min, X-max, Z-max; `+0xbc`/`+0xc8` are `±1.0` axis-unit sentinels — Y is intentionally unbounded). Populated by `update_partitioning_boundings` (was `FUN_1401df540`) which unions every terrain section's world AABB and pads via `DAT_140fa3cf4 = 0.5` to inflate both axes to a square cube; written via `gpn_set_chapter_bounds` (was `FUN_1406e7e90`).
   - **Player-relative drops with hard offset cap.** `Map.dropAbove(x, z, offset?)` returns `{x, y: playerY+offset, z}` clamped to `[0, 20]` per the user rule "never add more than 20." `Map.dropRandom(radius?, offset?)` picks a random (X,Z) within `radius` of the player (default 50), clamped to bounds. Absolute Y drops are categorically broken — engine skybox/render culling kicks in around Y=50 while cliffs/structures legitimately reach Y=150–300.

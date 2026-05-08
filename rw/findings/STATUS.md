@@ -14,6 +14,7 @@ Source of truth: the `**Status:**` line at the top of each `rw/findings/<name>.m
 | in-progress | [items-add-primitive-cap.md](items-add-primitive-cap.md) | Items ADD primitive — save-load cap discovery |
 | in-progress | [items-budget-rule-a-investigation.md](items-budget-rule-a-investigation.md) | Items budget Rule A investigation — persistent struct field map + cross-type-reuse failure mode |
 | in-progress | [multiplayer-host-authority.md](multiplayer-host-authority.md) | Multiplayer host-authority and replication architecture |
+| in-progress | [on-demand-spawn-pipeline.md](on-demand-spawn-pipeline.md) | On-demand entity spawn pipeline (encyclopedia + factory) |
 | in-progress | [pin-identity-uncertain.md](pin-identity-uncertain.md) | Pin Identity: What Are the Pinned Addresses Actually? |
 | in-progress | [random-seed-system.md](random-seed-system.md) | Random seed system — locate and edit |
 | in-progress | [save-guid-hash-tail.md](save-guid-hash-tail.md) | Save-record GUID hash-tail reversal |
