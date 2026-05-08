@@ -23,7 +23,14 @@
 
 ## Done
 <!-- DONE_START -->
+MAINT-47: Telemetry power — restore log() (2026-05-07)
+  - Re-added `Telemetry.log(on?)` and the cleartext-body printing path. MAINT-46 was a misread: the user said "I don't want any telemetry logging. It gets huge." which I interpreted as "remove log()" when they meant "no log files." The Telemetry power was always stdout-only and never wrote to disk; nothing needed removing. Restored full v0.1.0 surface: `disable()` / `enable()` / `log()` / `stats()`.
+  - Bumped to v0.3.0 (was v0.1.0 → v0.2.0 in MAINT-46 → v0.3.0 here, since it's an API change forward from v0.2.0).
+  - Updated `log()` docstring to spell out "Output goes to stdout only — nothing is ever written to disk. Redirect REPL stdout yourself if you want persistence."
+  - Lesson: ask for clarification when a one-line user statement could mean two different things, before editing code.
+
 MAINT-46: Telemetry power — drop log() per user request (2026-05-07)
+  - **REVERTED IN MAINT-47** — see above for rationale.
   - Removed `Telemetry.log()` and the cleartext-body printing path entirely. Body inspection produces too much noise to be useful in interactive REPL use; the user explicitly asked for it gone.
   - Power surface trimmed to `disable()` / `enable()` / `stats()`. `stats()` no longer reports `logged` (just matched / blocked).
   - Internal: hook body simplified — no `WinHttpSendRequest`-arg-body read, no `_logging` flag. Bumped to v0.2.0.
