@@ -2,8 +2,9 @@
 
 # UI modal architecture — assets, runtime class, push/dismiss API, text-input wiring
 
-**Status:** in-progress
+**Status:** parked
 **Created:** 2026-05-08
+**Updated:** 2026-05-08
 
 ## Sources
 
@@ -19,6 +20,20 @@
 - `rw/findings/cooked-format-schemas.md` — schema decoder used to inspect modal `.gen` files
 - `rw/findings/on-demand-spawn-pipeline.md` — entity factory primitive (`oCSpawner_createEntityFromSettings`)
 - `tools/rerw-src/lib/cooked.py` / `cooked_schemas.py` — runtime decoder
+
+## Verdict — parked under no-game-files constraint
+
+**Research preserved as reference; the original session goal (a pre-chapter-load SeedInputModal) is not viable under the project's no-game-files rule.**
+
+The constraint prohibits `.exe` patching and asset modification. Under that rule, the only remaining Frida-only paths to a "custom" modal are:
+
+- **Hijack an existing modal** (Tier 1 — push the multiplayer text-input modal from Frida and hook its confirm callback to route the typed value to `Seed.set()` instead of EOS join). Mechanically possible but a hack-on-hack: cannot relabel the modal cleanly, repurposes an unrelated UI flow, no benefit over an external Frida REPL command for setting the seed.
+- **Forge a custom modal at runtime** (Tier 3). Live capture 2026-05-08 of an active multiplayer modal showed the data-source at `oCEntityModal+0x88` is a polymorphic tree with vftables at six different offsets (+0x00, +0x10, +0x40, +0x98, +0xb0, +0xf8). Forging from scratch is impractical.
+- **Asset clone** (Tier 2) — explicitly off-limits per the no-game-files rule.
+
+The full architecture below is preserved as an RE reference. If the no-game-files constraint ever lifts (e.g., a future modding-allowed branch), Tier 2 becomes the cleanest path and the symbol map below is the entry point.
+
+See **Notes → Custom-modal feasibility — three tiers** for the full tier breakdown.
 
 ## Confirmed Findings
 
@@ -325,6 +340,8 @@ Plus plate comments on `0x14025d3b0` (save-modal init dispatcher), `0x140686350`
 
 ### Rationale for SeedInputModal feasibility (per session goal)
 
-The session's driving question was whether a pre-chapter-load seed-input modal is feasible without modifying `Ravenswatch.exe`. Conclusion: yes, via Frida hooks, with the lobby decoupled from chapter-load (modal arms `Seed.set()` in lobby; existing `apply_session_seed_to_scene_contexts` hook in `tools/frida/mods/powers/Seed.js` consumes the armed value at chapter load). Fully native (no Frida observer at click time) is not feasible without `.exe` patches — no native code path takes user input and writes the master seed.
+**Conclusion: not viable under the no-game-files constraint.** See Verdict at top of this doc.
 
-Recommended implementation path (Path A from the discussion): hook the case-5 `EOS_LobbySearch_Find` site to intercept the typed code from the existing `Modal_Multiplayer` UI. No new modal asset, no thread blocking, immediate proof-of-concept.
+The session's driving question was whether a pre-chapter-load seed-input modal could be built without modifying `Ravenswatch.exe` or its assets. An earlier draft of this section recommended a Tier-1 hijack of the existing multiplayer modal (intercept `EOS_LobbySearch_Find` at case 5 of the EOS event pump in `FUN_14087d860`, route the typed code to `Seed.set()`). That path is mechanically possible but was rejected as a hack-on-hack: it repurposes an unrelated UI flow, can't cleanly relabel the modal, and offers no advantage over an external Frida REPL command for setting the seed.
+
+The follow-up live capture (2026-05-08) of an active modal's data-source struct (see Verdict) further confirms that runtime forging of a fresh modal is impractical — the data-source is a polymorphic tree, not a flat POD struct. A clean SeedInputModal would require Tier-2 asset cloning, which the project rules disallow.

@@ -6,6 +6,7 @@ Full map of every outbound telemetry endpoint baked into `Ravenswatch.exe` (Pass
 
 **Status:** confirmed
 **Created:** 2026-05-07
+**Updated:** 2026-05-08 — Telemetry power v0.6.0 (streaming-body capture + log(N) budget mode); in-vivo confirmation that dt-live ticks are empty-body and that the heartbeat is required only to *establish* multiplayer, not maintain it.
 
 ## TL;DR
 
@@ -110,12 +111,17 @@ The warden takes the network-layer block + log approach. Architecture:
 
 ## tools/frida/mods/powers/Telemetry.js — in-process companion
 
-Frida-side complement to the warden, built MAINT-45/47. Loaded via `loadPower("Telemetry")`. Hooks `winhttp!WinHttpSendRequest` once at load with a host-suffix filter (`passtechgames.com`, `nacon-os.com`, `nacon-os-rec`, `submit.backtrace.io`, `.a.run.app`). API:
+Frida-side complement to the warden, built MAINT-45/47, extended through v0.6.0 (2026-05-08). Loaded via `loadPower("Telemetry")`. Hooks `winhttp!WinHttpSendRequest` once at load with a host-suffix filter (`passtechgames.com`, `nacon-os.com`, `nacon-os-rec`, `submit.backtrace.io`, `.a.run.app`). v0.4.0+ also attaches to `WinHttpWriteData` (streaming-body capture) and `WinHttpCloseHandle` (eviction of aborted streaming entries). API:
 
 - `Telemetry.disable()` — matched calls return `BOOL FALSE` without doing any I/O. No socket, no DNS, no TLS handshake. The warden goes silent for those hosts because nothing reaches the network layer.
 - `Telemetry.enable()` — restore default; matched calls pass through to WinHTTP normally.
-- `Telemetry.log(on?)` — toggle stdout printing of cleartext request bodies. WinHTTP's `lpOptional` arg is the cleartext payload; TLS encryption happens *inside* WinHTTP after the function returns, so we read the JSON / auth blob before it gets encrypted. Stdout only — never writes to disk.
-- `Telemetry.stats()` — `{matched, blocked, logged}` counters since load.
+- `Telemetry.log(on?: boolean | number)` — controls stdout printing of cleartext request bodies. Modes:
+  - `log()` toggles on/off; `log(true)` / `log(false)` force.
+  - `log(N)` (positive integer) — print the next N complete *non-empty* bodies, then auto-disable. Empty-body matches (e.g. dt-live heartbeat pings, GET handshakes) don't consume the budget; only bodies with actual bytes count toward N. Calling `log(N)` again while in budget mode adds to the remaining count.
+  - Streaming POSTs (`lpOptional=NULL`, body delivered via `WinHttpWriteData` after `SendRequest` returns) are accumulated chunk-by-chunk in memory and printed as one line on completion: `[Telemetry.log] <url> body(N): <bytes>`. Aborted/closed sends evict silently. WinHTTP's `lpOptional` (or the streamed bytes) are read pre-encryption — TLS happens *inside* WinHTTP after `SendRequest` returns. Stdout only; never writes to disk.
+- `Telemetry.stats()` — `{matched, blocked, logged}` counters since load. `logged` counts at print time, so it reflects bodies the user actually saw — empty-body matches under budget mode increment `matched` but not `logged`.
+
+**Per-call block visibility.** `disable()` by itself is silent — only the `blocked` counter increments. For one line per blocked call, combine `Telemetry.disable()` with `Telemetry.log(true)`. The hook processes logging *before* the disable check returns FALSE, so you get the body / `(no body)` line for each matched call as it's intercepted. Caveat: this combination prints inline-body and empty-body matches but NOT streaming-body matches — streaming registration is gated on `!_disabled` (because the failed SendRequest never produces follow-up `WinHttpWriteData` calls). For the dt-live heartbeat (empty body) and Nacon handshakes this is fine; for `passtech_analytics_post_event` POSTs (which stream their JSON body) you'd need to enable, capture via `log(N)`, then disable — two-step.
 
 **Why both warden and power.** The warden is the always-on broad net (catches anything hitting blocked hostnames at the network layer, including paths we haven't reverse-engineered). The Telemetry power is surgical — kills the calls inside the process, stops the retry storm at its source, and gives cleartext-body visibility. Two layers, different scopes:
 
@@ -141,6 +147,24 @@ So `dt-live*.passtechgames.com` isn't (only) an analytics host — it's also the
 - The dt-live spam is **login retries**, not gameplay analytics. The Telemetry power's `disable()` is the cleanest way to silence it (kills the WinHttpSendRequest call before it reaches the network layer).
 - The retry storm is fully session-recreated, not disk-persisted. No state file feeds it; quitting the game empties the queue, relaunching reproduces the same behavior because Stormancer always tries to login.
 - "Solo play needs no multiplayer login" — `Telemetry.disable()` is safe for solo runs. Multiplayer matchmaking won't work while disabled.
+
+### In-vivo behavior (2026-05-08, Frida session)
+
+Two observations confirmed by directly hooking and toggling at runtime, beyond what the static reverse-engineering revealed:
+
+**1. dt-live heartbeat ticks are empty-body URL pings.** With `Telemetry.log(true)` for ~5 seconds while dt-live was allowed and the game was in/near the multiplayer lobby, the hook printed a flood of `[Telemetry.log] <url> (no body)` lines — one per second, matching the Stormancer-retry cadence. Out of 106 matched ticks observed in budget mode (`log(5)`), zero printed because every one was empty (`bodyLen=0`, `dwTotalLength=0`). The URL itself is the entire heartbeat signal; there is no JSON payload accompanying the per-second tick. The previous expectation that "dt-live carries telemetry payloads" was wrong for the heartbeat path — *event*-driven analytics POSTs (chapter end, run start, etc., still sent through `passtech_analytics_post_event`) do carry bodies, but the 1-Hz Stormancer login retry does not.
+
+**2. dt-live heartbeat is required to *establish* the multiplayer connection but NOT to *maintain* it.** Workflow:
+   - hosts file allows dt-live → game launches, Stormancer succeeds, lobby connects (multiplayer functional).
+   - In Frida REPL: `Telemetry.disable()` — process-side block kicks in, heartbeat stops firing the network call.
+   - **Lobby connection survives.** Multiplayer remains functional with the heartbeat cut.
+
+   Implication: the surveillance/connectivity window is post-handshake-only. Once authenticated and joined, the per-second tick can be silenced. Open follow-ups (untested as of 2026-05-08):
+   - Does the connection survive *indefinitely* with `disable()` active, or does Stormancer eventually time the session out from the server side?
+   - Does the connection survive lobby → in-run → back-to-lobby transitions? (Game may re-handshake at scene boundaries.)
+   - If the connection drops while disabled, does `enable()` recover it on the fly, or is full re-establishment from scratch required?
+
+   Cleanest test workflow for these follow-ups: get into lobby, `Telemetry.disable()`, then leave it sitting / play through transitions / wait for idle timeout, observing whether the lobby UI reports a disconnect.
 
 ## Known limitations
 
