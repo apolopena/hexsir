@@ -2,16 +2,17 @@
 
 # Player setPosition reconciliation — controller-tick coupling and the snap
 
-**Status:** in-progress
+**Status:** confirmed
 **Created:** 2026-05-08
-**Last updated:** 2026-05-08
+**Last updated:** 2026-05-08 — diff-gate mechanism identified via runtime stack-trace probe; held-position primitive (`Transporter.expr_dropPlayerHard`) confirmed working live.
 
 ## Sources
 
-- Live Frida-driven testing this session (chapter-1 / Dark Hills)
-- `rw/findings/spawn-at-coord-recipe.md` — `oCEntity_setPosition` primitive (RVA `0x6ca7f0`, vtable `+0x50`); off-map free-fall observation from prior session
+- Live Frida-driven testing 2026-05-08 (chapter-1 / Dark Hills) including `tools/frida/mods/hero_move_probe.js` v0.1.0 stack-trace runs
+- Ghidra decompile (this session): `oCEntity_setPosition` (RVA `0x6ca7f0`), `oCEntity_setRotation` (`0x6ca8d0`), `oCEntity_setScale` (`0x6ca9e0`), `oCEntity_VelocityUpdate_loop` (`0x6cce40`), `oCEntity_velocity_update_orchestrator` (`0x6dcc20`), `oCEntityCpntActor_ctor` (`0x39ffa0`), `oCEntityCpntGpnTraverser_ctor` (`0x2e1480`)
+- `rw/findings/spawn-at-coord-recipe.md` — `oCEntity_setPosition` primitive; off-map free-fall observation from prior session
 - `rw/findings/transporter-placement-primitive.md` — Transporter primitive verified live
-- `tools/frida/mods/powers/Transporter.js` v0.3.0 — current `warpPlayer` / `dropPlayer` implementations
+- `tools/frida/mods/powers/Transporter.js` v0.7.0 — warp / drop / scale / rotate / expr_dropPlayerHard
 - `tools/frida/mods/powers/Map.js` v0.9.0 — chapter coordinate getters
 - `tools/frida/util/EntitySpawners.js` v0.1.0 — shared spawner-ctor capture
 
@@ -57,15 +58,108 @@ The downstream effect: drops-from-above for the player are not deterministically
 - **`Transporter.dropPlayer`** — implements the off-map prep + drop recipe. **Not deterministic** for the reasons in §"What this rules out" above. The docstring claims a working two-step that empirically doesn't hold across all controller-tick states. Marked as kept in code pending the controller dig; **users should treat the call as experimental** and expect inconsistent fall-vs-snap outcomes.
 - **`Map.center` / `Map.point` / `Map.randomPoint`** — coordinate getters; unaffected by this finding. Compose with either `warpPlayer` (always snaps) or `dropPlayer` (sometimes falls, sometimes snaps).
 
+## Mechanism — confirmed via stack-trace probe (2026-05-08)
+
+The "controller tick" turns out to be the **`oCEntity_VelocityUpdate_loop`** (function entry RVA `0x6cce40`). Identified end-to-end via `tools/frida/mods/hero_move_probe.js` v0.1.0, which hooks `oCEntity_setPosition` with a player-only filter and dumps `Thread.backtrace` on every fire.
+
+**Phase counts (5-second windows):**
+- Idle, no input: **0 hits.** Engine does not write the player's position when no input is firing.
+- Movement (left stick / W held): **2166 hits**, ~430/sec, ~7 per frame at 60Hz. 100% identical stack pattern across all hits.
+- Frida warp + no input: **30 hits.** Resolve cascade fires after the warp, even with no input — engine's response to the position write.
+- Frida warp + input held: **1391 hits.** Hit #1 has Frida-trampoline RVAs (high `0x2fa…`); all subsequent hits match the movement pattern. **No separate "snap cascade" code path** — the snap is the velocity-update loop continuing to fire while input is held.
+
+**Movement-tick stack (every hit):**
+```
+0x6ccff6  in oCEntity_VelocityUpdate_loop (writes setPosition with target)
+0x6dcdf5  in oCEntity_velocity_update_orchestrator
+0x512ff9  in scheduler step dispatch (FUN_140512eb0)
+0x446d15  ↑
+0x446451  ↑
+0x4461cc  ↑
+0x50ec79  ↑
+0xdd3ec   game loop / scheduler tick
+```
+
+### The diff-gate
+
+`oCEntity_VelocityUpdate_loop` body wraps its setPosition call in a diff-gate:
+
+```c
+if (target.x != prev.x || target.y != prev.y || target.z != prev.z) {
+    setPosition(entity, target);
+}
+```
+
+Where:
+- `prev`   = `entity+0x3d8..+0x3e0` (3 floats)
+- `target` = `entity+0x3e4..+0x3ec` (3 floats)
+
+The loop does **not** compute target — target is written upstream (movement intent / gravity / navmesh-snap producers, not yet fully traced). When player is idle and no upstream writes, target == prev, the loop is silent for that entity.
+
+This explains the input-gating: no input → no upstream velocity producer firing → target stays stale matching prev → loop silent. The "controller is input-gated" model is mechanically: "the producer of `target` is input-gated."
+
+### The hold-without-snap primitive
+
+If we write `prev = target = pos = (x, y, z)` in one Frida turn, the diff-gate reads zero on every subsequent tick and the loop never overwrites the broadcast position field at `+0x324..+0x32c`. Result: player **holds** at any (x, y, z) including high Y, mid-air. Verified live 2026-05-08 with `Transporter.expr_dropPlayerHard(0, 50, 0)` — player hovers at Y=50, untouched, until any input fires (then upstream writes to target re-trigger the loop, which resolves to the navmesh surface — observed as the snap when user clicked attack).
+
+Implementation in `tools/frida/mods/powers/Transporter.js` v0.4.0+: `expr_dropPlayerHard(x, y, z)` writes all three triplets (`prev`, `target`, position) atomically, then calls `setPosition` to broadcast to renderer/camera.
+
+### What this rules out (and replaces)
+
+- "The off-map prep recipe is the path to deterministic drops." → Replaced. The prep + gap recipe is non-deterministic by design (depends on whether controller ticks during the gap, which depends on player input). The diff-gate primitive sidesteps the recipe entirely for the hold case. For a **visible fall** (gravity-driven descent over multiple frames) the recipe is also wrong — what's needed is to clear/seed the upstream gravity input, which we haven't found yet.
+- "Holding movement input + a 500ms gap fixes `Transporter.dropPlayer`." → Falsified. Even with input held + 500ms `setTimeout` between the off-map and in-map writes, the snap reproduces (live-tested 2026-05-08). The recipe that "worked" in earlier REPL sessions was timing-dependent on a state we couldn't reproduce.
+
+## Component shapes — entity-side movement state
+
+Two relevant components hung off `entity+0x5e8` (component hashmap, per `enemy-spawn-architecture.md`):
+
+**`oCEntityCpntActor`** — 272 bytes (0x110). Ctor at `oCEntityCpntActor_ctor` (RVA `0x39ffa0`). Field map:
+| Offset | Type | Likely role |
+|---|---|---|
+| +0x00 | vtable (`oCEntityCpntActor::vftable`) | — |
+| +0x18 | `EntityCpntValueSignal<bool>` | bool flag #1 (grounded?) |
+| +0x38 | `EntityCpntValueSignal<bool>` | bool flag #2 (airborne / moving?) |
+| +0x80 | `EntityCpntValueSignal<int>` | state-machine state |
+| +0xa0 | `EntityCpntValueSignal<oCVec3>` | vec3 #1 (velocity?) |
+| +0xc0 | `EntityCpntValueSignal<oCVec3>` | vec3 #2 (target?) |
+| +0xe0..+0x108 | misc | 48 bytes of state |
+
+**`oCEntityCpntGpnTraverser`** — 256 bytes (0x100). Ctor at `oCEntityCpntGpnTraverser_ctor` (RVA `0x2e1480`). Field map:
+| Offset | Type | Likely role |
+|---|---|---|
+| +0x00 | vtable (`oCEntityCpntGpnTraverser::vftable`) | — |
+| +0x18 | `EntityCpntValueSignal<bool>` | bool flag #1 |
+| +0x38 | `EntityCpntValueSignal<bool>` | bool flag #2 |
+| +0xb0 | `oCEntityGpnTesterCombiner::vftable` | navmesh tester combiner — walkability queries |
+| +0xe8 | u16 = 0x100 | flags? |
+
+The traverser is the navmesh-side complement to the actor. The "snap to walkable surface" raycast almost certainly originates here. The pair of bool signals on each component is the most likely home for the grounded / airborne / moving flags — pinning which is which requires runtime byte-diffing the components in two known states (grounded standing vs `expr_dropPlayerHard` hovering); not done this session.
+
+## Sibling transform primitives — confirmed working on any oCEntity
+
+While digging this session also confirmed the full vtable transform-primitive set on the base `oCEntity` class:
+
+| RVA | vtable slot | What it writes | Broadcast type |
+|---|---|---|---|
+| `0x6ca7f0` | `+0x50` | position vec3 at `+0x324..+0x32c` | 0 |
+| `0x6ca8d0` | `+0x60` | rotation quat at `+0x308..+0x314` | 1 |
+| `0x6ca9e0` | `+0x70` | scale vec3 at `+0x318..+0x320` | 2 |
+
+All three follow the same dirty-flag + queue + broadcast plumbing (`+0x288` flag, `+0x270`/`+0x280` gates, `+0x3a8` handler list). All three work on **any** `oCEntity` — verified live with `Transporter.scalePlayer` (smaller = visibly faster), `Transporter.scaleEntity("noModel+2Cpnt", 3.0)` (hourglass scaled cleanly), and `Transporter.rotatePlayer(45)` (rotates the R-stick aim direction, not the body — the visible body rotation is animation-driven from L-stick velocity, separate path).
+
+`Transporter.js` v0.7.0 surface (committed this session): `warpPlayer` / `dropPlayer` / `scalePlayer` / `rotatePlayer` (one-shot for player); `warpEntity` / `scaleEntity` / `rotateEntity` (with 500ms tick re-apply for non-player entities); `expr_dropPlayerHard` (the diff-gate primitive). Per-entity tick map (`Transporter._entityTicks`) added so re-calling `scaleEntity` / `warpEntity` / `rotateEntity` on the same entity replaces the prior tick instead of stacking loops.
+
 ## Open digs
 
-- **Locate the player movement controller's per-tick update function.** Suggested entry points: trace from `RW.Player.entity`'s vtable (RVA `0xf4cc40` for `oCEntity`) for entries that read/write `+0x324` per frame; xref `oCEntity_setPosition` (RVA `0x6ca7f0`) callers to find the controller-side reader; check the player-component graph at `entity+0x5e8` (component hashmap, per `enemy-spawn-architecture.md`) for a movement-controller component class. Once located, hook it as a no-op pass-through to confirm it ticks on input, then explore whether calling it manually from Frida produces the desired tick.
-- **Test absolute Y values lower than 50 with off-map prep, while moving.** If the user holds a movement key during the warp pair, the controller is presumably ticking. That should let us A/B the Y threshold cleanly under controlled tick conditions.
-- **Pin the off-map threshold.** `(-410, 2, 0)` works; what's the smallest off-map distance that reliably ungrounds? May affect whether the prep is invisible to the user (large off-map = visible camera jump; small off-map = clean).
+- **Visible-fall variant.** The diff-gate primitive holds; it doesn't drop. For a real engine-driven fall from high Y to ground, we need either (a) the upstream gravity producer (whatever writes `entity+0x3e4..+0x3ec` from current pos + gravity*dt under "airborne" conditions), or (b) the grounded/airborne state flag so we can clear it. The Actor's `+0x18`/`+0x38` bools are the most likely home; runtime byte-diff probe is the cheapest way to identify them.
+- **Body-rotation source.** `rotatePlayer` writes the entity's quaternion which controls AIM/R-stick direction, not the visible body facing. The body's render rotation is driven by the animation/movement system from L-stick velocity. Locate that path if you ever want to spin the body without input.
+- **Pin the two bool signals on Actor and Traverser.** Each component has two `EntityCpntValueSignal<bool>` slots. Live byte-diff between grounded standing and hovering states would land the grounded bool in one observation. Probe sketch: capture component pointers via `entity+0x5e8` map walk, dump bytes in state A, dump in state B, diff.
+- **Component hashmap traversal.** We need a Frida helper that resolves `actor` and `traverser` from a player entity ptr. The hashmap at `entity+0x5e8` is the entry point; the lookup key is the component class type-id (registered in `oCEntityCpntActor_typedesc_init` and `oCEntityCpntGpnTraverser_typedesc_init`).
 
 ## Cross-references
 
 - `rw/findings/spawn-at-coord-recipe.md` — primitive (`vtable[+0x50]`, position field at `+0x324`); off-map free-fall observation.
 - `rw/findings/transporter-placement-primitive.md` — placement primitive on encyclopedia map landmarks.
-- `tools/frida/mods/powers/Transporter.js` — current implementation of warp / drop.
+- `tools/frida/mods/powers/Transporter.js` — current implementation (v0.7.0) of warp / drop / scale / rotate / expr_dropPlayerHard.
+- `tools/frida/mods/hero_move_probe.js` — the stack-trace probe used to identify the velocity-update loop as the per-tick caller.
 - `tools/frida/util/EntitySpawners.js` — shared spawner-ctor capture util introduced this session (independent of this finding but relevant to the broader Map / Hourglass / SpawnerProbe consolidation arc).

@@ -16,14 +16,12 @@ Source of truth: the `**Status:**` line at the top of each `rw/findings/<name>.m
 | in-progress | [multiplayer-host-authority.md](multiplayer-host-authority.md) | Multiplayer host-authority and replication architecture |
 | in-progress | [on-demand-spawn-pipeline.md](on-demand-spawn-pipeline.md) | On-demand entity spawn pipeline (encyclopedia + factory) |
 | in-progress | [pin-identity-uncertain.md](pin-identity-uncertain.md) | Pin Identity: What Are the Pinned Addresses Actually? |
-| in-progress | [player-setposition-reconciliation.md](player-setposition-reconciliation.md) | Player setPosition reconciliation — controller-tick coupling and the snap |
 | in-progress | [random-seed-system.md](random-seed-system.md) | Random seed system — locate and edit |
 | in-progress | [save-guid-hash-tail.md](save-guid-hash-tail.md) | Save-record GUID hash-tail reversal |
 | in-progress | [save-mint-status.md](save-mint-status.md) | Save Mint — Status and Known Issues |
 | in-progress | [starting-talent-bias.md](starting-talent-bias.md) | Starting-talent bias — does elevated rarity steer subsequent rolls? |
 | in-progress | [talent-picker-weighting.md](talent-picker-weighting.md) | Talent picker — count override + rarity-weighting pipeline |
 | in-progress | [transporter-placement-primitive.md](transporter-placement-primitive.md) | Transporter — placement primitive on encyclopedia map landmarks |
-| in-progress | [ui-modal-architecture.md](ui-modal-architecture.md) | UI modal architecture — assets, runtime class, push/dismiss API, text-input wiring |
 | confirmed | [chapter-boss-portal-trigger.md](chapter-boss-portal-trigger.md) | Chapter boss-arrival trigger — force the portal on demand |
 | confirmed | [cooked-format-schemas.md](cooked-format-schemas.md) | Cooked-format per-class schemas — herodef + entity-settings |
 | confirmed | [held-dream-shards.md](held-dream-shards.md) | Held Dream Shards — bytefield reference |
@@ -31,6 +29,7 @@ Source of truth: the `**Status:**` line at the top of each `rw/findings/<name>.m
 | confirmed | [hero-table.md](hero-table.md) | Hero asset table |
 | confirmed | [item-table.md](item-table.md) | Item asset table (Magical Objects + Powerups) |
 | confirmed | [magical-objects.md](magical-objects.md) | Save: magical objects (items) — record format and edit primitives |
+| confirmed | [player-setposition-reconciliation.md](player-setposition-reconciliation.md) | Player setPosition reconciliation — controller-tick coupling and the snap |
 | confirmed | [rng-behavior.md](rng-behavior.md) | RNG behavior — Ravenswatch per-event RNG |
 | confirmed | [save-account-binding.md](save-account-binding.md) | Save: account binding and portability |
 | confirmed | [save-binary-format.md](save-binary-format.md) | Save: binary format and edit primitives |
@@ -44,6 +43,7 @@ Source of truth: the `**Status:**` line at the top of each `rw/findings/<name>.m
 | confirmed | [talent-records.md](talent-records.md) | Save: talent records |
 | confirmed | [talents.md](talents.md) | Talent names (partial) |
 | confirmed | [telemetry-surface-and-warden.md](telemetry-surface-and-warden.md) | Telemetry surface + telemetry-warden block tool |
+| parked | [ui-modal-architecture.md](ui-modal-architecture.md) | UI modal architecture — assets, runtime class, push/dismiss API, text-input wiring |
 | archived | [decoder-work-2026-04-30.md](decoder-work-2026-04-30.md) | DecoderWork — `.gen` and `Profile_1.ob` decoder |
 | archived | [geppetto-save-analysis.md](geppetto-save-analysis.md) | Geppetto Save File Analysis |
 | archived | [level-runtime-address.md](level-runtime-address.md) | Runtime Level address (Geppetto) |

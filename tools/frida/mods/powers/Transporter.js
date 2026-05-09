@@ -42,17 +42,29 @@
 //   Transporter.warpPlayer(point, roundtrip?): void           overload
 //   Transporter.dropPlayer(x, y, z, height?): void
 //   Transporter.dropPlayer(point, height?): void              overload
+//   Transporter.rotateEntity(name, yawDegrees, roundtrip?): void
+//   Transporter.rotatePlayer(yawDegrees): void
+//   Transporter.scaleEntity(name, s, roundtrip?): void
+//   Transporter.scaleEntity(name, sx, sy, sz, roundtrip?): void  overload
+//   Transporter.scalePlayer(s): void
+//   Transporter.scalePlayer(sx, sy, sz): void                 overload
+//   Transporter.expr_dropPlayerHard(x, y, z): void            experimental
+//   Transporter.expr_dropPlayerHard(point): void              overload
 //   Transporter.clear(): void
 
 (function () {
-    var version = "0.3.0";
+    var version = "0.7.0";
     var mod = Process.findModuleByName("Ravenswatch.exe");
     if (!mod) { console.log("[Transporter] FATAL: no Ravenswatch.exe"); return; }
     var imageBase = mod.base;
 
-    var POS_OFFSET      = 0x324;
-    var SET_POS_VT_SLOT = 0x50;
-    var TICK_MS         = 500;
+    var POS_OFFSET        = 0x324;
+    var ROT_OFFSET        = 0x308;
+    var SCALE_OFFSET      = 0x318;
+    var SET_POS_VT_SLOT   = 0x50;
+    var SET_ROT_VT_SLOT   = 0x60;
+    var SET_SCALE_VT_SLOT = 0x70;
+    var TICK_MS           = 500;
 
     // Drop semantics — see file header.
     var DROP_HEIGHT_DEFAULT = 20;
@@ -71,6 +83,23 @@
         });
     }
     Transporter._timers = [];
+    Transporter._entityTicks = Transporter._entityTicks || {};
+
+    function clearEntityTick(key) {
+        var t = Transporter._entityTicks[key];
+        if (t !== undefined) {
+            try { clearInterval(t); } catch (e) {}
+            delete Transporter._entityTicks[key];
+        }
+    }
+
+    function setEntityTick(key, place) {
+        clearEntityTick(key);
+        var tick = setInterval(place, TICK_MS);
+        Transporter._entityTicks[key] = tick;
+        Transporter._timers.push(tick);
+        return tick;
+    }
 
     function readF32(p) { try { return p.readFloat(); } catch (e) { return NaN; } }
     function vec3(p)    { return [readF32(p), readF32(p.add(4)), readF32(p.add(8))]; }
@@ -80,6 +109,24 @@
         var vt = ent.readPointer();
         return new NativeFunction(vt.add(SET_POS_VT_SLOT).readPointer(),
                                   'void', ['pointer', 'pointer']);
+    }
+
+    function setScaleFor(ent) {
+        var vt = ent.readPointer();
+        return new NativeFunction(vt.add(SET_SCALE_VT_SLOT).readPointer(),
+                                  'void', ['pointer', 'pointer']);
+    }
+
+    function setRotFor(ent) {
+        var vt = ent.readPointer();
+        return new NativeFunction(vt.add(SET_ROT_VT_SLOT).readPointer(),
+                                  'void', ['pointer', 'pointer']);
+    }
+
+    function yawDegToQuat(degrees) {
+        var rad = degrees * Math.PI / 180;
+        var half = rad / 2;
+        return [0, Math.sin(half), 0, Math.cos(half)];  // x, y, z, w
     }
 
     // Internal — write the player's position bytes. Caller handles logging
@@ -160,12 +207,12 @@
         var roundtripStr = (typeof roundtrip === 'number') ? " (roundtrip " + roundtrip + "s)" : " (no auto-restore)";
         console.log("[Transporter.warpEntity] " + hit.name + " -> " + v3str([x,y,z]) + roundtripStr);
 
-        var tick = setInterval(place, TICK_MS);
-        Transporter._timers.push(tick);
+        var key = "warp:" + hit.entity.toString();
+        setEntityTick(key, place);
 
         if (typeof roundtrip === 'number' && roundtrip > 0) {
             var t = setTimeout(function () {
-                clearInterval(tick);
+                clearEntityTick(key);
                 buf.writeFloat(origPos[0]); buf.add(4).writeFloat(origPos[1]); buf.add(8).writeFloat(origPos[2]);
                 setPos(hit.entity, buf);
                 console.log("[Transporter.warpEntity] " + hit.name + " restored to " + v3str(origPos));
@@ -303,6 +350,293 @@
 
     /*
      * ----------------------------------------------------------------
+     * Transporter.rotateEntity(name: string, yawDegrees: number, roundtrip?: number): void
+     *
+     * Rotate a named entity around its vertical (Y) axis by yawDegrees.
+     * 0 = neutral facing, 90 = quarter turn, 180 = facing opposite,
+     * 360 = full revolution. Negative values rotate the other way.
+     *
+     * If roundtrip given (seconds), restored to original rotation
+     * after that interval.
+     *
+     * Caveats:
+     *   - Engine may reset non-player entity transforms per frame;
+     *     rotation is re-applied on a 500ms tick.
+     *   - Quaternion convention assumed xyzw with +Y up. If the entity
+     *     visibly tilts instead of yawing, the engine may use a
+     *     different axis convention — fall back to setRotation with a
+     *     hand-tuned 4-tuple.
+     * ----------------------------------------------------------------
+     * MECHANISM:
+     *   Converts yaw to a unit quaternion (qx=0, qy=sin(rad/2), qz=0,
+     *   qw=cos(rad/2)) and writes via vt[+0x60] (RVA 0x6ca8d0). Engine
+     *   stores it at +0x308..+0x314.
+     */
+    Transporter.rotateEntity = function (name, yawDegrees, roundtrip) {
+        if (!RW.Entity || typeof RW.Entity.find !== 'function') {
+            console.log("[Transporter.rotateEntity] RW.Entity missing");
+            return;
+        }
+        var hit = RW.Entity.find(name);
+        if (!hit) { console.log("[Transporter.rotateEntity] no match for \"" + name + "\""); return; }
+        if (typeof yawDegrees !== 'number') {
+            console.log("[Transporter.rotateEntity] need (name, yawDegrees, roundtrip?)");
+            return;
+        }
+
+        var q = yawDegToQuat(yawDegrees);
+        var origRot = [
+            hit.entity.add(ROT_OFFSET     ).readFloat(),
+            hit.entity.add(ROT_OFFSET + 4 ).readFloat(),
+            hit.entity.add(ROT_OFFSET + 8 ).readFloat(),
+            hit.entity.add(ROT_OFFSET + 12).readFloat(),
+        ];
+        var setRot = setRotFor(hit.entity);
+        var buf = Memory.alloc(16);
+
+        function place() {
+            buf.writeFloat(q[0]);
+            buf.add(4).writeFloat(q[1]);
+            buf.add(8).writeFloat(q[2]);
+            buf.add(12).writeFloat(q[3]);
+            setRot(hit.entity, buf);
+        }
+        place();
+        var roundtripStr = (typeof roundtrip === 'number') ? " (roundtrip " + roundtrip + "s)" : " (no auto-restore)";
+        console.log("[Transporter.rotateEntity] " + hit.name + " yaw=" + yawDegrees + "°" + roundtripStr);
+
+        var key = "rotate:" + hit.entity.toString();
+        setEntityTick(key, place);
+
+        if (typeof roundtrip === 'number' && roundtrip > 0) {
+            var t = setTimeout(function () {
+                clearEntityTick(key);
+                buf.writeFloat(origRot[0]);
+                buf.add(4).writeFloat(origRot[1]);
+                buf.add(8).writeFloat(origRot[2]);
+                buf.add(12).writeFloat(origRot[3]);
+                setRot(hit.entity, buf);
+                console.log("[Transporter.rotateEntity] " + hit.name + " rotation restored");
+            }, roundtrip * 1000);
+            Transporter._timers.push(t);
+        }
+    };
+
+    /*
+     * ----------------------------------------------------------------
+     * Transporter.rotatePlayer(yawDegrees: number): void
+     *
+     * Rotate the player around the vertical axis by yawDegrees. Like
+     * scalePlayer, this is a one-shot write (no tick loop). Player
+     * movement controller respects the rotation until the next input
+     * that re-aims the character.
+     *
+     * Result: player visibly turns. Logs the new yaw.
+     * ----------------------------------------------------------------
+     * MECHANISM:
+     *   Calls oCEntity::setRotation at vtable[+0x60] (RVA 0x6ca8d0)
+     *   with a yaw-only quaternion. Same primitive as rotateEntity.
+     */
+    Transporter.rotatePlayer = function (yawDegrees) {
+        if (!RW.Player || !RW.Player.entity || RW.Player.entity.isNull()) {
+            console.log("[Transporter.rotatePlayer] RW.Player not captured — try RW.Player.refresh()");
+            return;
+        }
+        if (typeof yawDegrees !== 'number') {
+            console.log("[Transporter.rotatePlayer] need (yawDegrees)");
+            return;
+        }
+        var q = yawDegToQuat(yawDegrees);
+        var player = RW.Player.entity;
+        var setRot = setRotFor(player);
+        var buf = Memory.alloc(16);
+        buf.writeFloat(q[0]);
+        buf.add(4).writeFloat(q[1]);
+        buf.add(8).writeFloat(q[2]);
+        buf.add(12).writeFloat(q[3]);
+        setRot(player, buf);
+        console.log("[Transporter.rotatePlayer] yaw=" + yawDegrees + "°");
+    };
+
+    /*
+     * ----------------------------------------------------------------
+     * Transporter.scaleEntity(name: string, sx: number, sy: number, sz: number, roundtrip?: number): void
+     * Transporter.scaleEntity(name: string, s: number, roundtrip?: number): void
+     *
+     * Resize a named entity. Same name resolution as warpEntity (case-
+     * insensitive substring match via RW.Entity.find). Single number
+     * = uniform scale; three numbers = independent xyz.
+     *
+     * If roundtrip given (seconds), entity is restored to its captured
+     * original scale after that interval.
+     *
+     * Caveats:
+     *   - Engine may reset non-player entity transforms per frame
+     *     (same reason warpEntity needs a tick loop). Scale is
+     *     re-applied on a 500ms tick to defeat that.
+     *   - Invisible-anchor entities (NoModel, Enemy Camp, etc.) — the
+     *     scale field gets written but nothing visible changes because
+     *     no model is attached.
+     * ----------------------------------------------------------------
+     * MECHANISM:
+     *   RW.Entity.find resolves to oCEntity. setScale at vt[+0x70]
+     *   (RVA 0x6ca9e0) writes 3 floats at +0x318..+0x320, fires a
+     *   500ms re-apply tick, optional roundtrip restores capture.
+     */
+    Transporter.scaleEntity = function (name, a, b, c, d) {
+        if (!RW.Entity || typeof RW.Entity.find !== 'function') {
+            console.log("[Transporter.scaleEntity] RW.Entity missing");
+            return;
+        }
+        var hit = RW.Entity.find(name);
+        if (!hit) { console.log("[Transporter.scaleEntity] no match for \"" + name + "\""); return; }
+
+        var sx, sy, sz, roundtrip;
+        if (typeof a === 'number' && (b === undefined || typeof b !== 'number') && c === undefined) {
+            sx = sy = sz = a;
+            roundtrip = b;
+        } else if (typeof a === 'number' && typeof b === 'number' && c === undefined) {
+            // (name, s, roundtrip)
+            sx = sy = sz = a;
+            roundtrip = b;
+        } else if (typeof a === 'number' && typeof b === 'number' && typeof c === 'number') {
+            sx = a; sy = b; sz = c;
+            roundtrip = d;
+        } else {
+            console.log("[Transporter.scaleEntity] need (name, s, roundtrip?) or (name, sx, sy, sz, roundtrip?)");
+            return;
+        }
+
+        var origScale = vec3(hit.entity.add(SCALE_OFFSET));
+        var setScale = setScaleFor(hit.entity);
+        var buf = Memory.alloc(12);
+
+        function place() {
+            buf.writeFloat(sx); buf.add(4).writeFloat(sy); buf.add(8).writeFloat(sz);
+            setScale(hit.entity, buf);
+        }
+        place();
+        var roundtripStr = (typeof roundtrip === 'number') ? " (roundtrip " + roundtrip + "s)" : " (no auto-restore)";
+        console.log("[Transporter.scaleEntity] " + hit.name + " -> (" +
+                    sx.toFixed(2) + "," + sy.toFixed(2) + "," + sz.toFixed(2) + ")" + roundtripStr);
+
+        var key = "scale:" + hit.entity.toString();
+        setEntityTick(key, place);
+
+        if (typeof roundtrip === 'number' && roundtrip > 0) {
+            var t = setTimeout(function () {
+                clearEntityTick(key);
+                buf.writeFloat(origScale[0]); buf.add(4).writeFloat(origScale[1]); buf.add(8).writeFloat(origScale[2]);
+                setScale(hit.entity, buf);
+                console.log("[Transporter.scaleEntity] " + hit.name + " restored to (" +
+                            origScale[0].toFixed(2) + "," + origScale[1].toFixed(2) + "," + origScale[2].toFixed(2) + ")");
+            }, roundtrip * 1000);
+            Transporter._timers.push(t);
+        }
+    };
+
+    /*
+     * ----------------------------------------------------------------
+     * Transporter.scalePlayer(s: number): void
+     * Transporter.scalePlayer(sx: number, sy: number, sz: number): void
+     *
+     * Resize the player. One number = uniform scale on all three axes;
+     * three numbers = independent xyz. Default game scale is 1.0; try
+     * 0.5 for half size, 2.0 for double, etc.
+     *
+     * Result: player visibly resizes on the next render. Persists until
+     * something else writes the scale field. Logs the new (sx, sy, sz).
+     *
+     * Caveats:
+     *   - Extreme values may break collision / animation. Stay near 1.0
+     *     to start.
+     *   - Scale is on the entity, not the model — collision capsule and
+     *     hitbox may or may not follow depending on which subsystems
+     *     subscribed to the scale broadcast.
+     * ----------------------------------------------------------------
+     * MECHANISM:
+     *   Calls oCEntity::setScale at vtable[+0x70] (RVA 0x6ca9e0) with
+     *   3 floats at +0x318..+0x320. Sibling primitive to setPosition
+     *   (+0x50) and setRotation (+0x60). Same dirty/broadcast plumbing
+     *   but type code 2 (vs 0 for position, 1 for rotation).
+     */
+    Transporter.scalePlayer = function (a, b, c) {
+        if (!RW.Player || !RW.Player.entity || RW.Player.entity.isNull()) {
+            console.log("[Transporter.scalePlayer] RW.Player not captured — try RW.Player.refresh()");
+            return;
+        }
+        var sx, sy, sz;
+        if (typeof a === 'number' && b === undefined && c === undefined) {
+            sx = sy = sz = a;
+        } else if (typeof a === 'number' && typeof b === 'number' && typeof c === 'number') {
+            sx = a; sy = b; sz = c;
+        } else {
+            console.log("[Transporter.scalePlayer] need (s) or (sx, sy, sz)");
+            return;
+        }
+        var player = RW.Player.entity;
+        var setScale = setScaleFor(player);
+        var buf = Memory.alloc(12);
+        buf.writeFloat(sx); buf.add(4).writeFloat(sy); buf.add(8).writeFloat(sz);
+        setScale(player, buf);
+        console.log("[Transporter.scalePlayer] player scale -> (" +
+                    sx.toFixed(2) + "," + sy.toFixed(2) + "," + sz.toFixed(2) + ")");
+    };
+
+    /*
+     * ----------------------------------------------------------------
+     * Transporter.expr_dropPlayerHard(x: number, y: number, z: number): void
+     * Transporter.expr_dropPlayerHard(point: {x,y,z}): void
+     *
+     * Experimental. Writes the player's broadcast position field AND
+     * the movement controller's internal "prev" and "target" position
+     * triplets to (x, y, z) in one shot. If the controller's per-tick
+     * loop is gated by (target != prev), this should suppress the snap
+     * by leaving the diff at zero — the player stays at the requested
+     * position (including high Y) without holding movement input.
+     *
+     * Result: player relocates to (x, y, z). Watch whether they hold
+     * altitude or get pulled back — that tells us whether anything
+     * upstream re-computes target each frame independently of our
+     * write.
+     * ----------------------------------------------------------------
+     * MECHANISM:
+     *   Player movement controller, decompiled from
+     *   oCEntity_VelocityUpdate_loop (RVA 0x6cc??0): the loop fires
+     *   setPosition(target) only when any axis of target differs from
+     *   prev:
+     *     prev   at entity+0x3d8..+0x3e0  (xyz floats, contiguous)
+     *     target at entity+0x3e4..+0x3ec  (xyz floats, contiguous)
+     *   We write prev = target = (x, y, z), then call setPosition to
+     *   update the broadcast field at +0x324..+0x32c.
+     */
+    Transporter.expr_dropPlayerHard = function (a, b, c) {
+        if (!RW.Player || !RW.Player.entity || RW.Player.entity.isNull()) {
+            console.log("[Transporter.expr_dropPlayerHard] RW.Player not captured — try RW.Player.refresh()");
+            return;
+        }
+        var args = normalizePointArgs(a, b, c);
+        if (!validXyz(args)) {
+            console.log("[Transporter.expr_dropPlayerHard] need (x, y, z) or {x,y,z} — got " + JSON.stringify(args));
+            return;
+        }
+        var player = RW.Player.entity;
+
+        player.add(0x3d8).writeFloat(args.x);
+        player.add(0x3dc).writeFloat(args.y);
+        player.add(0x3e0).writeFloat(args.z);
+        player.add(0x3e4).writeFloat(args.x);
+        player.add(0x3e8).writeFloat(args.y);
+        player.add(0x3ec).writeFloat(args.z);
+
+        writePlayerPos(args.x, args.y, args.z);
+
+        console.log("[Transporter.expr_dropPlayerHard] player -> " + v3str([args.x, args.y, args.z]) +
+                    " (prev/target/pos all written)");
+    };
+
+    /*
+     * ----------------------------------------------------------------
      * Transporter.clear(): void
      *
      * Cancel every active warpEntity tick interval and pending
@@ -325,6 +659,11 @@
     console.log("[Transporter]   warpEntity(name, x, y, z, roundtrip?)");
     console.log("[Transporter]   warpPlayer(x, y, z, roundtrip?)  /  warpPlayer(point, roundtrip?)");
     console.log("[Transporter]   dropPlayer(x, y, z, height?)     /  dropPlayer(point, height?)");
+    console.log("[Transporter]   rotateEntity(name, yawDeg, rt?)");
+    console.log("[Transporter]   rotatePlayer(yawDeg)");
+    console.log("[Transporter]   scaleEntity(name, s, rt?)        /  scaleEntity(name, sx, sy, sz, rt?)");
+    console.log("[Transporter]   scalePlayer(s)                   /  scalePlayer(sx, sy, sz)");
+    console.log("[Transporter]   expr_dropPlayerHard(x, y, z)     /  expr_dropPlayerHard(point)   [experimental]");
 })();
 
 // Top-level alias for REPL convenience
