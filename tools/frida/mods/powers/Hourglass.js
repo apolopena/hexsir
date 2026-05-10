@@ -9,15 +9,15 @@
 // Working flow:
 //   loadPower("Hourglass")        // BEFORE chapter loads — arms ctor hook
 //   <load chapter>                // hook captures every spawner ctor'd at setup
-//   <walk out of safe area>       // (optional) puts hourglass into active state
+//   <walk out of safe area>       // flips hourglass active so it re-fires
 //   Hourglass.spawnItem()                            // fire reward once (quiet)
 //   Hourglass.spawnItem({ intervalMs: 2000 })        // fire every 2s (quiet)
 //   Hourglass.spawnItem({ verbose: true })           // log selection + fire
 //   Hourglass.spawnItemStop()                        // stop interval
 //
-// Pre-active hourglass: one fire per state transition, then silently dropped.
-// Active hourglass (player has left the starting safe zone): re-fires
-// indefinitely.
+// Pre-active hourglass (player still in safe zone): one fire per state
+// transition, then the consumed bit on the spawner blocks further fires.
+// Active hourglass (player has left the safe zone): re-fires indefinitely.
 //
 // Depends on:
 //   - rw_lab.js (RW.* hub)
