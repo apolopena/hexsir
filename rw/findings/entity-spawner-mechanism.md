@@ -99,9 +99,12 @@ The class derives from `oCEntitySpawner` (intermediate) which derives from `oCSp
 
 #### Field map on `oCEntityCpntEntitySpawner` (this offsets)
 
+> **2026-05-10 correction.** Earlier revisions of this section listed `+0x18` as the settings binding. **That was wrong.** Verified in-DB and corroborated by working tooling: settings ptr is at **`+0x10`** (qword 2). Byte `+0x18` is the start of an embedded `EntityCpntValueSignal<bool>` sub-object (own vtable + 3 zero qwords). The corrected entry below replaces the prior one; downstream prose has been updated to match. `tools/frida/mods/powers/Hourglass.js` already uses `+0x10` (line 105) — the doc was lagging the code. See plate comment on `oCEntityCpntEntitySpawner_ctor` (RVA `0x2d0ee0`).
+
 | Offset | Type | Role |
 |--------|------|------|
-| `+0x18` | ptr | settings binding (non-null required to spawn) |
+| `+0x10` | ptr | **settings binding** ★ (non-null required to spawn) — the "what gets spawned" pivot for hijack |
+| `+0x18` | obj | embedded `EntityCpntValueSignal<bool>` sub-object (own vtable + 3 zero qwords) |
 | `+0x20` | ptr | bound-transform context binding |
 | `+0xd4..+0xe8` | floats | spawn position / rotation / scale data |
 | `+0x108` | obj | async I/O request list (asset-streaming queue for the child entity) |
@@ -321,7 +324,7 @@ spawner.add(0x160).writePointer(NULL);   // clear cached-output guard
 const child = spawnIfNotCached(spawner);  // returns the new child entity
 ```
 
-`spawnIfNotCached` itself only checks `+0x160`. As long as the spawner's `+0x18` (settings binding), `+0x108` (async I/O queue), and `+0x1c0` (owner backref) are populated — they are for any spawner that already exists in the chapter — the call produces a child entity. The async I/O processor finishes the construction in the next frame or two; by the time the player notices, the entity is fully built (visual mesh, AI, components all attached).
+`spawnIfNotCached` itself only checks `+0x160`. As long as the spawner's `+0x10` (settings binding), `+0x108` (async I/O queue), and `+0x1c0` (owner backref) are populated — they are for any spawner that already exists in the chapter — the call produces a child entity. The async I/O processor finishes the construction in the next frame or two; by the time the player notices, the entity is fully built (visual mesh, AI, components all attached).
 
 ### Force-multi-spawn
 
@@ -352,10 +355,10 @@ Each enemy with summon abilities has one spawner component per child slot. A Cul
 
 ### Reading what a spawner produces
 
-The settings template that this spawner spawns lives at `spawner->+0x18` (the binding pointer). To read its display-name string, follow the encyclopedia walker pattern:
+The settings template that this spawner spawns lives at `spawner->+0x10` (the binding pointer). To read its display-name string, follow the encyclopedia walker pattern:
 
 ```js
-const settings = spawner.add(0x18).readPointer();        // oCEntitySettings*
+const settings = spawner.add(0x10).readPointer();        // oCEntitySettings*
 const namePtr = settings.add(0x08).readPointer();        // char*
 const nameLen = settings.add(0x10).readU32();            // length
 const name = namePtr.readUtf8String(nameLen);            // e.g. "Cultist_Summoner_Summoned_Tentacle"
@@ -399,7 +402,7 @@ triggerSpawn("Egg");        // produces an Egg from any Spider-Mother-class spaw
 ### Caveats
 
 - **Multiplayer.** The spawn-replication path runs through entities flagged "Master and replicate activation" (see strings near `0x140f4f320`). Calling `spawnIfNotCached` on the host produces a replicated entity peer-side; calling it on a peer may produce a non-replicated local-only entity. Untested.
-- **Settings binding must be valid.** A spawner whose `+0x18` is null silently no-ops in the gated path; in the direct path, the eventual `spawnEntityFromBoundTransform` call would fail. Sanity-check before triggering.
+- **Settings binding must be valid.** A spawner whose `+0x10` is null silently no-ops in the gated path; in the direct path, the eventual `spawnEntityFromBoundTransform` call would fail. Sanity-check before triggering.
 - **Async construction.** `spawnIfNotCached` returns immediately with a partially-built entity. The asset streaming finishes filling it in over the next frame or two; reading components on it during the same Frida call may get an empty hashmap. The simplest fix is to schedule the inspect call one frame later.
 - **The child's spawn position is the spawner's bound transform**, not a parameter you control. To spawn at an arbitrary location, either move the spawner first (via `Transporter.warpEntity` on the parent) or override the spawner's transform fields at `+0xd4..+0xe8` before the call.
 
@@ -544,7 +547,7 @@ The spawner's ctor (`oCEntityCpntEntitySpawner_ctor` disassembly at `0x1402d1006
 
 Until we identify what installs the I/O queue, we can't construct a fresh spawner from scratch and have it work. A from-scratch spawner would:
 - ✅ Have its primary vtable installed (by ctor)
-- ✅ Have its settings-binding field at `+0x18` settable
+- ✅ Have its settings-binding field at `+0x10` settable
 - ❌ Have `+0x108` as `-1` — calling `spawnEntityFromBoundTransform` would dereference -1 as a vtable and crash
 
 The hero spawner (`oCDtEntityCpntHeroSpawner_ctor`) has the same pattern — its sub-object at `+0x68` is installed but the I/O queue isn't.
@@ -555,7 +558,7 @@ Given the above, this requirement cannot be satisfied with a pure-static Frida s
 
 1. **WinDbg + targeted static dig.** Use WinDbg to inspect a live spawner's `+0x108` (identify the I/O queue class), step through `[*spawner + 0x178]` (resolve the position-getter), then construct a Frida primitive with full runtime ground truth. Estimated 30-60 minutes once the game is running.
 
-2. **Hijack an existing in-world spawner.** The starting arena does have spawner-bearing entities (Sandman, hourglass, fireflies, teleporter). Find one, swap its `+0x18` settings binding to point at a desired enemy template (e.g., a captured Tentacle settings from a prior session), clear `+0x160`, fire spawn. Tested empirically — the spawner's I/O queue at `+0x108` is already set up because it's a real in-world entity.
+2. **Hijack an existing in-world spawner.** The starting arena does have spawner-bearing entities (Sandman, hourglass, fireflies, teleporter). Find one, swap its `+0x10` settings binding to point at a desired enemy template (e.g., a captured Tentacle settings from a prior session), clear `+0x160`, fire spawn. Tested empirically — the spawner's I/O queue at `+0x108` is already set up because it's a real in-world entity.
 
 3. **Continue static dig on the streaming-asset orchestrator path.** Trace `initial_loading_orchestrator` → chapter-asset registration → spawner-`+0x108` installation. Likely 5-10 more hours, may still hit walls without runtime data.
 

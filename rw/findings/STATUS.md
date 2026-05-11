@@ -7,6 +7,7 @@ Source of truth: the `**Status:**` line at the top of each `rw/findings/<name>.m
 |---|---|---|
 | in-progress | [chapter-map-and-boss-spawn-architecture.md](chapter-map-and-boss-spawn-architecture.md) | Chapter map binding and boss-spawn architecture |
 | in-progress | [enemy-ai.md](enemy-ai.md) | Enemy AI — target/focus field and the redirect question |
+| in-progress | [enemy-entity-list.md](enemy-entity-list.md) | Enemy entity list — chapter 1 (Dark Hills) |
 | in-progress | [enemy-spawn-architecture.md](enemy-spawn-architecture.md) | Enemy spawn architecture and live-enemy control |
 | in-progress | [entity-spawner-mechanism.md](entity-spawner-mechanism.md) | Entity-spawner mechanism — how entities spawn child entities |
 | in-progress | [frida-pipeline-hardware-breakpoint.md](frida-pipeline-hardware-breakpoint.md) | Frida save-trigger pipeline — prep-chain capture task |
@@ -22,8 +23,10 @@ Source of truth: the `**Status:**` line at the top of each `rw/findings/<name>.m
 | in-progress | [starting-talent-bias.md](starting-talent-bias.md) | Starting-talent bias — does elevated rarity steer subsequent rolls? |
 | in-progress | [talent-picker-weighting.md](talent-picker-weighting.md) | Talent picker — count override + rarity-weighting pipeline |
 | in-progress | [transporter-placement-primitive.md](transporter-placement-primitive.md) | Transporter — placement primitive on encyclopedia map landmarks |
+| in-progress | [wandering-camp-mechanic.md](wandering-camp-mechanic.md) | Wandering camps — anchor decoupled from enemies |
 | confirmed | [chapter-boss-portal-trigger.md](chapter-boss-portal-trigger.md) | Chapter boss-arrival trigger — force the portal on demand |
 | confirmed | [cooked-format-schemas.md](cooked-format-schemas.md) | Cooked-format per-class schemas — herodef + entity-settings |
+| confirmed | [dormant-entity-activation-wall.md](dormant-entity-activation-wall.md) | Dormant-entity activation — the streaming-grid wall |
 | confirmed | [held-dream-shards.md](held-dream-shards.md) | Held Dream Shards — bytefield reference |
 | confirmed | [hero-swaps.md](hero-swaps.md) | Save: hero swap |
 | confirmed | [hero-table.md](hero-table.md) | Hero asset table |
@@ -43,7 +46,6 @@ Source of truth: the `**Status:**` line at the top of each `rw/findings/<name>.m
 | confirmed | [talent-records.md](talent-records.md) | Save: talent records |
 | confirmed | [talents.md](talents.md) | Talent names (partial) |
 | confirmed | [telemetry-surface-and-warden.md](telemetry-surface-and-warden.md) | Telemetry surface + telemetry-warden block tool |
-| parked | [ui-modal-architecture.md](ui-modal-architecture.md) | UI modal architecture — assets, runtime class, push/dismiss API, text-input wiring |
 | archived | [decoder-work-2026-04-30.md](decoder-work-2026-04-30.md) | DecoderWork — `.gen` and `Profile_1.ob` decoder |
 | archived | [geppetto-save-analysis.md](geppetto-save-analysis.md) | Geppetto Save File Analysis |
 | archived | [level-runtime-address.md](level-runtime-address.md) | Runtime Level address (Geppetto) |
@@ -55,3 +57,4 @@ Source of truth: the `**Status:**` line at the top of each `rw/findings/<name>.m
 | archived | [talent-record-discovery.md](talent-record-discovery.md) | Talent record discovery in Geppetto chapter 2 saves |
 | ? | [frida-buffer-diagnostic-runbook.md](frida-buffer-diagnostic-runbook.md) | Frida buffer-diagnostic runbook — _no canonical Status line_ |
 | ? | [spawn-at-coord-recipe.md](spawn-at-coord-recipe.md) | Entity world position — read/write contract and spawn-at-coord recipe — _no canonical Status line_ |
+| ? | [ui-modal-architecture.md](ui-modal-architecture.md) | UI modal architecture — assets, runtime class, push/dismiss API, text-input wiring — _no canonical Status line_ |
