@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rerw-src"
+version = "0.2.0"
+requires-python = ">=3.12"
+dependencies = [
+    "display-lib>=3.0.0,<4",
+    "click>=8,<9",
+    "pyyaml>=6,<7",
+    "repl-lib>=1.1,<2",
+]
+
+[project.scripts]
+rerw = "cli:cli"
+
+[dependency-groups]
+dev = [
+    "pyinstaller>=6.10,<7",
+    "pytest>=8.2,<9",
+    "ruff>=0.4,<1",
+    "test-lib>=0.1.0,<1",
+]
+
+[tool.uv.sources]
+display-lib = { path = "../shared/display-lib", editable = true }
+repl-lib = { path = "../shared/repl-lib", editable = true }
+test-lib = { path = "../shared/test-lib", editable = true }
+
+[tool.setuptools]
+packages = ["commands", "lib", "data"]
+py-modules = ["cli"]
+
+[tool.setuptools.package-data]
+data = ["**/*"]
+
+[tool.coverage.run]
+omit = ["tests/*"]

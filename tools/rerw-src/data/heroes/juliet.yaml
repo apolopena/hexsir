@@ -1,0 +1,270 @@
+# Juliet skill controllers — extracted from the herodef binary.
+#
+# Source: Heroes/Juliet.herodef.ot.DtHeroDefinition.gen
+# `key` is the strict CLI value for talent lookup. Display names and controller
+# names are metadata only; commands do not fuzzy-match them.
+
+schema_version: "1.0.0"
+registry_id: hero_talents
+hero:
+  key: juliet
+  engine_name: "Juliet"
+
+controllers:
+  - display_name: "Volcanic Shots"
+    key: VolcanicShots
+    controller_name: "Skill Controller Attack Controller Burst"
+    guid: 9b7fb68de069fe4a8acd73af3648bf22
+    is_start: true
+    desc: |
+      ATTACK triggered right after DASH shoots 3 times in a row, consuming only one AMMO.
+      Changes per rarity:
+      +1 more time(s)
+
+  - display_name: "Wedding Gifts"
+    key: WeddingGifts
+    controller_name: "Skill Controller Passive Bonus Object"
+    guid: 348a88bc70adeb43825ba2f80c759575
+    is_start: true
+    desc: |
+      Whenever they gain a Magical Object, Romeo and Juliet have a +20%/+10%/+5% chance to gift the other the same common, rare, or epic Magical Object.
+      Changes per rarity:
+      +5%/+2%/+1% chance
+
+  - display_name: "Guns & Roses"
+    key: GunsRoses
+    controller_name: "Skill Controller Power Quest Explode"
+    guid: fca82d8c550bbf45afb2b483c367e2af
+    is_start: true
+    desc: |
+      Quest (x10): Hitting an enemy by exploding Romeo's Rose with PERFECT SHOT grants +1.0 DMG. Reward: Rose explosions triggered with a PERFECT SHOT gain +50% range and +20% damage.
+      Changes per rarity:
+      +5% damage
+
+  - display_name: "Kiss the Groom"
+    key: KissTheGroom
+    controller_name: "Skill Controller Special Quest Dream Shard"
+    guid: f3ccd123918a06408ff6488bee84e574
+    is_start: true
+    desc: |
+      Quest (x20): Hitting at least one enemy with SPECIAL grants +0.5 Crit Chance. Reward: Any enemy hit by SPECIAL has a 40% chance to grant Juliet 2 Dream Shard(s).
+      Changes per rarity:
+      +10% chance
+
+  - display_name: "Wild Waltz"
+    key: WildWaltz
+    controller_name: "Skill Controller Ultimate Power 1"
+    guid: f156f2f780a5544d8ea36e1cc8f0e4eb
+    is_ult: true
+    desc: |
+      [CO-OP] Juliet rushes towards Romeo to perform an INTANGIBLE dance for 7 seconds. Both Heroes influence the moving direction and the more identical the directions, the faster the movement. Deal between 130 to 260 area damage per second (depending on the movement speed). Romeo and Juliet are INTANGIBLE during Wild Waltz. [SOLO] Juliet spawns a phantom of Romeo at a fixed distance then rushes towards him for an INTANGIBLE dance for 7 seconds. Deal 195 area damage per second. Juliet is INTANGIBLE during Wild Waltz.
+
+  - display_name: "Poison Flask"
+    key: PoisonFlask
+    controller_name: "Skill Controller Ultimate Power 2"
+    guid: c559438ca1eada438da879cd444c12d0
+    is_ult: true
+    desc: |
+      Throw a poison flask in the air. Trigger ULTIMATE again at the right time to shoot the flask and make it explode, dealing 300 to 600 damage in a wide area. Juliet can still be damaged while channeling Poison Flask.
+
+  - display_name: "Passion Dance"
+    key: PassionDance
+    controller_name: "Skill Controller Ultimate 1 Upgrade 1"
+    guid: 49c048d36106174286c73433919c150f
+    ult_upgrade_for: "WildWaltz"
+    desc: |
+      Restore between 4 and 8 Health per second to all Heroes nearby during ULTIMATE's dance (depending on the movement speed). [SOLO] 6 Health per second.
+      Changes per rarity:
+      +1 minimum & +2 maximum Health + Hero Level
+
+  - display_name: "Plague Flask"
+    key: PlagueFlask
+    controller_name: "Skill Controller Ultimate 1 Upgrade 2"
+    guid: 4433ba05e980cb468f7672b3f4921706
+    ult_upgrade_for: "PoisonFlask"
+    desc: |
+      ULTIMATE's explosion applies MARKED to hit enemies for 4 second(s).
+      Changes per rarity:
+      +1 second(s)
+
+  - display_name: "Flashy Ending"
+    key: FlashyEnding
+    controller_name: "Skill Controller Ultimate 2 Upgrade 1"
+    guid: cab3e19fc15d1a4bb60c2deb994c7553
+    ult_upgrade_for: "WildWaltz"
+    desc: |
+      Dancing gauge can be filled up according to the synchronization of Romeo and Juliet's movements during ULTIMATE. Trigger an explosion at the end of Wild Waltz, dealing 270 to 540 area damage (based on dancing gauge level). [SOLO] Deal 405 area damage.
+      Changes per rarity:
+      Rare & Legendary: +67min to +67max area damage + Hero Level + DMG / Epic: +68min to +68max + Hero Level + DMG
+
+  - display_name: "Unstable Concoction"
+    key: UnstableConcoction
+    controller_name: "Skill Controller Ultimate 2 Upgrade 2"
+    guid: 8167cd9f423b4042bc07135d68f4a5a3
+    ult_upgrade_for: "PoisonFlask"
+    desc: |
+      Using DASH makes Juliet drop a flask of poison onto the ground, dealing 30 damage in a zone. Unstable Concoction does NOT create a lingering pool of poison.
+      Changes per rarity:
+      +10 damage + Hero Level + DMG
+
+  - display_name: "Hot Shots"
+    key: HotShots
+    controller_name: "Skill Controller Attack Controller Ignite"
+    guid: 8a73a56df7238944858b49337535a062
+    desc: |
+      ATTACKS triggered within 2 seconds after a POWER applies IGNITE to hit enemies and deal +20% damage.
+      Changes per rarity:
+      +5% damage
+
+  - display_name: "Swirling Rose"
+    key: SwirlingRose
+    controller_name: "Skill Controller Attack Rose AOE"
+    guid: 104dbc90a69ca149a6cf23f212477870
+    desc: |
+      ATTACKS hitting Romeo's Roses make them spin, dealing 60% damage of Juliet's ATTACK damage all around.
+      Changes per rarity:
+      Rare & Legendary: +15% of ATTACK's damage / Epic: +25% of ATTACK's damage
+
+  - display_name: "Blind Shots"
+    key: BlindShots
+    controller_name: "Skill Controller Defense More Shot"
+    guid: cd84da008827824f928bec218c46c224
+    desc: |
+      DEFENSE fires 3 more shot(s) than the number of AMMO remaining.
+      Changes per rarity:
+      +1 more shot(s)
+
+  - display_name: "Bullet Ballet"
+    key: BulletBallet
+    controller_name: "Skill Controller Defense Ricochet"
+    guid: 67a7b19cce850b4d8f18a645125a4b40
+    desc: |
+      Shots fired from DEFENSE can ricochet to nearby enemies, dealing 60% ATTACK damage.
+      Changes per rarity:
+      +15% ATTACK damage
+
+  - display_name: "Large Chambers"
+    key: LargeChambers
+    controller_name: "Skill Controller Passive More Ammo"
+    guid: 26a0cbc910631546826a65182f4950b6
+    desc: |
+      Maximum amount of AMMO is increased by 2. ATTACK and POWER damage are increased by 3% for each missing AMMO.
+      Changes per rarity:
+      +0.5% damage increase
+
+  - display_name: "Longshot"
+    key: Longshot
+    controller_name: "Skill Controller Power More Range"
+    guid: 9d207776ade86d49bcbc7382e89cf283
+    desc: |
+      POWER gains +50% range and deals +20% damage to enemies hit beyond half the maximum range.
+      Changes per rarity:
+      +5% damage
+
+  - display_name: "Shadow Round"
+    key: ShadowRound
+    controller_name: "Skill Controller Power Vulnerable"
+    guid: 796185a75d5ac0479118e28bf40f6795
+    desc: |
+      PERFECT SHOT applies VULNERABLE for 2 seconds to hit enemies.
+      Changes per rarity:
+      +0.5 second(s)
+
+  - display_name: "Knockout"
+    key: Knockout
+    controller_name: "Skill Controller Attack Close Combat"
+    guid: c193e71927a1f74e9cf16fcae5c02314
+    desc: |
+      When Juliet is very close to enemy, ATTACK turns into a strike using the butt of her pistol, dealing 400% damage at close range without consuming AMMO (4 seconds cooldown).
+      Changes per rarity:
+      +100% damage
+
+  - display_name: "Lucky Shot"
+    key: LuckyShot
+    controller_name: "Skill Controller Attack Power"
+    guid: 3ff81a5fe0515147b57ecd0a2805e9a1
+    desc: |
+      ATTACKS have 6% chance to turn into a POWER shot.
+      Changes per rarity:
+      +2% chance
+
+  - display_name: "Comforting Presence"
+    key: ComfortingPresence
+    controller_name: "Skill Controller Dash Shield"
+    guid: d0d64357ade7b34a90ceb2e98ec8e848
+    desc: |
+      Crossing through a Hero using DASH grants 20 SHIELD to all Heroes around for 6 seconds.
+      Changes per rarity:
+      +5 SHIELD + Hero Level
+
+  - display_name: "Defensive Reload"
+    key: DefensiveReload
+    controller_name: "Skill Controller Defense Reload"
+    guid: d099f4f749e93b4d99f0de9aae95f45a
+    desc: |
+      Reload 3 AMMO after DEFENSE.
+      Changes per rarity:
+      +1 AMMO
+
+  - display_name: "Explosive Backstep"
+    key: ExplosiveBackstep
+    controller_name: "Skill Controller Power Attack Backstep"
+    guid: 0d3110abc48b664d86453c6194b17cea
+    desc: |
+      While holding POWER, using ATTACK makes Juliet step back and shoot at the ground, dealing 100% of POWER's damage in a zone.
+      Changes per rarity:
+      +25% of POWER's damage
+
+  - display_name: "Shrapnel"
+    key: Shrapnel
+    controller_name: "Skill Controller Power Cone Damage"
+    guid: e88ee67637fe534ab0586690786ff48d
+    desc: |
+      Using POWER also triggers a shrapnel burst dealing 40% damage in a cone.
+      Changes per rarity:
+      +10% damage
+
+  - display_name: "Double Tap"
+    key: DoubleTap
+    controller_name: "Skill Controller Power Double Shot"
+    guid: d2f3dab2905c4845ab0c56be6de51a40
+    desc: |
+      Hold POWER to trigger 2 shots in a row. The second shot deals 60% damage.
+      Changes per rarity:
+      +15% damage
+
+  - display_name: "Overflowing Passion"
+    key: OverflowingPassion
+    controller_name: "Skill Controller Special Heal"
+    guid: e5a28c22b14a1a4391b210eb3ce349aa
+    desc: |
+      SPECIAL restores 6 Health to all Heroes around whenever it hits at least one enemy.
+      Changes per rarity:
+      +1.5 Health + Hero Level
+
+  - display_name: "Love Sparks"
+    key: LoveSparks
+    controller_name: "Skill Controller Special Projectile"
+    guid: ff9e1c7db45d2e48b354ef2bda32639d
+    desc: |
+      SPECIAL fires 4 homing projectiles towards nearby enemies, each one dealing 18 damage.
+      Changes per rarity:
+      +1 homing projectile(s)
+
+  - display_name: "Heartbeat"
+    key: Heartbeat
+    controller_name: "Skill Controller Trait AOE"
+    guid: c3b5fe43d42e7742bde247f0be66c509
+    desc: |
+      Using TRAIT or receiving Romeo's TRAIT triggers a sonic wave dealing 100 damage all around Juliet.
+      Changes per rarity:
+      +25 damage + Hero Level + DMG
+
+  - display_name: "Valiant Hearts"
+    key: ValiantHearts
+    controller_name: "Skill Controller Trait Buff"
+    guid: 59831395fe43424496d1e3f7bc9d3b1b
+    desc: |
+      TRAIT grants both Romeo and Juliet +20% MOVE SPEED and STRENGTH for 5 seconds.
+      Changes per rarity:
+      +1.25 second(s)

@@ -1,0 +1,270 @@
+# Beowulf skill controllers — extracted from the herodef binary.
+#
+# Source: Heroes/Beowulf.herodef.ot.DtHeroDefinition.gen
+# `key` is the strict CLI value for talent lookup. Display names and controller
+# names are metadata only; commands do not fuzzy-match them.
+
+schema_version: "1.0.0"
+registry_id: hero_talents
+hero:
+  key: beowulf
+  engine_name: "Beowulf"
+
+controllers:
+  - display_name: "Shield Charge"
+    key: ShieldCharge
+    controller_name: "Skill Controller Defense Dash"
+    guid: 8d9d9165b76bac47917038a0be0389a0
+    is_start: true
+    desc: |
+      DEFENSE makes Beowulf dash forward and deal +100% damage along the path.
+      Changes per rarity:
+      +25% damage
+
+  - display_name: "Rampart"
+    key: Rampart
+    controller_name: "Skill Controller Defense Quest"
+    guid: 53975806c0bd7642a8b2bd679ba19e60
+    is_start: true
+    desc: |
+      Quest (x20): Blocking at least one attack during DEFENSE grants +1 ARMOR. Complete: Wyrm DEFENSE heals 50% more and increases the area of effect by +3m.
+      Changes per rarity:
+      +10% more healing
+
+  - display_name: "Explosive Fire"
+    key: ExplosiveFire
+    controller_name: "Skill Controller Passive Ignite Explosion"
+    guid: 83b8b6f9b56afe4fa2ebc05bdf9a778e
+    is_start: true
+    desc: |
+      IGNITED enemies explode when they die, dealing 20 damage and applying IGNITE to all nearby enemies.
+      Changes per rarity:
+      +5 damage + Hero Level + DMG
+
+  - display_name: "Draconic Binds"
+    key: DraconicBinds
+    controller_name: "Skill Controller Trait Quest"
+    guid: 2d313cdfd246f64ea03558613a5099d8
+    is_start: true
+    desc: |
+      Quest (x20): Hitting 2 enemies with a single Wyrm ability grants +0.5 DMG. Complete: TRAIT cooldown -25%. Wyrm abilities deal +10% damage.
+      Changes per rarity:
+      +5% Wyrm ability damage
+
+  - display_name: "Dragon Flight"
+    key: DragonFlight
+    controller_name: "Skill Controller Ultimate Power 1"
+    guid: f156f2f780a5544d8ea36e1cc8f0e4eb
+    is_ult: true
+    desc: |
+      Wyrm takes off and tracks enemies, continuously breathing fire during its flight and dealing 200 damage per second and applying IGNITE to all enemies hit. TRAIT is disabled during this time but is refreshed at the end of the duration. Wyrm prioritizes enemies close to Beowulf.
+
+  - display_name: "Raging Chain"
+    key: RagingChain
+    controller_name: "Skill Controller Ultimate Power 2"
+    guid: c559438ca1eada438da879cd444c12d0
+    is_ult: true
+    desc: |
+      Beowulf rushes forward, stopping at the first enemy and striking them twice in a small cone before sending himself backwards. Wyrm then shoots two fireballs at the point of impact, applying IGNITE to all enemies hit. Whole combo deals a total of 400 damage. Beowulf is INTANGIBLE during this ability. Using Raging Chain with no target puts the ability on a 5 second(s) cooldown.
+
+  - display_name: "Immolation"
+    key: Immolation
+    controller_name: "Skill Controller Ultimate 1 Upgrade 1"
+    guid: 49c048d36106174286c73433919c150f
+    ult_upgrade_for: "DragonFlight"
+    desc: |
+      During ULTIMATE [Dragon Flight], Beowulf deals 40 damage per second to nearby enemies, and all abilities are empowered by Wyrm.
+      Changes per rarity:
+      +10 damage per second + Hero Level + DMG
+
+  - display_name: "Volcanic Rage"
+    key: VolcanicRage
+    controller_name: "Skill Controller Ultimate 1 Upgrade 2"
+    guid: 4433ba05e980cb468f7672b3f4921706
+    ult_upgrade_for: "RagingChain"
+    desc: |
+      Each ULTIMATE fireball throws 4 fiery rock into the surrounding area, dealing 50% damage each.
+      Changes per rarity:
+      +1 fiery rock(s)
+
+  - display_name: "Sudden Growth"
+    key: SuddenGrowth
+    controller_name: "Skill Controller Ultimate 2 Upgrade 1"
+    guid: cab3e19fc15d1a4bb60c2deb994c7553
+    ult_upgrade_for: "DragonFlight"
+    desc: |
+      During ULTIMATE [Dragon Flight], the Wyrm grows and breathes fire in a wider zone, dealing +20% damage.
+      Changes per rarity:
+      +5% damage
+
+  - display_name: "Fireball"
+    key: Fireball
+    controller_name: "Skill Controller Ultimate 2 Upgrade 2"
+    guid: 8167cd9f423b4042bc07135d68f4a5a3
+    ult_upgrade_for: "RagingChain"
+    desc: |
+      In Combat, DASH makes Wyrm throw a Fireball towards the closest enemy, dealing 40 area damage.
+      Changes per rarity:
+      +10 area damage + Hero Level + DMG
+
+  - display_name: "Blazing Runes"
+    key: BlazingRunes
+    controller_name: "Skill Controller Attack Special Crit"
+    guid: 4a71a0e268c80343b7ad3f25105bca67
+    desc: |
+      ATTACK and SPECIAL gain +40% Crit Chance against IGNITED enemies.
+      Changes per rarity:
+      +10% Crit Chance
+
+  - display_name: "Blademaster"
+    key: Blademaster
+    controller_name: "Skill Controller Attack Speed"
+    guid: 53309af2c7829a4580ba610c24f990ed
+    desc: |
+      After each TRAIT activation, the next 3 ATTACKS gain +100% Crit Chance. Permanently gain +10% ATTACK SPEED.
+      Changes per rarity:
+      +2% ATTACK SPEED
+
+  - display_name: "Heavy Strikes"
+    key: HeavyStrikes
+    controller_name: "Skill Controller Attack Wide"
+    guid: 3784e02c9e46474a9c4b2fd9fd8c13c0
+    desc: |
+      ATTACK is slower but cleaves in a wide area and deals +50% damage.
+      Changes per rarity:
+      +10% damage
+
+  - display_name: "Furnace"
+    key: Furnace
+    controller_name: "Skill Controller Passive Better Ignite"
+    guid: 0a5ef8351cd6c24d870e275e1ea489de
+    desc: |
+      Your IGNITE effects last 2 more seconds and deal +32% damage.
+      Changes per rarity:
+      +8% damage
+
+  - display_name: "Double Shock"
+    key: DoubleShock
+    controller_name: "Skill Controller Power Double"
+    guid: c3ec1705e2678f40a270ba8774690313
+    desc: |
+      POWER sends out two successive shockwaves, each one dealing -30% damage.
+      Changes per rarity:
+      +5% damage
+
+  - display_name: "Eruption"
+    key: Eruption
+    controller_name: "Skill Controller Power End AOE"
+    guid: d89ee385cfa7ea4eaa02c188361e2ad4
+    desc: |
+      POWER's shockwaves explode at the end and deal 60% additional damage all around.
+      Changes per rarity:
+      +15% additional damage
+
+  - display_name: "Scorched Earth"
+    key: ScorchedEarth
+    controller_name: "Skill Controller Power Trail"
+    guid: be61843743c964489d61ca658fdf1842
+    desc: |
+      Wyrm POWER leaves a trail of fire, dealing 40 damage over time to enemies standing on it.
+      Changes per rarity:
+      +10 damage + Hero Level + DMG
+
+  - display_name: "Bladestorm"
+    key: Bladestorm
+    controller_name: "Skill Controller Special Loop"
+    guid: 4ef3319a6d37ff47aaf7153288fb1855
+    desc: |
+      SPECIAL spins 2 more time(s) for 100% damage each.
+      Changes per rarity:
+      +1 additional spin
+
+  - display_name: "Fiery Seismo"
+    key: FierySeismo
+    controller_name: "Skill Controller Special Multi Shock"
+    guid: 3c5010df2c1c9f42bcb858bdee74e784
+    desc: |
+      Wyrm SPECIAL's finisher strikes 3 times with a growing radius for 45% damage each.
+      Changes per rarity:
+      +5% damage
+
+  - display_name: "Fire Wings"
+    key: FireWings
+    controller_name: "Skill Controller Trait AOE"
+    guid: 4a3d815ef209354586ae3575e8ffc027
+    desc: |
+      Activating TRAIT deals 30 damage all around and applies IGNITE to all enemies hit.
+      Changes per rarity:
+      +5 damage + Hero Level + DMG
+
+  - display_name: "Retaliation"
+    key: Retaliation
+    controller_name: "Skill Controller Attack Flurry"
+    guid: 1b7a60f8601606449da1fc8f798ca8ba
+    desc: |
+      After using DEFENSE, the next ATTACK within 2 seconds triggers a two-strike retaliation, with each one dealing 360% damage.
+      Changes per rarity:
+      +90% damage
+
+  - display_name: "Fiery Slash"
+    key: FierySlash
+    controller_name: "Skill Controller Dash Attack"
+    guid: 1fac8c70d4e45c479c9760c3e893847b
+    desc: |
+      ATTACK triggered right after DASH deals 400% damage and applies IGNITE to enemies.
+      Changes per rarity:
+      +100% damage
+
+  - display_name: "Sparkling Shield"
+    key: SparklingShield
+    controller_name: "Skill Controller Defense Block Deals Damage"
+    guid: 58b06074754fe443a40ec160e80ecc3a
+    desc: |
+      Each attack blocked during DEFENSE inflicts 120% of blocked damage to what is in front of Beowulf.
+      Changes per rarity:
+      +30% of blocked damage
+
+  - display_name: "Secondary Tremor"
+    key: SecondaryTremor
+    controller_name: "Skill Controller Special Sends Power"
+    guid: 0fbf82d35cf91c40a8c19ee216c5309d
+    desc: |
+      SPECIAL sends out a Shockwave dealing 120% of POWER damage.
+      Changes per rarity:
+      +30% POWER damage
+
+  - display_name: "Battle Cry"
+    key: BattleCry
+    controller_name: "Skill Controller Trait Battlecry"
+    guid: dbffc2e6f2749a49b887c2b271e586fa
+    desc: |
+      Activating TRAIT clears POWER cooldown for all Heroes in the area and gives them a 12 SHIELD for 6 seconds.
+      Changes per rarity:
+      +3 SHIELD + Hero Level
+
+  - display_name: "Furious Blows"
+    key: FuriousBlows
+    controller_name: "Skill Controller Attack After Special"
+    guid: dac333d6b0fbb74b86f5acef505c7ccd
+    desc: |
+      After a SPECIAL, the next ATTACK triggers a series of 3 strikes dealing 100% damage each. If Wyrm empowered SPECIAL, the attacks apply an IGNITE status to enemies and inflict +50% damage.
+      Changes per rarity:
+      +25% damage
+
+  - display_name: "Runes of War"
+    key: RunesOfWar
+    controller_name: "Skill Controller Defense Damage Aura"
+    guid: 4a84f40bead1fb49a65cd935443d5fee
+    desc: |
+      After hitting an enemy with DEFENSE, runes appear around Beowulf dealing 16 area damage per second for 5 seconds.
+      Changes per rarity:
+      +4 area damage + Hero Level + DMG
+
+  - display_name: "Breath of Fire"
+    key: BreathOfFire
+    controller_name: "Skill Controller Attack Fire Cone"
+    guid: 113cc6e6e6eedf42b2dd74ffc67fab78
+    desc: |
+      Wyrm breathes in a cone of fire during ATTACK finisher, dealing 200% damage and applying IGNITE to enemies hit.
+      Changes per rarity:
+      +50% damage

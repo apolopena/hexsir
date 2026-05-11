@@ -1,0 +1,145 @@
+{
+  "modules": {
+    "base": {
+      "files": [
+        {"src": "tools/scafcli-src/data/templates/settings.json", "dest": ".claude/settings.json"}
+      ],
+      "templates": [],
+      "template_dirs": [],
+      "dirs": [
+        ".claude/",
+        ".ai/scratch/",
+        ".run/"
+      ],
+      "snippets": {
+        "claude": "tools/scafcli-src/data/snippets/base.claude.md"
+      }
+    },
+    "planning": {
+      "files": [
+        {"src": ".claude/commands/generate-prp.md", "dest": ".claude/commands/generate-prp.md"},
+        {"src": ".claude/commands/execute-prp.md", "dest": ".claude/commands/execute-prp.md"},
+        {"src": ".claude/commands/peer-review-plan.md", "dest": ".claude/commands/peer-review-plan.md"},
+        {"src": ".claude/commands/prime-prp-workflow.md", "dest": ".claude/commands/prime-prp-workflow.md"},
+        {"src": ".ai/AGENTS.md", "dest": ".ai/AGENTS.md"},
+        {"src": ".ai/planning/templates/TASKS_TEMPLATE.md", "dest": ".ai/planning/templates/TASKS_TEMPLATE.md"},
+        {"src": ".ai/planning/prp/templates/prp_standalone.md", "dest": ".ai/planning/prp/templates/prp_standalone.md"},
+        {"src": ".ai/planning/prp/templates/proposal_standalone.md", "dest": ".ai/planning/prp/templates/proposal_standalone.md"}
+      ],
+      "templates": [],
+      "template_dirs": [],
+      "dirs": [
+        ".ai/planning/prp/instances/",
+        ".ai/planning/prp/proposals/",
+        ".ai/planning/prp/proposals/backlog/",
+        ".ai/planning/prp/proposals/deferred/",
+        ".ai/planning/prp/archive/"
+      ],
+      "snippets": {}
+    },
+    "priming": {
+      "files": [
+        {"src": ".claude/commands/generate-context.md", "dest": ".claude/commands/generate-context.md"},
+        {"src": ".claude/commands/generate-arch.md", "dest": ".claude/commands/generate-arch.md"},
+        {"src": ".claude/commands/prime-quick.md", "dest": ".claude/commands/prime-quick.md"},
+        {"src": ".claude/commands/prime-full.md", "dest": ".claude/commands/prime-full.md"},
+        {"src": ".claude/agents/primer-generator.md", "dest": ".claude/agents/primer-generator.md"}
+      ],
+      "templates": [],
+      "template_dirs": [],
+      "dirs": [],
+      "snippets": {}
+    },
+    "github": {
+      "files": [
+        {"src": ".claude/agents/ghcli.md", "dest": ".claude/agents/ghcli.md"},
+        {"src": ".github/workflows/gh-dispatch-ai.yml", "dest": ".github/workflows/gh-dispatch-ai.yml"},
+        {"src": "scripts/git-ai.sh", "dest": "scripts/git-ai.sh"}
+      ],
+      "templates": [],
+      "template_dirs": [],
+      "dirs": [
+        ".github/workflows/",
+        "scripts/"
+      ],
+      "snippets": {
+        "claude": "tools/scafcli-src/data/snippets/github.claude.md"
+      }
+    },
+    "changelog": {
+      "files": [
+        {"src": ".claude/agents/changelog-manager.md", "dest": ".claude/agents/changelog-manager.md"}
+      ],
+      "templates": [],
+      "template_dirs": [],
+      "dirs": [],
+      "snippets": {}
+    },
+    "scripts": {
+      "files": [
+        {"src": "scripts/tool-smoke-test.sh", "dest": "scripts/tool-smoke-test.sh"},
+        {"src": "scripts/tool-info.sh", "dest": "scripts/tool-info.sh"}
+      ],
+      "templates": [
+        {"src": "tools/scafcli-src/data/templates/scripts/run-tests.sh", "dest": "scripts/run-tests.sh"},
+        {"src": "tools/scafcli-src/data/templates/scripts/stack.sh", "dest": "scripts/stack.sh"}
+      ],
+      "template_dirs": [],
+      "dirs": [
+        "scripts/"
+      ],
+      "snippets": {}
+    },
+    "documentation": {
+      "files": [
+        {"src": "docs/agentic-workflow/priming.md", "dest": "docs/agentic-workflow/priming.md"},
+        {"src": "docs/agentic-workflow/README.md", "dest": "docs/agentic-workflow/README.md"},
+        {"src": "docs/agentic-workflow/development-cycle.md", "dest": "docs/agentic-workflow/development-cycle.md"},
+        {"src": "docs/tools/creating-a-new-tool.md", "dest": "docs/tools/creating-a-new-tool.md"},
+        {"src": "docs/tools/scafcli.md", "dest": "docs/tools/scafcli.md"},
+        {"src": "docs/tools/scaffold-upkeep.md", "dest": "docs/tools/scaffold-upkeep.md"},
+        {"src": "docs/tools/coding-standards.md", "dest": "docs/tools/coding-standards.md"}
+      ],
+      "templates": [
+        {"src": "tools/scafcli-src/data/templates/docs/README.md", "dest": "docs/README.md"},
+        {"src": "tools/scafcli-src/data/templates/docs/tools/README.md", "dest": "docs/tools/README.md"}
+      ],
+      "template_dirs": [],
+      "dirs": [
+        "docs/",
+        "docs/agentic-workflow/",
+        "docs/tools/"
+      ],
+      "snippets": {}
+    },
+    "tooling": {
+      "files": [
+        {"src": "tools/scafcli", "dest": "tools/scafcli"}
+      ],
+      "templates": [
+        {"src": "tools/scafcli-src/data/templates/Justfile", "dest": "Justfile"}
+      ],
+      "template_dirs": [
+        {"src": "tools/scafcli-src", "dest": "tools/scafcli-src"},
+        {"src": "tools/shared/display-lib", "dest": "tools/shared/display-lib"},
+        {"src": "tools/shared/tree-lib", "dest": "tools/shared/tree-lib"},
+        {"src": "tools/shared/repl-lib", "dest": "tools/shared/repl-lib"},
+        {"src": "tools/shared/test-lib", "dest": "tools/shared/test-lib"}
+      ],
+      "dirs": [
+        "tools/",
+        "tools/shared/"
+      ],
+      "snippets": {}
+    },
+    "backend-lib": {
+      "files": [],
+      "templates": [],
+      "template_dirs": [
+        {"src": "tools/shared/backend-lib", "dest": "tools/shared/backend-lib"}
+      ],
+      "dirs": [],
+      "snippets": {}
+    }
+  }
+}

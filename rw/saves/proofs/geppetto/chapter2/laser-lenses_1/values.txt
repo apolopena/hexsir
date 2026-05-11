@@ -1,0 +1,53 @@
+Chapter 2 - Known Values and Offsets
+=====================================
+
+UNIQUE MATCHES (single offset):
+  Health: 149 -> 0x2db6
+  XP: 2690 -> 0xf1ee
+  Dream Shards: 101 -> 0x38c7
+
+MULTIPLE MATCHES (need cross-reference):
+  Vitality: 27 -> 6 matches
+  Damage: 38 -> 0x39b, 0x14fe, 0xab13, 0xac8b, 0xfde3
+  Crit Chance: 17 -> 0xa2, 0x125a, 0x4b29, 0xe40f, 0xed12
+  Crit Damage: 50 -> 0x50b1, 0x7273, 0xa781, 0xdbcd, 0xe709
+
+TOO MANY MATCHES:
+  Level: 5 (241 matches)
+  Armor: 6 (100 matches)
+  Stars of Fate: 1 (654 matches)
+  Feather: 1 (654 matches)
+  Key: 0 (6882 matches)
+  Moonstones: 3 (855 matches)
+  Cryptic Prophecy: 2 (76 matches)
+  Horn of Plenty: 1 (654 matches)
+  Dragons Hide: 2 (76 matches)
+  First Stone: 2 (76 matches)
+  Ace of Spades: 1 (654 matches)
+  Total Items: 14 (10 matches)
+  Trait Charges: 3 (855 matches)
+  Total Abilities: 5 (241 matches)
+
+RAW VALUES FROM USER:
+  Health: 149/149
+  XP: 2690/5000
+  Level: 5
+  Vitality: 27
+  Damage: 38
+  Armor: 6
+  Critical Chance: 17
+  Critical Damage: 50
+  Dream Shards: 101
+  Stars of Fate: 1
+  Feather: 1
+  Key: 0
+  Moonstones: 3
+  Cryptic Prophecy: 2
+  Horn of Plenty: 1
+  Dragon's Hide: 2
+  First Stone: 2
+  Ace of Spades: 1
+  Total Items: 14
+  Trait Charges: 3
+  Total Abilities: 5
+  Abilities: Dummy Ball, Flash of Genius, Laser Lenses, Heart Ties, MechaPuppet

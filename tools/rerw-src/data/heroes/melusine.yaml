@@ -1,0 +1,270 @@
+# Melusine skill controllers — extracted from the herodef binary.
+#
+# Source: Heroes/Melusine.herodef.ot.DtHeroDefinition.gen
+# `key` is the strict CLI value for talent lookup. Display names and controller
+# names are metadata only; commands do not fuzzy-match them.
+
+schema_version: "1.0.0"
+registry_id: hero_talents
+hero:
+  key: melusine
+  engine_name: "Melusine"
+
+controllers:
+  - display_name: "Deep Beat"
+    key: DeepBeat
+    controller_name: "Skill Controller Attack Beat"
+    guid: 5b9c4f5f4758bd4faedde4eafe5c8f67
+    is_start: true
+    desc: |
+      For every 4 ATTACKS that hit an enemy, generate a blast all around that deals 100% of ATTACK's damage. Counter resets when exiting SING STANCE.
+      Changes per rarity:
+      +20% of ATTACK's damage
+
+  - display_name: "Underwater Predation"
+    key: UnderwaterPredation
+    controller_name: "Skill Controller Defense Hold"
+    guid: e705e57d05abdf43af512f89c819bb4d
+    is_start: true
+    desc: |
+      Hold DEFENSE to move quickly underwater. All enemies passed become VULNERABLE for 4 seconds.
+      Changes per rarity:
+      +1 second
+
+  - display_name: "Spring Water"
+    key: SpringWater
+    controller_name: "Skill Controller Special Heal"
+    guid: 493824d374e5d74e809e5f4db2d13490
+    is_start: true
+    desc: |
+      Each wave from SPECIAL that hits an enemy restores 2 Health to all Heroes within the wave.
+      Changes per rarity:
+      +0.5 Health + Hero Level
+
+  - display_name: "Sea Dance"
+    key: SeaDance
+    controller_name: "Skill Controller Trait Teleport"
+    guid: 8302b27dd80eac4e92adbc335384f8d3
+    is_start: true
+    desc: |
+      In SING STANCE, CONTEXTUAL ACTION allows for quick teleportation to the WISP (5 seconds cooldown). Performing this action in combat restores 8 Health to all nearby heroes.
+      Changes per rarity:
+      +2 Health + Hero Level
+
+  - display_name: "Water Bomb"
+    key: WaterBomb
+    controller_name: "Skill Controller Ultimate Power 1"
+    guid: f156f2f780a5544d8ea36e1cc8f0e4eb
+    is_ult: true
+    desc: |
+      Melusine wraps herself in a water sphere and turns INVINCIBLE. After a short time or if triggered, the sphere explodes and deals 400 damage to all nearby enemies.
+
+  - display_name: "Wisp Ballet"
+    key: WispBallet
+    controller_name: "Skill Controller Ultimate Power 2"
+    guid: c559438ca1eada438da879cd444c12d0
+    is_ult: true
+    desc: |
+      Summon 6 autonomous WISPS that pursue and attack nearby enemies. After 4 seconds, the WISPS cast Splatter and then disappear. Melusine can still be damaged while channeling Wisp Ballet. Wisp Ballet can be cancelled early and its cooldown is proportional to the time it has been used (with a minimum of 10s).
+
+  - display_name: "Vortex Bomb"
+    key: VortexBomb
+    controller_name: "Skill Controller Ultimate 1 Upgrade 1"
+    guid: 49c048d36106174286c73433919c150f
+    ult_upgrade_for: "WaterBomb"
+    desc: |
+      ULTIMATE's water sphere attracts nearby enemies and deals 40 damage per second to enemies hit.
+      Changes per rarity:
+      +10 damage per second + Hero Level + DMG
+
+  - display_name: "Healing Blast"
+    key: HealingBlast
+    controller_name: "Skill Controller Ultimate 2 Upgrade 1"
+    guid: cab3e19fc15d1a4bb60c2deb994c7553
+    ult_upgrade_for: "WaterBomb"
+    desc: |
+      ULTIMATE explosion restores 60 health to all Heroes around and grants them +5 REGENERATION.
+      Changes per rarity:
+      +15 health + Hero Level
+
+  - display_name: "Crescendo"
+    key: Crescendo
+    controller_name: "Skill Controller Ultimate 1 Upgrade 2"
+    guid: 4433ba05e980cb468f7672b3f4921706
+    ult_upgrade_for: "WispBallet"
+    desc: |
+      While ULTIMATE is channeled, Melusine gradually summons up to 3 additional WISPS.
+      Changes per rarity:
+      +1 additional WISP
+
+  - display_name: "Overtone Singing"
+    key: OvertoneSinging
+    controller_name: "Skill Controller Ultimate 2 Upgrade 2"
+    guid: 8167cd9f423b4042bc07135d68f4a5a3
+    ult_upgrade_for: "WispBallet"
+    desc: |
+      When entering SING STANCE, Melusine casts an additional ULTIMATE autonomous WISP that deals 40% damage.
+      Changes per rarity:
+      +10% damage
+
+  - display_name: "Submerging Attack"
+    key: SubmergingAttack
+    controller_name: "Skill Controller Attack Amplifies"
+    guid: fb1e9ac57ea69c4f905ae7beafec0dcc
+    desc: |
+      ATTACK damage increases by 8% for each enemy hit (up to 6 hits, +48%). Resets if Melusine takes damage or exits SING STANCE.
+      Changes per rarity:
+      +1% damage increase (up to +6%)
+
+  - display_name: "Protective Flow"
+    key: ProtectiveFlow
+    controller_name: "Skill Controller Attack Shield"
+    guid: 1274aa697190e44ea8cc733e6929c851
+    desc: |
+      Heroes passed by ATTACK gain 8 SHIELD for 6 seconds.
+      Changes per rarity:
+      +2 SHIELD + Hero Level
+
+  - display_name: "Water Communion"
+    key: WaterCommunion
+    controller_name: "Skill Controller Defense Improve Special"
+    guid: 8b4d91c79dac9240bee1d51f244551d4
+    desc: |
+      DEFENSE clears SPECIAL's cooldown and increases next SPECIAL's damage within 3 seconds by +40%.
+      Changes per rarity:
+      +10% damage
+
+  - display_name: "Power Dive"
+    key: PowerDive
+    controller_name: "Skill Controller Defense Power"
+    guid: f1cfcaf90947144b9404d380000dded4
+    desc: |
+      DEFENSE triggers POWER's effect with a +20% damage increase when Melusine dives underwater.
+      Changes per rarity:
+      +5% damage
+
+  - display_name: "Freezing Splash"
+    key: FreezingSplash
+    controller_name: "Skill Controller Power Chill"
+    guid: 71bc13453bc85e4aa6845140692c7b01
+    desc: |
+      POWER applies CHILLED to hit enemies and gains +15% range.
+      Changes per rarity:
+      +5% range
+
+  - display_name: "Geyser"
+    key: Geyser
+    controller_name: "Skill Controller Power Core"
+    guid: 88463982efeac74ea41e057fdf373a53
+    desc: |
+      POWER deals +50% damage at its center.
+      Changes per rarity:
+      +10% damage
+
+  - display_name: "Aftershock"
+    key: Aftershock
+    controller_name: "Skill Controller Power Geyser"
+    guid: 4542d64d776bc740abb25b776c6ad885
+    desc: |
+      POWER leaves a water core at the casting location that triggers POWER again after 1.5 seconds for 40% of its damage.
+      Changes per rarity:
+      +10% damage
+
+  - display_name: "Backwash"
+    key: Backwash
+    controller_name: "Skill Controller Special Backwards"
+    guid: 176c3779ec692547be3395f35dc5142b
+    desc: |
+      When SPECIAL ends, add 3 additional waves coming backwards that deal 50% damage each.
+      Changes per rarity:
+      +15% damage
+
+  - display_name: "Tidal Wave"
+    key: TidalWave
+    controller_name: "Skill Controller Special Large Waves"
+    guid: 3a079424d2753442b084ee9bb602f120
+    desc: |
+      SPECIAL's waves are 20% wider and longer.
+      Changes per rarity:
+      +5% wider and longer
+
+  - display_name: "Bewitching Song"
+    key: BewitchingSong
+    controller_name: "Skill Controller Trait Weakens"
+    guid: 39794a9723606f47a115d33881381123
+    desc: |
+      When entering SING STANCE, apply WEAK to all nearby enemies for 3 seconds.
+      Changes per rarity:
+      +1 second
+
+  - display_name: "Wisp Surge"
+    key: WispSurge
+    controller_name: "Skill Controller Attack Speed"
+    guid: 4d28e5a8206a6e45ac81c2d08251924b
+    desc: |
+      After casting SPECIAL, gain +40% ATTACK SPEED for 3 seconds.
+      Changes per rarity:
+      +10% ATTACK SPEED
+
+  - display_name: "Razor Tail"
+    key: RazorTail
+    controller_name: "Skill Controller Defense Deals Damage"
+    guid: 648de3f21f9bbe4ab26c6b67685d6663
+    desc: |
+      DEFENSE makes Melusine strike with her tail, dealing 400% of ATTACK damage.
+      Changes per rarity:
+      +100% of ATTACK damage
+
+  - display_name: "Soothing Presence"
+    key: SoothingPresence
+    controller_name: "Skill Controller Passive Heal In Combat"
+    guid: 8e83fbce1ef9b942a0bbccee07205053
+    desc: |
+      When in combat, passively heal 4 Health for all Heroes in the area every 5 seconds.
+      Changes per rarity:
+      +1 Health + Hero Level
+
+  - display_name: "Enduring Wisp"
+    key: EnduringWisp
+    controller_name: "Skill Controller Passive Auto Wisp"
+    guid: 036016006ba4214887dedb527fe6fce0
+    desc: |
+      When Melusine leaves SING STANCE, WISP remains active and automatically attacks surrounding enemies up to 4 times before then disappearing.
+      Changes per rarity:
+      +1 more time(s)
+
+  - display_name: "Shimmering Scales"
+    key: ShimmeringScales
+    controller_name: "Skill Controller Trait Armor"
+    guid: c48cec8499718f46b71fca22a86e081d
+    desc: |
+      In SING STANCE, Melusine gains temporary +4 ARMOR every second, up to a maximum of 40.
+      Changes per rarity:
+      +2 ARMOR (up to a maximum of +20)
+
+  - display_name: "Final Burst"
+    key: FinalBurst
+    controller_name: "Skill Controller Passive Detonation"
+    guid: 4bf416d6bac6e242b60b47277c080676
+    desc: |
+      After 3 successful attacks, WISP explodes when it disappears, dealing 40 area damage.
+      Changes per rarity:
+      +10 area damage + Hero Level + DMG
+
+  - display_name: "Waterlogging"
+    key: Waterlogging
+    controller_name: "Skill Controller Special Growth"
+    guid: b7db893daa3c4b4a8fc7b2446f984180
+    desc: |
+      WISP gains 2 growth charges for each wave of SPECIAL that hits it (up to a maximum of 12 charges). Each charge increase the damage of the ATTACK by 20%, with each ATTACK consuming one charge.
+      Changes per rarity:
+      +5% damage increase
+
+  - display_name: "Water Bubble"
+    key: WaterBubble
+    controller_name: "Skill Controller Defense Block"
+    guid: 6fad3c3d0410b64a9deeda05d171872e
+    desc: |
+      After DEFENSE is triggered, Melusine is surrounded by a bubble for 4 seconds, absorbing one instance of damage. The bubble then explodes and deals 60 area damage.
+      Changes per rarity:
+      +15 area damage + Hero Level + DMG

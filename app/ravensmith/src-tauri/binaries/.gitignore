@@ -1,0 +1,6 @@
+# Sidecar binaries are PyInstaller-built per-host artifacts.
+# See README.md in this directory for the build pipeline.
+*
+!.gitignore
+!.gitkeep
+!README.md

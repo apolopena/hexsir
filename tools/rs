@@ -1,0 +1,33 @@
+#!/bin/bash
+# rs — bash wrapper for the Ravensmith trainer Click CLI.
+#
+# Configuration env vars (read by tools/rs-src/lib/config.py;
+# defaults set there, not here, to keep one source of truth):
+#   RS_SHIM_HOST  -- Windows host IP. Empty/unset → Python auto-detects via
+#                    the WSL2 default gateway, falling back to the
+#                    /etc/resolv.conf nameserver.
+#   RS_SHIM_PORT  -- Shim TCP port (default 8765).
+#   RS_SHIM_LOC   -- Path to deployed shim file (default
+#                    /mnt/c/ravensmith/scripts/rs_shim.py).
+#
+# CLI flags --shim-host / --shim-port override env vars per-call.
+#
+# Usage:
+#   rs <subcommand> [args]   # one-shot CLI
+#   rs interactive           # enter REPL
+#   rs                       # show help (Click default for command groups)
+
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+TOOL_DIR="$SCRIPT_DIR/rs-src"
+
+# Pass through env vars (preserve user-set values; otherwise empty so
+# lib/config.py applies its own default / auto-detect logic).
+export RS_SHIM_HOST="${RS_SHIM_HOST:-}"
+export RS_SHIM_PORT="${RS_SHIM_PORT:-}"
+export RS_SHIM_LOC="${RS_SHIM_LOC:-}"
+
+export TOOL_EXEC_MODE=dev-source
+export PATH="$SCRIPT_DIR:$PATH"
+export CLI_ROOT_DIR="${CLI_ROOT_DIR:-$(dirname "$SCRIPT_DIR")}"
+exec "$TOOL_DIR/.venv/bin/python" "$TOOL_DIR/cli.py" "$@"

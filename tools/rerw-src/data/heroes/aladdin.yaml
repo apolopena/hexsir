@@ -1,0 +1,270 @@
+# Aladdin skill controllers — extracted from the herodef binary.
+#
+# Source: Heroes/Aladdin.herodef.ot.DtHeroDefinition.gen
+# `key` is the strict CLI value for talent lookup. Display names and controller
+# names are metadata only; commands do not fuzzy-match them.
+
+schema_version: "1.0.0"
+registry_id: hero_talents
+hero:
+  key: aladdin
+  engine_name: "Aladdin"
+
+controllers:
+  - display_name: "Jinn's Might"
+    key: JinnsMight
+    controller_name: "Skill Controller Power Quest"
+    guid: 9e6425e871d5ec43a38e7c0eab3a6cf7
+    is_start: true
+    desc: |
+      Quest (x20): Hitting an enemy with POWER at maximum charge grants +0.5 DMG. Complete: Increase POWER's bonus damage from charge by 40%.
+      Changes per rarity:
+      +10% bonus damage
+
+  - display_name: "Aerial Catch"
+    key: AerialCatch
+    controller_name: "Skill Controller Special Quest"
+    guid: 83ab795e4cf47c44afa484914933f08c
+    is_start: true
+    desc: |
+      Quest (x15): After they hit an enemy, retrieving SPECIAL's blades during DEFENSE grants +1 ARMOR. Complete: Doing it again grants 12 SHIELD to all nearby Heroes for 6 seconds.
+      Changes per rarity:
+      +3 SHIELD + Hero Level
+
+  - display_name: "Jinniya's Gift"
+    key: JinniyasGift
+    controller_name: "Skill Controller Trait Extra Wish"
+    guid: 78f369a5a3e2b342b80f89a04da1b2ef
+    is_start: true
+    desc: |
+      Gain +1 TRAIT Charge. Future Talents have +15% chance to be Rare or above.
+      Changes per rarity:
+      +10% chance
+
+  - display_name: "Wish of Omnipotence"
+    key: WishOfOmnipotence
+    controller_name: "Skill Controller Trait Wish Omnipotence"
+    guid: b8b20f3cbfe0384a95198a5eeb92e339
+    is_start: true
+    desc: |
+      Casting wishes grants OMNIPOTENCE to all nearby Heroes for 8 seconds. During OMNIPOTENCE, Heroes' POWER, SPECIAL, and DEFENSE have 0.5 second cooldown.
+      Changes per rarity:
+      +2 seconds
+
+  - display_name: "Dream Wish"
+    key: DreamWish
+    controller_name: "Skill Controller Ultimate Power 1"
+    guid: f156f2f780a5544d8ea36e1cc8f0e4eb
+    is_ult: true
+    desc: |
+      Consume 150 Dream Shards to earn an additional TRAIT charge. Aladdin can still be damaged while channeling Dream Wish.
+
+  - display_name: "Magic Carpet"
+    key: MagicCarpet
+    controller_name: "Skill Controller Ultimate Power 2"
+    guid: c559438ca1eada438da879cd444c12d0
+    is_ult: true
+    desc: |
+      Ride The Magic Carpet, turning INTANGIBLE and dealing 100 damage to enemies passed. Movement is forced but the direction can be controlled.
+
+  - display_name: "Wondrous Wishes"
+    key: WondrousWishes
+    controller_name: "Skill Controller Ultimate 1 Upgrade 1"
+    guid: 49c048d36106174286c73433919c150f
+    ult_upgrade_for: "DreamWish"
+    desc: |
+      All wishes are improved: POWER deals +50% damage. SPECIAL: 40% chance to generate 2 Consumable(s). DEFENSE: +100% SHIELD gained.
+      Changes per rarity:
+      POWER: +25% damage / SPECIAL: +20% chance / DEFENSE: +25% SHIELD gained
+
+  - display_name: "Infinite Wishes"
+    key: InfiniteWishes
+    controller_name: "Skill Controller Ultimate 2 Upgrade 1"
+    guid: cab3e19fc15d1a4bb60c2deb994c7553
+    ult_upgrade_for: "DreamWish"
+    desc: |
+      Gain +3 TRAIT charges. Dream Shards cost for ULTIMATE is reduced by 20%.
+      Changes per rarity:
+      +10% Dream Shards cost
+
+  - display_name: "Dream Stride"
+    key: DreamStride
+    controller_name: "Skill Controller Ultimate 1 Upgrade 2"
+    guid: 4433ba05e980cb468f7672b3f4921706
+    ult_upgrade_for: "MagicCarpet"
+    desc: |
+      Each time ULTIMATE hits an enemy, Aladdin gains 8 Dream Shards. ULTIMATE has no cooldown if no enemies are hit.
+      Changes per rarity:
+      +2 Dream Shards
+
+  - display_name: "Quick Ride"
+    key: QuickRide
+    controller_name: "Skill Controller Ultimate 2 Upgrade 2"
+    guid: 8167cd9f423b4042bc07135d68f4a5a3
+    ult_upgrade_for: "MagicCarpet"
+    desc: |
+      DASH uses Magic Carpet to deal 40 damage to enemies passed and can be held for up to 1.0 second(s).
+      Changes per rarity:
+      +10 damage + Hero Level + DMG
+
+  - display_name: "Dive"
+    key: Dive
+    controller_name: "Skill Controller Attack Dive"
+    guid: 2cfd2a9bae0dd34fa7af97d71052ecc9
+    desc: |
+      Using ATTACK during DEFENSE's jump makes Aladdin dive to the ground, dealing 400% of ATTACK's damage all around.
+      Changes per rarity:
+      +100% of ATTACK's damage
+
+  - display_name: "Spinning Strikes"
+    key: SpinningStrikes
+    controller_name: "Skill Controller Attack Flurry"
+    guid: 8288019b6fbc3d4a9a6a8416f0868f3a
+    desc: |
+      After retrieving SPECIAL's blades, next ATTACK within 2 second(s) spins 2 times (twice more with ENCHANTMENT) and deals +80% damage.
+      Changes per rarity:
+      +20% damage
+
+  - display_name: "Slide Attack"
+    key: SlideAttack
+    controller_name: "Skill Controller Attack No Weapon"
+    guid: 318543508c9c1843b1f8c75d7c2aca4d
+    desc: |
+      Using ATTACK while the blades are flying makes you slide and deal 400% of ATTACK's damage along the path.
+      Changes per rarity:
+      +100% of ATTACK's damage
+
+  - display_name: "Dream Scimitars"
+    key: DreamScimitars
+    controller_name: "Skill Controller Attack Spawns DS"
+    guid: 44b10db74d34fe4babf4b6fcb3043891
+    desc: |
+      While ENCHANTMENT is active on blades, ATTACK has a 40% chance of earning Aladdin a Dream Shard upon enemy hit.
+      Changes per rarity:
+      +10% chance
+
+  - display_name: "Air Dash"
+    key: AirDash
+    controller_name: "Skill Controller Defense Dash"
+    guid: 2c0220d59ef1c447ba3fe8076d2a3c16
+    desc: |
+      DASH can be triggered during DEFENSE's air time. Doing so increases ATTACK speed by 15% for 4 second(s).
+      Changes per rarity:
+      +1 second(s)
+
+  - display_name: "Acrobatics"
+    key: Acrobatics
+    controller_name: "Skill Controller Defense Energy"
+    guid: 0051cf7a138577408f6deda1a329269d
+    desc: |
+      Each enemy passed during DEFENSE grants 3 ENCHANTMENT points.
+      Changes per rarity:
+      +1 ENCHANTMENT point
+
+  - display_name: "Major Enchantment"
+    key: MajorEnchantment
+    controller_name: "Skill Controller Passive Energy"
+    guid: 0388d44d2876b94fa0dba94aa120794c
+    desc: |
+      While NOT using ATTACK, passively generate 1 ENCHANTMENT every 3 seconds.
+      Changes per rarity:
+      Rare: -0.50 seconds / Epic and Legendary: -0.25 seconds
+
+  - display_name: "Swordjinn"
+    key: Swordjinn
+    controller_name: "Skill Controller Power Blades"
+    guid: 92106db44b6f0049bca67b920675851a
+    desc: |
+      POWER Jinn can catch SPECIAL's blades to deal +80% damage in a wider range.
+      Changes per rarity:
+      Rare: +40% damage / Epic and Legendary: +20% damage
+
+  - display_name: "Jinn's Fury"
+    key: JinnsFury
+    controller_name: "Skill Controller Power Multi Hit"
+    guid: 17003a40f6d1744e95d9fa3d0cb316d6
+    desc: |
+      POWER strikes 3 times, each one dealing 40% damage.
+      Changes per rarity:
+      +5% damage
+
+  - display_name: "Cyclonic Appearance"
+    key: CyclonicAppearance
+    controller_name: "Skill Controller Power Start AOE"
+    guid: 6c3024708927344391a6b012ee495e14
+    desc: |
+      When triggering POWER, Jinn hits all nearby enemies and deals 50% of POWER's damage.
+      Changes per rarity:
+      +10% of POWER's damage
+
+  - display_name: "Dancing Blades"
+    key: DancingBlades
+    controller_name: "Skill Controller Special Extra Spins"
+    guid: d3dfad1ac846e04299dc2c311a09601a
+    desc: |
+      Spin duration of SPECIAL's blades is increased by 75%. Blades can be recalled sooner by triggering SPECIAL again.
+      Changes per rarity:
+      +25% increased spin duration
+
+  - display_name: "Healing Blades"
+    key: HealingBlades
+    controller_name: "Skill Controller Special Healing"
+    guid: fcadfe7f4be070469da4ce65d4a35bec
+    desc: |
+      When retrieved, SPECIAL's blades heal all Heroes nearby for each enemy hit, up to 7 Health.
+      Changes per rarity:
+      Rare & Legendary: +2 Health + Hero Level / Epic: +1 Health + Hero Level
+
+  - display_name: "Leaping Strike"
+    key: LeapingStrike
+    controller_name: "Skill Controller Dash Attack"
+    guid: c55e73b145996f41bbe58b75198e1842
+    desc: |
+      ATTACK used right after DASH deals 200% damage and strikes twice with ENCHANTMENT.
+      Changes per rarity:
+      +50% damage
+
+  - display_name: "Tornado Jump"
+    key: TornadoJump
+    controller_name: "Skill Controller Defense Tornado"
+    guid: f7a81c43f5ea094ebc74d5274334c05d
+    desc: |
+      DEFENSE casts a tornado that moves toward Aladdin and deals 40 damage per second for 4 seconds.
+      Changes per rarity:
+      +10 damage + Hero Level + DMG
+
+  - display_name: "Master Thief"
+    key: MasterThief
+    controller_name: "Skill Controller Passive Extra MO"
+    guid: 8c492f8d82800b4fb40c920bb786d31e
+    desc: |
+      Whenever you choose a Common, Rare, or Epic Magical Object, you have a 40%/20%/10% chance to get another copy of it.
+      Changes per rarity:
+      +10%/5%/2% chance
+
+  - display_name: "Enchanted Jinn"
+    key: EnchantedJinn
+    controller_name: "Skill Controller Power Energy"
+    guid: a22a5a832e704143b019b8d199b6e50c
+    desc: |
+      POWER can consume up to 5 ENCHANTMENT points to increase its Crit Chance by 10% per point. The maximum number of ENCHANTMENT points is increased by 5.
+      Changes per rarity:
+      +5 maximum ENCHANTMENT points
+
+  - display_name: "Sand Vortex"
+    key: SandVortex
+    controller_name: "Skill Controller Special Vacuum"
+    guid: 219d5baf891f4d479a132d9d740f0728
+    desc: |
+      SPECIAL's blades, when stationary, pull in enemies around them. SPECIAL deals +40% damage.
+      Changes per rarity:
+      +10% damage
+
+  - display_name: "Shard Blades"
+    key: ShardBlades
+    controller_name: "Skill Controller Attack Wide"
+    guid: 9ebafa092064084a83b9370f4d0bd8b8
+    desc: |
+      While ENCHANTMENT is active on blades, ATTACKS have their range increased by 20% and deal +20% damage.
+      Changes per rarity:
+      +5% range

@@ -1,0 +1,270 @@
+# Carmilla skill controllers — extracted from the herodef binary.
+#
+# Source: Heroes/Carmilla.herodef.ot.DtHeroDefinition.gen
+# `key` is the strict CLI value for talent lookup. Display names and controller
+# names are metadata only; commands do not fuzzy-match them.
+
+schema_version: "1.0.0"
+registry_id: hero_talents
+hero:
+  key: carmilla
+  engine_name: "Carmilla"
+
+controllers:
+  - display_name: "Bat Master"
+    key: BatMaster
+    controller_name: "Skill Controller Defense Master"
+    guid: ee72f1f066ae3449964ef627987b8a44
+    is_start: true
+    desc: |
+      When not in combat, DEFENSE grants STEALTH and can be held without consuming BLOOD. DEFENSE deals +40% damage.
+      Changes per rarity:
+      +10% damage
+
+  - display_name: "Blood Rage"
+    key: BloodRage
+    controller_name: "Skill Controller Power Quest"
+    guid: 5a5688b2e122f847be94c3f36db1d3ee
+    is_start: true
+    desc: |
+      Quest (x20): Hitting an enemy with POWER held for at least 1 second earns +0.5 DMG. Complete: Repeating this action increases POWER explosion damage by +90%.
+      Changes per rarity:
+      +20% POWER explosion damage
+
+  - display_name: "Life Essence"
+    key: LifeEssence
+    controller_name: "Skill Controller Special Quest"
+    guid: 1d7463c9f6ae79479bdd8bea8ccc29dd
+    is_start: true
+    desc: |
+      Quest (x30): Killing an enemy with SPECIAL's bite earns +1 VITALITY. Complete: Repeating this action restores 20 Health to Carmilla.
+      Changes per rarity:
+      +5 Health + Hero Level
+
+  - display_name: "Life Tap"
+    key: LifeTap
+    controller_name: "Skill Controller Trait Life Tap"
+    guid: b167a2d2997fb544a7080693b03fb066
+    is_start: true
+    desc: |
+      In Winged Form, activating TRAIT again consumes HEALTH equivalent to 20% of max health to recover up to 30 BLOOD points. This effect cannot be activated when health is below the required threshold and has a 5-second cooldown.
+      Changes per rarity:
+      +10 BLOOD points
+
+  - display_name: "Impalement"
+    key: Impalement
+    controller_name: "Skill Controller Ultimate Power 1"
+    guid: f156f2f780a5544d8ea36e1cc8f0e4eb
+    is_ult: true
+    desc: |
+      Consumes all BLOOD to launch a series of blood spikes erupting from the ground in front, dealing 450 damage per second to enemies in the area. Each BLOOD point consumed increases the damage by +1%. In Winged Form, Impalement does not consume BLOOD while still increasing its damage.
+
+  - display_name: "Blood Lash"
+    key: BloodLash
+    controller_name: "Skill Controller Ultimate Power 2"
+    guid: c559438ca1eada438da879cd444c12d0
+    is_ult: true
+    desc: |
+      Summon a whip of blood, dealing 100 area damage. Next 12 ATTACKS uses the whip to strike in large areas, with combo overall dealing a total of 140 damage.
+
+  - display_name: "Torture of the Pale"
+    key: TortureOfThePale
+    controller_name: "Skill Controller Ultimate 1 Upgrade 1"
+    guid: 49c048d36106174286c73433919c150f
+    ult_upgrade_for: "Impalement"
+    desc: |
+      At the end of their course, ULTIMATE blood spikes return toward Carmilla dealing 40% damage.
+      Changes per rarity:
+      +10% damage
+
+  - display_name: "Mistress of Pain"
+    key: MistressOfPain
+    controller_name: "Skill Controller Ultimate 1 Upgrade 2"
+    guid: 4433ba05e980cb468f7672b3f4921706
+    ult_upgrade_for: "BloodLash"
+    desc: |
+      Increase the maximum number of ATTACKS transformed by ULTIMATE by 6.
+      Changes per rarity:
+      +2 ATTACKS transformed
+
+  - display_name: "Heartbreak"
+    key: Heartbreak
+    controller_name: "Skill Controller Ultimate 2 Upgrade 1"
+    guid: cab3e19fc15d1a4bb60c2deb994c7553
+    ult_upgrade_for: "Impalement"
+    desc: |
+      Add a fourth move to ATTACK combo, impaling enemies in front, dealing 40% ULTIMATE damage.
+      Changes per rarity:
+      +10% ULTIMATE damage
+
+  - display_name: "Mass Punishment"
+    key: MassPunishment
+    controller_name: "Skill Controller Ultimate 2 Upgrade 2"
+    guid: 8167cd9f423b4042bc07135d68f4a5a3
+    ult_upgrade_for: "BloodLash"
+    desc: |
+      Add a fourth ATTACK to ULTIMATE combo, dealing +240% area damage.
+      Changes per rarity:
+      +60% area damage
+
+  - display_name: "Razor Claws"
+    key: RazorClaws
+    controller_name: "Skill Controller Attack Bleed"
+    guid: c57f8986663ece4a9577cd55daed0250
+    desc: |
+      ATTACK deals +40% damage as BLEED.
+      Changes per rarity:
+      +10% damage as BLEED
+
+  - display_name: "Puncture"
+    key: Puncture
+    controller_name: "Skill Controller Dash Blood"
+    guid: 1d6c89cf91374e4192ec3e1bfdad2d5e
+    desc: |
+      Each enemy passed through by DASH earns 8 BLOOD point(s).
+      Changes per rarity:
+      +2 BLOOD points
+
+  - display_name: "Aggressive Flock"
+    key: AggressiveFlock
+    controller_name: "Skill Controller Defense Projectile"
+    guid: eaae07f1d617554b89a91234280b28b0
+    desc: |
+      During DEFENSE, Carmilla casts a bat every 0.50 second(s) that seeks out nearby enemies and pierces through them dealing, 26 damage.
+      Changes per rarity:
+      Rare: -0.15 second(s) / Epic & Legendary: -0.05 second(s)
+
+  - display_name: "Blood Reserve"
+    key: BloodReserve
+    controller_name: "Skill Controller Passive Blood Reserve"
+    guid: daa7943c7cd56f41945e384279cad214
+    desc: |
+      Increase maximum BLOOD reserve by 20%.
+      Changes per rarity:
+      +5% maximum BLOOD reserve
+
+  - display_name: "Boiling Blood"
+    key: BoilingBlood
+    controller_name: "Skill Controller Passive Life Use Regen"
+    guid: 583541122ae719439e3b2be6695a36e5
+    desc: |
+      After consuming HEALTH for at least 1 second(s) to fuel an ability, gain +3 REGENERATION.
+      Changes per rarity:
+      +1 REGENERATION
+
+  - display_name: "Cruel Strike"
+    key: CruelStrike
+    controller_name: "Skill Controller Attack Last Combo Move"
+    guid: ba8ddf5ab2e58945bfd83c754bafb645
+    desc: |
+      After DASH or DEFENSE, the next ATTACK starts with a combo finishing move, dealing +100% damage.
+      Changes per rarity:
+      +25% damage
+
+  - display_name: "Dispersion"
+    key: Dispersion
+    controller_name: "Skill Controller Defense Aoe Bleed"
+    guid: b739454fefdb884fb0ea277381efc649
+    desc: |
+      After DEFENSE, bats disperse around Carmilla dealing 60 area damage as BLEED.
+      Changes per rarity:
+      +15 damage + Hero Level + DMG
+
+  - display_name: "Sadism"
+    key: Sadism
+    controller_name: "Skill Controller Passive Critical Bleed"
+    guid: 0df79ae38ccec54594370dff155ce735
+    desc: |
+      Critical Hits deal +40% damage on enemies affected by BLEED.
+      Changes per rarity:
+      +20% damage
+
+  - display_name: "Flesh Rip"
+    key: FleshRip
+    controller_name: "Skill Controller Power Bleed Crit"
+    guid: 8dc83171698cc049a767204284a06e84
+    desc: |
+      POWER has +40% Crit Chance on enemies affected by BLEED.
+      Changes per rarity:
+      +10% Crit Chance
+
+  - display_name: "Furious Tempest"
+    key: FuriousTempest
+    controller_name: "Skill Controller Power Maintained Damage"
+    guid: b1228cd767f11b4b9160c8893bb7b17b
+    desc: |
+      Consuming BLOOD to fuel POWER gradually increases its damage up to +40% after 3.0 seconds of holding.
+      Changes per rarity:
+      +10% damage
+
+  - display_name: "Injection"
+    key: Injection
+    controller_name: "Skill Controller Power Special Bomb"
+    guid: 370bab50874dc746892fc7b342423791
+    desc: |
+      SPECIAL implants a blood seed into the bitten enemy that shortly after triggers an explosion of POWER, dealing 80% area damage.
+      Changes per rarity:
+      +20% area damage
+
+  - display_name: "Go for the Throat"
+    key: GoForTheThroat
+    controller_name: "Skill Controller Special Critical Distance"
+    guid: b10f28f61a5a214383006ef48c71132f
+    desc: |
+      Distance covered before SPECIAL's bite increases its Crit Chance, up to +40%.
+      Changes per rarity:
+      +10% Crit Chance
+
+  - display_name: "Victimization"
+    key: Victimization
+    controller_name: "Skill Controller Special Marked"
+    guid: 7ee726e4fe0c98418e7e37a42124e4b0
+    desc: |
+      SPECIAL applies MARKED to bitten enemies for 4.0 seconds. MARKED targets take +25% damage and spread this status to another nearby enemy when they die.
+      Changes per rarity:
+      +2.0 seconds
+
+  - display_name: "Angel and Demon"
+    key: AngelAndDemon
+    controller_name: "Skill Controller Trait Heal Buff"
+    guid: 84a31ab6bc292a44a92e6566573935e5
+    desc: |
+      When activating TRAIT: DAY: restore 20 health to all nearby heroes. NIGHT: Grants STRENGTH to all nearby heroes for 4.0 seconds.
+      Changes per rarity:
+      +5 Health + Hero Level / +1.0 second(s) of STRENGTH
+
+  - display_name: "Gust"
+    key: Gust
+    controller_name: "Skill Controller Trait Push back"
+    guid: a84ed0246ce86f458818c58e6f33bfbd
+    desc: |
+      TRAIT pushes back nearby enemies and deals 80 area damage.
+      Changes per rarity:
+      +20 damage + Hero Level + DMG
+
+  - display_name: "Onslaught"
+    key: Onslaught
+    controller_name: "Skill Controller Attack Special Rush"
+    guid: 4a49b6579d257549854cd127e0fef380
+    desc: |
+      After a SPECIAL, the next ATTACK makes Carmilla rush forward, dealing 800% ATTACK damage to enemies passed through.
+      Changes per rarity:
+      +200% ATTACK damage
+
+  - display_name: "Wild Heart"
+    key: WildHeart
+    controller_name: "Skill Controller Power Range"
+    guid: 468dac7304280a4685e48d53e4e9dc59
+    desc: |
+      POWER's orb move speed is increased by 100%. POWER explosion gains +20% range.
+      Changes per rarity:
+      +5% range
+
+  - display_name: "Seductive Provocation"
+    key: SeductiveProvocation
+    controller_name: "Skill Controller Dash Taunt"
+    guid: f6cccba66fce4240b70084d6e048ed0d
+    desc: |
+      Using DASH without specifying a move direction makes Carmilla seduce up to 2 non-boss enemies in front of her, applying WEAKENED and VULNERABLE to them for 6 seconds.
+      Changes per rarity:
+      +1 non-boss enemy

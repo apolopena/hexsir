@@ -1,0 +1,270 @@
+# Piper skill controllers — extracted from the herodef binary.
+#
+# Source: Heroes/Piper.herodef.ot.DtHeroDefinition.gen
+# `key` is the strict CLI value for talent lookup. Display names and controller
+# names are metadata only; commands do not fuzzy-match them.
+
+schema_version: "1.0.0"
+registry_id: hero_talents
+hero:
+  key: piper
+  engine_name: "Piper"
+
+controllers:
+  - display_name: "Virtuoso"
+    key: Virtuoso
+    controller_name: "Skill Controller Attack Move Speed"
+    guid: 3929a5579f9c0043a83627f2ceb28b75
+    is_start: true
+    desc: |
+      Move Speed when using ATTACK or POWER is increased by 30%. Gain +10% ATTACK Speed.
+      Changes per rarity:
+      +5% ATTACK Speed
+
+  - display_name: "Sound Barrier"
+    key: SoundBarrier
+    controller_name: "Skill Controller Defensive Armor Quest"
+    guid: 2758447ce4b34848b7626ac49ef1262b
+    is_start: true
+    desc: |
+      Quest (x20): Gain +1 ARMOR whenever DEFENSE hits at least 2 enemies. Complete: Doing so again grants 12 SHIELD to all nearby Heroes for 6 seconds.
+      Changes per rarity:
+      +3 SHIELD + Hero Level
+
+  - display_name: "Freezing Trap"
+    key: FreezingTrap
+    controller_name: "Skill Controller Secondary Chill"
+    guid: 7176f033ef505d4d9574cf3425fab7b0
+    is_start: true
+    desc: |
+      Enemies within SPECIAL's area of effect are CHILLED and take +10% damage.
+      Changes per rarity:
+      +5% damage
+
+  - display_name: "Horde"
+    key: Horde
+    controller_name: "Skill Controller Trait More Controllable Pets"
+    guid: dde1658a5ef20f4fb4bdd1fbd134c0b7
+    is_start: true
+    desc: |
+      Rats spawn in groups of 3 (instead of 2). Increase maximum controllable rats by 6.
+      Changes per rarity:
+      +2 maximum rats
+
+  - display_name: "Unchained Melody"
+    key: UnchainedMelody
+    controller_name: "Skill Controller Ultimate Power 1"
+    guid: f156f2f780a5544d8ea36e1cc8f0e4eb
+    is_ult: true
+    desc: |
+      Play notes continuously and rapidly, automatically targeting the closest enemy and dealing up to 120 damage per second. During this ability, the Hero runs forward but the direction can be controlled. DAY: the notes stop at the first enemy hit, dealing more damage. NIGHT: the notes pierce through all enemies, dealing less damage than at DAY. The Pied Piper can still be damaged while channeling Unchained Melody.
+
+  - display_name: "Plague of Rats"
+    key: PlagueOfRats
+    controller_name: "Skill Controller Ultimate Power 2"
+    guid: c559438ca1eada438da879cd444c12d0
+    is_ult: true
+    desc: |
+      Channel a melody to control a swarm of rats that rushes forward and deals up to 100 damage per second over a large area. The Pied Piper can still be damaged while channeling Plague of Rats. Plague of Rats can be cancelled early and its cooldown is proportional to the time it has been used (with a minimum of 10s).
+
+  - display_name: "Jig"
+    key: Jig
+    controller_name: "Skill Controller Ultimate 1 Upgrade 1"
+    guid: 49c048d36106174286c73433919c150f
+    ult_upgrade_for: "UnchainedMelody"
+    desc: |
+      DASH sends 4 ULTIMATE notes to nearby enemies.
+      Changes per rarity:
+      +1 ULTIMATE note(s)
+
+  - display_name: "Rain of Notes"
+    key: RainOfNotes
+    controller_name: "Skill Controller Ultimate 2 Upgrade 1"
+    guid: cab3e19fc15d1a4bb60c2deb994c7553
+    ult_upgrade_for: "UnchainedMelody"
+    desc: |
+      During ULTIMATE, 12 notes per second fall from the sky in the surroundings, each dealing 10 area damage.
+      Changes per rarity:
+      +3 notes per second
+
+  - display_name: "Vermin Massacre"
+    key: VerminMassacre
+    controller_name: "Skill Controller Ultimate 1 Upgrade 2"
+    guid: 4433ba05e980cb468f7672b3f4921706
+    ult_upgrade_for: "PlagueofRats"
+    desc: |
+      When ULTIMATE is channeled to completion, the swarm of rats explodes, dealing 200 area damage.
+      Changes per rarity:
+      +50 area damage + Hero Level + DMG
+
+  - display_name: "Rat King"
+    key: RatKing
+    controller_name: "Skill Controller Ultimate 2 Upgrade 2"
+    guid: 8167cd9f423b4042bc07135d68f4a5a3
+    ult_upgrade_for: "PlagueofRats"
+    desc: |
+      Each rat summoned has a 15% chance to be a Rat King, capable of attacking twice as much and dealing +100% damage.
+      Changes per rarity:
+      +5% chance
+
+  - display_name: "Low Notes"
+    key: LowNotes
+    controller_name: "Skill Controller Basic Big Shots"
+    guid: b0e709f67fa2304bb6ab68d121535040
+    desc: |
+      ATTACK sends bigger notes dealing +60% damage in an area of effect but at a 40% reduced frequency.
+      Changes per rarity:
+      +15% damage
+
+  - display_name: "Sniper"
+    key: Sniper
+    controller_name: "Skill Controller Basic Primary Long Shots"
+    guid: 4735cc823c28674b8effdd418e7af42c
+    desc: |
+      Notes from ATTACK and POWER have a longer range and deal +20% damage if they hit after halfway.
+      Changes per rarity:
+      +5% damage
+
+  - display_name: "Explosive Blast"
+    key: ExplosiveBlast
+    controller_name: "Skill Controller Defensive Deals Damage"
+    guid: 509f012893d50640a5b98d722696b184
+    desc: |
+      DEFENSE deals 40 damage.
+      Changes per rarity:
+      +10 damage + Hero Level + DMG
+
+  - display_name: "Perfect Harmony"
+    key: PerfectHarmony
+    controller_name: "Skill Controller Defensive Heal On Hit"
+    guid: f348c0e1cc6f9d4f8d3380e96fa349ce
+    desc: |
+      DEFENSE restores 4 health to all Heroes around for each enemy hit (up to 4).
+      Changes per rarity:
+      +2 Health restored + Hero Level
+
+  - display_name: "Spinning Solo"
+    key: SpinningSolo
+    controller_name: "Skill Controller Primary Evasion"
+    guid: 4229bf5788fb1b419f00161cfa21e64e
+    desc: |
+      POWER triggered after DASH makes Hero move quicker and has +40% Crit Chance.
+      Changes per rarity:
+      +10% Crit Chance
+
+  - display_name: "Extra Measure"
+    key: ExtraMeasure
+    controller_name: "Skill Controller Primary More Waves After Defense"
+    guid: d92bad9737f2914cb2fcd961a7b2703b
+    desc: |
+      After hitting an enemy with DEFENSE, next POWER within 3 seconds lasts longer (+2 waves of notes).
+      Changes per rarity:
+      +1 wave(s) of notes
+
+  - display_name: "Quintuplets"
+    key: Quintuplets
+    controller_name: "Skill Controller Primary Wide Spread"
+    guid: f1c0848a24c7ab45aa6069124336eb5f
+    desc: |
+      POWER plays 5 notes each wave (instead of 3) but each note deals -20% damage.
+      Changes per rarity:
+      +5% damage
+
+  - display_name: "Acoustic Pulses"
+    key: AcousticPulses
+    controller_name: "Skill Controller Secondary DOT"
+    guid: a010c29c5cc9ea4ab1c19ff1af5a2b37
+    desc: |
+      SPECIAL deals 8 damage every second.
+      Changes per rarity:
+      +2 damage + Hero Level + DMG
+
+  - display_name: "Grand Finale"
+    key: GrandFinale
+    controller_name: "Skill Controller Secondary Explosive Zone"
+    guid: a9359e437840ef44bdeb10b1c503115d
+    desc: |
+      When SPECIAL's effect expires, the area of effect explodes and deals 60 damage.
+      Changes per rarity:
+      +15 damage + Hero Level + DMG
+
+  - display_name: "Giant Rats"
+    key: GiantRats
+    controller_name: "Skill Controller Trait Big Pets"
+    guid: 5e30551c32de8d4286ce8430bf7b7539
+    desc: |
+      Rats' attacks WEAKEN enemies and deal +20% damage.
+      Changes per rarity:
+      +5% damage
+
+  - display_name: "Explosive Rats"
+    key: ExplosiveRats
+    controller_name: "Skill Controller Trait Explosive Pets"
+    guid: 9f9c2ce186fced4ea058c1341b136a01
+    desc: |
+      Rats explode when they die and deal 6 damage all around.
+      Changes per rarity:
+      +1.5 damage + Hero Level + DMG
+
+  - display_name: "Stimulant Vibes"
+    key: StimulantVibes
+    controller_name: "Skill Controller Trait Pets Within Special"
+    guid: 31be0a1bba1d6c4a9d08a21d6939b967
+    desc: |
+      Rats attacking within SPECIAL's zone cannot die, and deal +20% damage.
+      Changes per rarity:
+      +5% damage
+
+  - display_name: "Music of the Spheres"
+    key: MusicOfTheSpheres
+    controller_name: "Skill Controller Dash Trap"
+    guid: c7c9762284f2fd469027ea3c56333bfc
+    desc: |
+      DASH leaves behind a bubbled clef that explodes when hit, sending 4 POWER music notes to enemies around.
+      Changes per rarity:
+      +1 POWER music note
+
+  - display_name: "Ghost Notes"
+    key: GhostNotes
+    controller_name: "Skill Controller Attack Ghost Notes"
+    guid: cb82b3553d0fb141a3c7cb20bb832604
+    desc: |
+      For every 10 notes played, a ghost note is sent towards the nearest enemy, dealing 20 area damage.
+      Changes per rarity:
+      Rare: -2 notes threshold / Epic and Legendary: -1 note(s) threshold
+
+  - display_name: "Invasive Blast"
+    key: InvasiveBlast
+    controller_name: "Skill Controller Defense Spawn Pets"
+    guid: eb71a5c74f611b44b8793b3711edaec4
+    desc: |
+      Hitting at least one enemy with DEFENSE spawns up to 4 rats, which immediately attack nearby enemies.
+      Changes per rarity:
+      +1 more time
+
+  - display_name: "Chorus"
+    key: Chorus
+    controller_name: "Skill Controller Special Sends Attacks"
+    guid: c9c497a371058744975b4e6141f195ea
+    desc: |
+      Every 1 second(s), the SPECIAL area of effect fires 5 ATTACK notes, targeting the closest enemies.
+      Changes per rarity:
+      Rare: -0.2 second(s) / Epic: -0.15 second(s) / Legendary: -0.10 second(s)
+
+  - display_name: "Leeching Charm"
+    key: LeechingCharm
+    controller_name: "Skill Controller Trait Pets Heal"
+    guid: 1287adf2905f0d469b7966c43e945d8c
+    desc: |
+      For every 20 attacks that rats made on enemies restore 4 Health to all nearby heroes.
+      Changes per rarity:
+      +1 Health + Hero Level
+
+  - display_name: "Sforzando"
+    key: Sforzando
+    controller_name: "Skill Controller Special Implosive"
+    guid: cc65be1c086c2541b35554edd7fbed5e
+    desc: |
+      SPECIAL triggers an implosive DEFENSE (pulling enemies inwards) with its range increased by 20%.
+      Changes per rarity:
+      +5% range

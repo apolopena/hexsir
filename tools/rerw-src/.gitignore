@@ -1,0 +1,6 @@
+# PyInstaller transient artifacts (built by scripts/build-rerw-sidecar.sh).
+# The final binary lands in app/ravensmith/src-tauri/binaries/ and is
+# gitignored by that directory's own .gitignore.
+build/
+dist/
+*.spec

@@ -1,0 +1,41 @@
+Epilogue - Known Values and Offsets
+====================================
+
+FROM USER:
+  XP: 36569/50000
+  Health: 439/439
+  Vitality: 75
+  Damage: 481
+  Armor: 80
+  Crit Chance: 85
+  Crit Damage: 93
+
+SEARCH RESULTS:
+  XP (36569): 0xf8ea ✓ (unique)
+  Health (439): NOT FOUND as int32 in data region
+  Vitality (75): 0x594e, 0x92dd, 0xc948
+  Damage (481): NOT FOUND
+  Armor (80): 0x2532
+  Crit Chance (85): 0x81f5, 0xd0e0, 0xd881
+  Crit Damage (93): 0xc3cf
+
+CROSS-FILE SUMMARY:
+==================
+
+XP (unique in each file):
+  Ch2: 2690 at 0xf1ee
+  Ch3: 16297 at 0xf68a
+  Epi: 36569 at 0xf8ea
+
+Dream Shards (GUID b43eeb58d162fa41acef99d128f2cb works):
+  Ch2: 101 at 0x38c7
+  Ch3: 101 at 0x3923
+  Epi: 101 at 0x3953
+
+Health: NOT FOUND as int32 (probably derived from stats)
+
+Vitality progression: 27 → 85 → 75 (went DOWN in epilogue?)
+Damage progression: 38 → 159 → 481 (steadily up)
+  - 481 NOT FOUND in Epilogue
+
+Stats like Damage, Health may be stored differently (floats? packed? derived?)

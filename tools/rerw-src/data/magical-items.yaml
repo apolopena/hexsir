@@ -1,0 +1,495 @@
+# Magical Object catalog — extracted from cooked entity-settings files.
+#
+# Source: EntitySettings/Obzects/Magical_Obzects!<Rarity>!<Effect>.entity.ot.EntitySettingsResource.gen
+# Each entry maps an effect filename to its 16-byte runtime GUID (used in
+# tag=0x1a active-item records inside the run-state record).
+#
+# `key` is the strict CLI value for item lookup. `display_name` is player-facing
+# metadata only; commands do not fuzzy-match it.
+#
+# Entries with `displays_as` are GHOSTS — deprecated catalog entities still
+# resolvable in the save's active-item record but rerouted to display as a
+# different live item via inheritance in the cooked entity file.
+# Ghost convention:
+#   - display_name prefixed with "Ghost <original-player-name>"
+#   - displays_as: <live-item alias as shown in HUD>
+#   - inherits_from: <live entity's effect filename>
+#   - meta_notes: combined-effect description (verbatim wiki text where available)
+# See `rw/findings/item-table.md` for full per-item details (icons, name keys, catalog GUIDs).
+
+schema_version: "1.0.0"
+registry_id: magical_items
+
+items:
+  - display_name: "Green Armor"
+    key: GreenArmor
+    effect: Armor_Per_Obzect
+    guid: 8aebaf5073029544905249e7b32d8c8d
+    rarity: Common
+    desc: "+2 ARMOR for each Common Magical Object. Set Bonus: Rare Magical Objects also count"
+
+  - display_name: "Ogre Blood"
+    key: OgreBlood
+    effect: Damage_Per_Vitality
+    guid: 0bb75b45ea9bf74e978f2679279e153d
+    rarity: Common
+    desc: "+1 DMG for each 10 VITALITY you have. Set Bonus: +20% Crit Chance"
+
+  - display_name: "Eternal Rose"
+    key: EternalRose
+    effect: Dash_Crit_Chance
+    guid: 45535f5f42abca488de0cf93d3ac50dd
+    rarity: Common
+    desc: "After DASH, gain +10% Crit Chance for 2 seconds. Set Bonus: Critical Hits deal +50% damage"
+
+  - display_name: "Moonstone"
+    key: Moonstone
+    effect: Defense_To_Damage
+    guid: 26a8cbfceeff0b45bfa274a4c07f6f8a
+    rarity: Common
+    desc: "+2 DMG for every other Magical Object or Talent referring to DEFENSE. Set Bonus: Defense deals +50% damage"
+
+  - display_name: "Goldilocks' Porridge"
+    key: GoldilocksPorridge
+    effect: Gain_Shield_From_Orbs
+    guid: 1825d8b4454ced4f85282ff186fab885
+    rarity: Common
+    desc: "Healing Orbs grant 5 SHIELD (amount scales with the current hero level) when picked up. Set Bonus: +30 DMG while a SHIELD is active"
+
+  - display_name: "Legacy Goldilocks' Porridge"
+    key: LegacyGoldilocksPorridge
+    effect: Orb_Grants_Strength
+    guid: 0f43ddbf2741e548881b3a33f6c480f4
+    rarity: Common
+
+  - display_name: "Mermaid Tears"
+    key: MermaidTears
+    effect: Healing_Effect
+    guid: e32da2e786dec64885600ffe2c1f8f24
+    rarity: Common
+    desc: "+25% to any healing effect provided or received. Set Bonus: +30 VITALITY"
+
+  - display_name: "Voodoo Doll"
+    key: VoodooDoll
+    effect: Increase_Damage_To_Boss_And_Ignore_Resistance
+    guid: ab17a5c4944b6245bf2c5abf9357ec03
+    rarity: Common
+    desc: "Deal +15% damage to Bosses. Set Bonus: 30% of damage dealt ignores enemies' ARMOR"
+
+  - display_name: "Legacy Voodoo Doll"
+    key: LegacyVoodooDoll
+    effect: Increase_Damage_To_Boss
+    guid: 7062e5befc247a498b6998ee7d70b4cf
+    rarity: Common
+
+  - display_name: "Dreamcatcher"
+    key: Dreamcatcher
+    effect: Reduce_All_DS_Price
+    guid: a382ca9cc837ef4a867baa03b3a1e325
+    rarity: Common
+    desc: "Reduces all Dream Shards prices by 10%. Set Bonus: One free purchase at the Sandman per chapter"
+
+  - display_name: "Legacy Dreamcatcher"
+    key: LegacyDreamcatcher
+    effect: Reduce_Dream_Shard_Price
+    guid: fc11ec3f4d247d45ad8a43bfa54dd8d1
+    rarity: Common
+
+  - display_name: "Leprechaun Coin"
+    key: LeprechaunCoin
+    effect: Reroll_To_Dream_Shards
+    guid: 7ef148a845771e498d544bdac4a53b87
+    rarity: Common
+    desc: "For each Star of Fate spent, gain +25 Dream Shards. Set Bonus: Rerolling a choice is free the first time"
+
+  - display_name: "Horn of Plenty"
+    key: HornOfPlenty
+    effect: Spawn_Consumables
+    guid: 80e8a676a33cf149a835315df87625ad
+    rarity: Common
+    desc: "When picked up, make 2 consumables appear. Set Bonus: +10 DMG, +20 VITALITY, +20 ARMOR"
+
+  - display_name: "Golden Egg"
+    key: GoldenEgg
+    effect: AP_For_Dream_Shards_Stack
+    guid: ae6896038d2a3544a25280d91a8c25e5
+    rarity: Rare
+    desc: "Gain +1 DMG per 150 Dream Shards spent during the game. Set Bonus: +30% to any Dream Shard gains"
+
+  - display_name: "Cryptic Prophecy"
+    key: CrypticProphecy
+    effect: Collection_To_Damage
+    guid: 524f330d6ffa7b4a9cd59b902a8b9388
+    rarity: Rare
+    desc: "+1 Star(s) of Fate and +6 DMG for each complete collection of Common or Rare Magical Objects. Set Bonus: Epic collections also count toward this"
+
+  - display_name: "Ace of Spades"
+    key: AceOfSpades
+    effect: Damage_Attack
+    guid: c8de1682dbc70349b45df89f77073dd5
+    rarity: Rare
+    desc: "ATTACK deals +20% damage. Set Bonus: +15% ATTACK SPEED"
+
+  - display_name: "King of Clubs"
+    key: KingOfClubs
+    effect: Damage_Power
+    guid: 6fc4cd8ef0a9e84a911b27375d9ddbe8
+    rarity: Rare
+    desc: "POWER deals +20% damage. Set Bonus: POWER has a +40% Crit Chance"
+
+  - display_name: "Jack of Diamonds"
+    key: JackOfDiamonds
+    effect: Damage_Special
+    guid: 2e0c614f7b33c845a829eb2629378773
+    rarity: Rare
+    desc: "SPECIAL deals +20% damage. Set Bonus: SPECIAL has a +40% Crit Chance"
+
+  - display_name: "Vajra"
+    key: Vajra
+    effect: Dash_Deal_Damage
+    guid: 261a393dfe4c5d43bf81cba2af85aa0e
+    rarity: Rare
+    desc: "DASH deals +40 damage to all enemies passed. Set Bonus: DASH casts a lightning strike at starting location"
+
+  - display_name: "Dragon Hide"
+    key: DragonHide
+    effect: Gain_Armor_From_Talents_Rarity
+    guid: 119ecaa960eb454c966e01d6e4165969
+    rarity: Rare
+    desc: "+1/+2/+3/+4 ARMOR for each Common, Rare, Epic or Legendary Talent. Set Bonus: ARMOR grants 40% of its value as DMG"
+
+  - display_name: "Legacy Dragon Hide"
+    key: LegacyDragonHide
+    effect: Armour_Gain_Per_Missing_Health
+    guid: a8a7edbaba5b9a4eb5db05c266f1403e
+    rarity: Rare
+
+  - display_name: "Queen of Hearts"
+    key: QueenOfHearts
+    effect: Gain_Passive_Heal
+    guid: e47ba211bd56c44a9522b0057b32ae97
+    rarity: Rare
+    desc: "Passively heals 1% Max Health every 5 seconds. Set Bonus: +30 DMG when at full Health"
+
+  - display_name: "Legacy Queen of Hearts"
+    key: LegacyQueenOfHearts
+    effect: Passive_Heal
+    guid: 764539167186ed47bf73a59d923b5ab6
+    rarity: Rare
+
+  - display_name: "Unicorn Horn"
+    key: UnicornHorn
+    effect: Gain_Regeneration_On_Low_Life
+    guid: 7c7015b3221d034f94eb11032f3ba903
+    rarity: Rare
+    desc: "At Critical Health (40% health), gain +4 REGENERATION (max every 45 seconds). Set Bonus: +50 DMG when under a REGENERATION effect"
+
+  - display_name: "Fairy Dust"
+    key: FairyDust
+    effect: Increase_Shield
+    guid: a87a5f06ddff894f8448d10a5d5b0231
+    rarity: Rare
+    desc: "When taking damage, gain 10 SHIELD (at most every 30 seconds, amount scales with the current hero level). Set Bonus: +50% to any SHIELD applied or received"
+
+  - display_name: "Joker"
+    key: Joker
+    effect: Copy_Card
+    guid: 05e72793d95d6c4db1b5ce0ae54c9ccf
+    rarity: Epic
+    desc: "Grants the effects of other Card-Type Magical Objects held"
+
+  - display_name: "Charmstone"
+    key: Charmstone
+    effect: Dash_Gain_Charge
+    guid: b3dd93e322c3234f945e80f57a5931f9
+    rarity: Epic
+    desc: "DASH gains +1 charge(s). Set Bonus: DASH grants 10 SHIELD (Amount scales with the current hero level) for 6 seconds"
+
+  - display_name: "Adder Stone"
+    key: AdderStone
+    effect: Defensive_Gain_Charge
+    guid: 195806853d2dd943a0f9e366663f06dc
+    rarity: Epic
+    desc: "DEFENSE gains +1 charge(s). Set Bonus: After a DEFENSE, gain +40% Move Speed decaying over 3 seconds"
+
+  - display_name: "Flaming Pearl"
+    key: FlamingPearl
+    effect: Primary_Gain_Charge
+    guid: 1954d8bcf75030459201b0f94019f044
+    rarity: Epic
+    desc: "POWER gains +1 charge(s). Set Bonus: POWER deals +15% damage to enemies for each Negative Status they have"
+
+  - display_name: "Raven Wing"
+    key: RavenWing
+    effect: Reduce_Dash_CD
+    guid: 10654b850150f2489e3d60c96e461fa6
+    rarity: Epic
+    desc: "Reduce DASH cooldown by +25%. Set Bonus: +15% Move Speed"
+
+  - display_name: "Raven Skull"
+    key: RavenSkull
+    effect: Reduce_Defensive_CD
+    guid: 6ed916ec2ead1d4dbfecb8cd0d2b196a
+    rarity: Epic
+    desc: "Reduce DEFENSE cooldown by +25%. Set Bonus: +40 ARMOR"
+
+  - display_name: "Raven Claw"
+    key: RavenClaw
+    effect: Reduce_Primary_CD
+    guid: 100e7eca17f3a543b0aaa727cca2304e
+    rarity: Epic
+    desc: "Reduce POWER cooldown by +25%. Set Bonus: POWER has +40% damage"
+
+  - display_name: "Raven Beak"
+    key: RavenBeak
+    effect: Reduce_Secondary_CD
+    guid: e87844f261b8834c95a40cb0bffc27cb
+    rarity: Epic
+    desc: "Reduce SPECIAL cooldown by +25%. Set Bonus: SPECIAL has +40% damage"
+
+  - display_name: "Raven Eye"
+    key: RavenEye
+    effect: Reduce_Ultimate_CD
+    guid: 8db2c6cad579894ab3223a80648fda9b
+    rarity: Epic
+    desc: "Reduce ULTIMATE cooldown by +25%. Set Bonus: ULTIMATE deals +40% damage"
+
+  - display_name: "Legacy Raven Eye"
+    key: LegacyRavenEye
+    effect: Reduce_CD_And_Buff_Ultimate
+    guid: 9a2c24abcf7e5f499f01f466b8a16c59
+    rarity: Epic
+
+  - display_name: "Thunderstone"
+    key: Thunderstone
+    effect: Secondary_Gain_Charge
+    guid: 1d97edbd51d1934996a9cf79bca1a7ee
+    rarity: Epic
+    desc: "SPECIAL gains +1 charge(s). Set Bonus: SPECIAL casts a Lightning Strike upon the 3 closest enemies"
+
+  - display_name: "Raven Effigy"
+    key: RavenEffigy
+    effect: All_Abilities_Gain_Charge
+    guid: cb9a90bec8096342a32c801100456409
+    rarity: Legendary
+    desc: "POWER and SPECIAL gain +1 charge(s)"
+
+  - display_name: "Ghost Baba Yagas Mortar"
+    key: GhostBabaYagasMortar
+    effect: Avoid_Death_Once_Per_Chapter
+    guid: 1cc781a598b8314e9f52ae3c19d3edb3
+    rarity: Legendary
+    desc:  |
+      Hidden item with the following combined effects:
+      Legacy Baba Yaga's Mortar: prevents lethal damage by restoring all health instead (once per chapter).
+      Water of Life: +25 vitality and fully heals the player at the start of each Day or Night phase.
+      Icon displays as Water of Life.
+    displays_as: "Water of Life"
+    inherits_from: Full_Heal_At_Day_Night
+
+  - display_name: "Golden Coat of Chainmail"
+    key: GoldenCoatOfChainmail
+    effect: Clamp_High_Damage
+    guid: 5a4e27869c11aa4e94c6abaadc24e596
+    rarity: Legendary
+    desc: "Damage taken within 1 second(s) cannot exceed +50% of your maximum health"
+
+  - display_name: "Seven-League Boots"
+    key: SevenLeagueBoots
+    effect: Clear_Dash_Cooldown_On_Defense
+    guid: 40663bbf1035344cae216d94a1279543
+    rarity: Legendary
+    desc: "Clear DASH's cooldown whenever you use POWER, SPECIAL, or DEFENSE"
+
+  - display_name: "Excalibur"
+    key: Excalibur
+    effect: Damage_Per_Legendary_Skill
+    guid: 961f59f3b570f5468a9dab8ad7b3615f
+    rarity: Legendary
+    desc: "+10 DMG for each Legendary Talent you have"
+
+  - display_name: "Ring of Dispel"
+    key: RingOfDispel
+    effect: Dash_Apply_Vulnerable
+    guid: 751263af0189b843abfa6f4e6408ff37
+    rarity: Legendary
+    desc: "DASH applies VULNERABLE for 4 seconds to enemies hit"
+
+  - display_name: "Swan Cloak"
+    key: SwanCloak
+    effect: Dash_Heal_For_Damage_Taken
+    guid: b37898477ed664478b567385a87a5058
+    rarity: Legendary
+    desc: "DASH heals for +50% of damage taken over the last 2 second(s)"
+
+  - display_name: "Holy Grail"
+    key: HolyGrail
+    effect: Defense_Heal
+    guid: dafb421140180a4e8884b390d63d99a9
+    rarity: Legendary
+    desc: "When in combat, DEFENSE heals all nearby heroes for 10 health (Max. every 5 seconds. Amount scales with the current hero level)"
+
+  - display_name: "Tamatebako"
+    key: Tamatebako
+    effect: Extra_MO_Choice
+    guid: f2e753c833519141ba07ef6c6ced6fc2
+    rarity: Legendary
+    desc: "+2 Star(s) of Fate. Get +1 choice when obtaining Magical Objects"
+
+  - display_name: "Water of Life"
+    key: WaterOfLife
+    effect: Full_Heal_At_Day_Night
+    guid: d6a8eb949785e4419016a9087b54a052
+    rarity: Legendary
+    desc: "+25 VITALITY. Prevents lethal damage and restores all health instead (once per chapter)"
+
+  - display_name: "Vorpal Blade"
+    key: VorpalBlade
+    effect: Kill_Low_Life_Enemies
+    guid: cf7d88d6e39d0e488d0efbec81723360
+    rarity: Legendary
+    desc: "Any damage you deal kills standard enemies below 20% Health or elite enemies below 10% Health"
+
+  - display_name: "Father Time's Hourglass"
+    key: FatherTimesHourglass
+    effect: Reduce_All_Abilities_CD
+    guid: 6f72772e6a162948ba9cb6003d03cdfb
+    rarity: Legendary
+    desc: "Reduce POWER, SPECIAL, DEFENSE cooldowns by 20%"
+
+  - display_name: "Legacy Father Time's Hourglass"
+    key: LegacyFatherTimesHourglass
+    effect: Abilities_Cooldown_Reduction_Per_Missing_Health
+    guid: c84ebfbeef7bfc49918e30fd77d48fbd
+    rarity: Legendary
+
+  - display_name: "Nibelungen Ring"
+    key: NibelungenRing
+    effect: Ultimate_Gain_Charge
+    guid: e6a42a2d0a57124e89091ace191bfcd7
+    rarity: Legendary
+    desc: "ULTIMATE gains an extra charge"
+
+  - display_name: "Sun Crown"
+    key: SunCrown
+    effect: Upgrade_All_Talents_Once
+    guid: 2d7a53e367237840a875ac9cff3f81dd
+    rarity: Legendary
+    desc: "Improves the rarity of all Talents already learned and all future Talents once selected"
+
+  - display_name: "Philosopher's Stone"
+    key: PhilosophersStone
+    effect: Vitality_Per_Health_Globe
+    guid: 47db8829a3666e459b45aed07c03bdf2
+    rarity: Legendary
+    desc: "Gain +1 VITALITY each time you collect a Healing Orb"
+
+  - display_name: "Balor's Eye"
+    key: BalorsEye
+    effect: Charge_To_Damage
+    guid: 409b76ab14558c46bb75ce4e1dda5de6
+    rarity: Cursed
+    desc: "When picked up, remove all current and future charges of POWER and SPECIAL to make them deal +100% damage per charge removed"
+
+  - display_name: "Bloody Mary's Mirror"
+    key: BloodyMarysMirror
+    effect: Convert_Vitality_Into_AP
+    guid: 9b9330629cf3824e9505b99fb4a41d0a
+    rarity: Cursed
+    desc: "Gain +0.5 DMG per VITALITY point. VITALITY now only increases Maximum Health by 0.5% per point (from 1%)"
+
+  - display_name: "Nightmare Thorn"
+    key: NightmareThorn
+    effect: Curse_Increase_Power_Damage_And_Cooldown
+    guid: 0ee3457688ce694998377eb428f1b897
+    rarity: Cursed
+    desc: "POWER deals +100% damage but has a +50% increased cooldown"
+
+  - display_name: "Nightmare Ichor"
+    key: NightmareIchor
+    effect: Curse_Increase_Special_Damage_And_Cooldown
+    guid: fec9b2b87c78354eb9bb9ffcffc47c22
+    rarity: Cursed
+    desc: "SPECIAL deals +100% damage but has a +50% increased cooldown"
+
+  - display_name: "Black Lotus"
+    key: BlackLotus
+    effect: Curse_Life_On_Hit
+    guid: 8f27c45f0d0a714ea7ed58363affa0e1
+    rarity: Cursed
+    desc: "ATTACK gains +5% Lifesteal but Healing Orbs don't affect you anymore"
+
+  - display_name: "Mad Hat"
+    key: MadHat
+    effect: Curse_Lose_Life_Gain_Damage
+    guid: 6a78a088f3c2cc45b173115e15b9c4da
+    rarity: Cursed
+    desc: "+70 DMG but every 60 seconds, inflicts damage equal to 50% of maximum health"
+
+  - display_name: "Legacy Mad Hat"
+    key: LegacyMadHat
+    effect: Gain_Dream_Shards_On_Hit
+    guid: d9e99e9e0a92d5419f264b9836839ec7
+    rarity: Cursed
+
+  - display_name: "Devil's Pocket"
+    key: DevilsPocket
+    effect: Curse_Stack_Shard_Quest
+    guid: 60734f5d04b42d42af25a9c194fe3214
+    rarity: Cursed
+    desc: "50% of collected Dream Shards are absorbed until full (up to 400). Once full, increases crit chance by 50%"
+
+  - display_name: "Oni Mask"
+    key: OniMask
+    effect: Damage_Per_Cursed_Over_Legendary
+    guid: 5067318fd0d19f4e894474bd3268fb57
+    rarity: Cursed
+    desc: "+15 DMG for each Cursed Magical Object, -10 ARMOR for each Legendary Magical Object"
+
+  - display_name: "Witch's Broom"
+    key: WitchsBroom
+    effect: Dash_Intangible
+    guid: db75af84025c8f4fb7011fd480fe312f
+    rarity: Cursed
+    desc: "DASH makes the hero INTANGIBLE but any damage taken is increased by +15%"
+
+  - display_name: "Baba Yaga's Mortar"
+    key: BabaYagasMortar
+    effect: Destroy_Legendary_To_Damage
+    guid: a2ec4039eb665d41a491b20077ce2f5c
+    rarity: Cursed
+    desc: "All current and future Legendary Objects are destroyed and gain +50 DMG for each object destroyed this way"
+
+  - display_name: "Legacy Baba Yaga's Mortar"
+    key: LegacyBabaYagasMortar
+    effect: Curse_Baba_Yaga_Revive
+    guid: ac7fe9ce5861474daa1e877aeff84dbb
+    rarity: Cursed
+
+  - display_name: "Hope Diamond"
+    key: HopeDiamond
+    effect: Double_Shard
+    guid: d84f55cad16a3e4698083c49c52ed843
+    rarity: Cursed
+    desc: "Gain extra 50% the amount of collected Dream Shards but lose all Dream Shards at Death's Door"
+
+  - display_name: "Cauldron of Dyrnwch"
+    key: CauldronOfDyrnwch
+    effect: Increase_Vitality_Reduce_Crit_Chance
+    guid: 97f4dd3788635341ba2ff8d3b0afe1ef
+    rarity: Cursed
+    desc: "+60 VITALITY, all healing effects are reduced by 25%"
+
+  - display_name: "Fast-Walker Boots"
+    key: FastWalkerBoots
+    effect: Move_Speed_Reduced_Armor
+    guid: cda02fa0abe35e439cbc4f46fda83899
+    rarity: Cursed
+    desc: "+20% Move Speed, -10 ARMOR"
+
+  - display_name: "Hungry Grass"
+    key: HungryGrass
+    effect: Temp_Dmg_Per_Health_Globe
+    guid: 945579ba3af1654b8ac14d19b2cdc408
+    rarity: Cursed
+    desc: "Healing Orbs grant +1 DMG. Stacks are lost at Death's Door"
